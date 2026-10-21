@@ -69,3 +69,10 @@ def test_security_headers_on_static_and_api(client):
         assert "default-src 'self'" in headers["content-security-policy"]
         assert headers["x-content-type-options"] == "nosniff"
         assert headers["referrer-policy"] == "no-referrer"
+
+
+def test_options_list_priorities_without_contingency(client):
+    options = client.get("/api/options").json()
+    assert set(options) == {"wedding", "birthday", "community"}
+    assert {"key": "decor", "label": "Décor"} in options["birthday"]
+    assert all(o["key"] != "contingency" for event in options.values() for o in event)

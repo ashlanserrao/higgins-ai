@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from app.ai.ideas import IdeasGenerator
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
+from app.engine import rules
 from app.engine.planner import PlanInputError, build_plan
 from app.models import Plan, PlanRequest
 from app.security import SECURITY_HEADERS, RateLimiter
@@ -92,6 +93,19 @@ async def unexpected_error(_: Request, exc: Exception) -> JSONResponse:
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/options")
+def options() -> dict:
+    """Priority choices per event type, so the form never duplicates the rules tables."""
+    return {
+        event_type: [
+            {"key": key, "label": label}
+            for key, label in labels.items()
+            if key != "contingency"
+        ]
+        for event_type, labels in rules.CATEGORY_LABELS.items()
+    }
 
 
 @app.post("/api/plan", response_model=PlanResponse)
