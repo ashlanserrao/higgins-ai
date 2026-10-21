@@ -126,6 +126,14 @@ export class PlanForm {
     elements.preferences.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  /** Keep the form in step with the "what if" sliders. */
+  setNumbers(guests, budget) {
+    const { elements } = this.form;
+    elements.guests.value = guests;
+    elements.budget_inr.value = budget;
+    elements.budget_inr.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
   /** Show server validation errors next to their fields; focus the first one. */
   showErrors(message, fields) {
     this.clearErrors();

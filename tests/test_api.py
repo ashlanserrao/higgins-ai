@@ -4,7 +4,7 @@ from datetime import timedelta
 
 import pytest
 
-from app.main import rate_limiter
+from app.main import ideas_limiter, plan_limiter
 from tests.conftest import TODAY
 
 
@@ -56,11 +56,21 @@ def test_oversized_body_is_rejected(client, diwali_request):
     assert client.post("/api/plan", json=payload).status_code == 413
 
 
-def test_rate_limit(client, diwali_request):
+@pytest.mark.parametrize("path, limiter", [("/api/plan", plan_limiter), ("/api/ideas", ideas_limiter)])
+def test_rate_limit_per_endpoint(client, diwali_request, path, limiter, monkeypatch):
+    monkeypatch.setattr(limiter, "limit", 3)
     payload = as_json(diwali_request)
-    statuses = [client.post("/api/plan", json=payload).status_code for _ in range(rate_limiter.limit + 1)]
-    assert statuses[:-1] == [200] * rate_limiter.limit
+    statuses = [client.post(path, json=payload).status_code for _ in range(limiter.limit + 1)]
+    assert statuses[:-1] == [200] * limiter.limit
     assert statuses[-1] == 429
+
+
+def test_ai_limit_does_not_block_plans(client, diwali_request, monkeypatch):
+    monkeypatch.setattr(ideas_limiter, "limit", 3)
+    payload = as_json(diwali_request)
+    for _ in range(ideas_limiter.limit + 1):
+        client.post("/api/ideas", json=payload)
+    assert client.post("/api/plan", json=payload).status_code == 200
 
 
 def test_security_headers_on_static_and_api(client):

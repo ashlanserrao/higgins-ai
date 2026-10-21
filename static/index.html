@@ -86,7 +86,9 @@
         <p id="preferences-count" class="hint">0 / 500</p>
       </div>
 
-      <button type="submit" class="primary">Make my plan</button>
+      <button type="submit" class="primary" id="submit-button">
+        <span class="spinner" aria-hidden="true"></span><span class="label">Make my plan</span>
+      </button>
     </form>
 
     <p id="status" class="visually-hidden" role="status" aria-live="polite"></p>
@@ -97,6 +99,20 @@
         <p id="planned-on" class="hint"></p>
         <dl id="summary" class="summary"></dl>
         <ul id="warnings" class="warnings"></ul>
+        <div class="what-if no-print">
+          <h3>What if…</h3>
+          <p class="hint">Move the sliders to see how the budget changes. Your plan updates as you go.</p>
+          <div class="field">
+            <label for="wi-guests">Guests <output id="wi-guests-out" for="wi-guests"></output></label>
+            <input id="wi-guests" type="range">
+          </div>
+          <div class="field">
+            <label for="wi-budget">Budget <output id="wi-budget-out" for="wi-budget"></output></label>
+            <input id="wi-budget" type="range">
+          </div>
+          <p id="wi-note" class="field-error"></p>
+          <button type="button" id="wi-reset" hidden>Back to my numbers</button>
+        </div>
         <div class="actions no-print">
           <button type="button" id="share-button">Share plan</button>
           <button type="button" id="print-button">Download as PDF</button>
@@ -135,7 +151,7 @@
         <ol id="timeline" class="timeline"></ol>
       </div>
 
-      <div class="card">
+      <div class="card" id="ideas-card" aria-busy="false">
         <h2>Ideas for you</h2>
         <div id="ideas"></div>
         <p id="ideas-note" class="hint"></p>

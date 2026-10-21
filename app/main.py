@@ -24,15 +24,22 @@ logger = logging.getLogger(__name__)
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, openapi_url=None)
-rate_limiter = RateLimiter(settings.rate_limit_per_minute)
+# The rules-only plan is cheap and called on every "what if" change; AI calls are not.
+plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
+ideas_limiter = RateLimiter(settings.rate_limit_per_minute)
+RATE_LIMITERS = {"/api/plan": plan_limiter, "/api/ideas": ideas_limiter}
 ideas_generator = IdeasGenerator(settings)
 
 
 class PlanResponse(BaseModel):
     plan: Plan
+    # True when an API key is configured, so the page knows to fetch ideas next.
+    ai_available: bool
+
+
+class IdeasResponse(BaseModel):
+    # Null if this call failed; the page offers a retry while ai_available is true.
     ideas: EventIdeas | None
-    # True when an API key is configured. Ideas can still be null if this call failed,
-    # so the page can offer a retry.
     ai_available: bool
 
 
@@ -63,7 +70,11 @@ async def guard_requests(request: Request, call_next):
             response = _error(413, "Request is too large.")
         # Behind a proxy this is the real client IP only when uvicorn runs with
         # --proxy-headers --forwarded-allow-ips (see README > Deploying).
-        elif request.method == "POST" and not rate_limiter.allow(request.client.host if request.client else "unknown"):
+        elif (
+            request.method == "POST"
+            and (limiter := RATE_LIMITERS.get(request.url.path))
+            and not limiter.allow(request.client.host if request.client else "unknown")
+        ):
             response = _error(429, "Too many requests. Please wait a minute and try again.")
         else:
             response = await call_next(request)
@@ -119,9 +130,19 @@ def create_plan(
     today: date = Depends(today_in_india),
     generator: IdeasGenerator = Depends(get_ideas_generator),
 ) -> PlanResponse:
-    plan = build_plan(request, today)
-    ideas = generator.generate(request, plan) if request.include_ideas else None
-    return PlanResponse(plan=plan, ideas=ideas, ai_available=generator.available)
+    """Rules-only plan: returns in milliseconds so the page can show it immediately."""
+    return PlanResponse(plan=build_plan(request, today), ai_available=generator.available)
+
+
+@app.post("/api/ideas", response_model=IdeasResponse)
+def create_ideas(
+    request: PlanRequest,
+    today: date = Depends(today_in_india),
+    generator: IdeasGenerator = Depends(get_ideas_generator),
+) -> IdeasResponse:
+    """AI ideas for the same inputs, fetched after the plan is already on screen."""
+    ideas = generator.generate(request, build_plan(request, today))
+    return IdeasResponse(ideas=ideas, ai_available=generator.available)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

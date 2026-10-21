@@ -17,20 +17,17 @@ const LEVEL_LABELS = {
 };
 const IDEA_HEADINGS = { themes: "Themes", decor: "Décor", food: "Food & menu", entertainment: "Entertainment" };
 
-export function renderPlan(
-  { plan, ideas, ai_available: aiAvailable },
-  { plannedOn, checked, onToggle, ideasRequested },
-) {
+/** Render the rules-based plan. Ideas are rendered separately, when they arrive. */
+export function renderPlan(plan, { plannedOn, checked, onToggle }) {
   const total = plan.budget_lines.reduce((sum, line) => sum + line.amount_inr, 0);
   $("planned-on").textContent = plannedOn ? `Plan created on ${formatDate(plannedOn)}` : "";
 
   renderSummary(plan, total);
   $("warnings").replaceChildren(...plan.warnings.map((text) => el("li", text)));
   renderBudget(plan, total);
-  renderTriage(plan, ideas);
+  renderTriage(plan);
   renderChecklist($("checklist"), plan.checklist, checked, onToggle);
   renderTimeline(plan.timeline);
-  renderIdeas(ideas, aiAvailable, ideasRequested);
   $("results").hidden = false;
 }
 
@@ -68,14 +65,13 @@ function renderBudget(plan, total) {
   $("swaps-block").hidden = !plan.cost_saving_swaps.length;
 }
 
-function renderTriage(plan, ideas) {
+function renderTriage(plan) {
   $("triage-card").hidden = !plan.triage.active;
   if (!plan.triage.active) return;
   const urgent = plan.checklist.filter((item) => item.book_today);
   $("book-today").replaceChildren(...urgent.map((item) =>
     el("li", `${item.label}${item.essential ? " (essential)" : ""}`)));
   $("cuts").replaceChildren(...plan.triage.cut_suggestions.map((text) => el("li", text)));
-  $("triage-advice").textContent = ideas?.triage_advice || "";
 }
 
 function renderChecklist(list, items, checked, onToggle) {
@@ -103,22 +99,35 @@ function renderTimeline(entries) {
   }));
 }
 
-/** Render ideas, or explain why there are none and offer a (re)try when AI is configured. */
-function renderIdeas(ideas, aiAvailable, ideasRequested) {
+const IDEAS_NOTES = {
+  loading: "Generating ideas for your taste and budget…",
+  ready: "AI-generated suggestions. Check them against your budget.",
+  stale: "These ideas were made for your earlier numbers.",
+  failed: "We couldn't generate ideas this time. Your plan above is complete; you can try again.",
+  idle: "Want personalised theme, décor and food ideas? Generate them below.",
+  unavailable: "Personalised ideas aren't available on this server. Your plan above is complete without them.",
+};
+const IDEAS_BUTTONS = { stale: "Refresh ideas", failed: "Try again", idle: "Generate ideas" };
+
+/**
+ * Render the ideas card for one status: loading, ready, stale, failed, idle or unavailable.
+ * The AI's triage advice is shown only while the ideas match the current plan.
+ */
+export function renderIdeas({ ideas, status, error }) {
   const container = $("ideas");
   const button = $("ideas-button");
-  container.replaceChildren();
-  button.hidden = Boolean(ideas) || !aiAvailable;
-  button.textContent = ideasRequested ? "Try again" : "Generate ideas";
-  if (!ideas) {
-    $("ideas-note").textContent = !aiAvailable
-      ? "Personalised ideas aren't available on this server. Your plan above is complete without them."
-      : ideasRequested
-        ? "We couldn't generate ideas this time. Your plan above is complete; you can try again."
-        : "Want personalised theme, décor and food ideas? Generate them below.";
+  $("ideas-card").setAttribute("aria-busy", String(status === "loading"));
+  $("ideas-note").textContent = error || IDEAS_NOTES[status];
+  button.hidden = !IDEAS_BUTTONS[status];
+  button.textContent = IDEAS_BUTTONS[status] || "";
+  $("triage-advice").textContent = status === "ready" ? ideas?.triage_advice || "" : "";
+
+  if (status === "loading") {
+    container.replaceChildren(...Array.from({ length: 3 }, () => el("div", undefined, "skeleton")));
     return;
   }
-  $("ideas-note").textContent = "AI-generated suggestions. Check them against your budget.";
+  container.replaceChildren();
+  if (!ideas || !["ready", "stale"].includes(status)) return;
   for (const [category, heading] of Object.entries(IDEA_HEADINGS)) {
     const section = el("div", undefined, "idea-group");
     const list = el("ul");

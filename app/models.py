@@ -31,7 +31,6 @@ class PlanRequest(BaseModel):
     priorities: list[str] = Field(default_factory=list, max_length=3)
     households: int | None = Field(default=None, ge=1, le=10_000)
     preferences: str = Field(default="", max_length=500)
-    include_ideas: bool = True
 
     @field_validator("city")
     @classmethod

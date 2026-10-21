@@ -19,7 +19,10 @@ class Settings:
     # Only sent for reasoning models; leave empty for models like gpt-4o-mini.
     openai_reasoning_effort: str = os.getenv("OPENAI_REASONING_EFFORT", "minimal")
     ai_timeout_seconds: float = float(os.getenv("AI_TIMEOUT_SECONDS", "15"))
+    # AI idea requests per IP per minute.
     rate_limit_per_minute: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+    # Rules-only plan requests (including "what if" slider updates) per IP per minute.
+    plan_rate_limit_per_minute: int = int(os.getenv("PLAN_RATE_LIMIT_PER_MINUTE", "120"))
     max_body_bytes: int = 10_000
 
 

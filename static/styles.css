@@ -181,3 +181,41 @@ button:disabled { opacity: 0.6; cursor: progress; }
   .card { border: 1px solid #999; break-inside: avoid; }
   .bar-fill { background: #333; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
+
+/* Loading states */
+.spinner { display: none; }
+button[aria-busy="true"] .spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 8px;
+  vertical-align: -0.15em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.skeleton {
+  height: 56px;
+  margin: 10px 0;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--accent-soft) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  button[aria-busy="true"] .spinner, .skeleton { animation: none; }
+}
+
+/* What if */
+.what-if { margin-top: 16px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; }
+.what-if h3 { margin-top: 0; }
+.what-if label { display: flex; justify-content: space-between; gap: 8px; }
+.what-if output { font-weight: 700; color: var(--accent); }
+.what-if .field { margin-top: 12px; }
+input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+#wi-note:empty { display: none; }

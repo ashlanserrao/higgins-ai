@@ -22,17 +22,19 @@ VALID = {
 }
 
 
-def test_valid_ideas_are_attached_and_plan_is_unchanged(client, birthday_request):
+def test_ideas_endpoint_returns_ideas_and_plan_stays_rules_only(client, birthday_request):
     generator = make_generator(json.dumps(VALID))
     app.dependency_overrides[get_ideas_generator] = lambda: generator
     payload = birthday_request.model_dump(mode="json")
 
-    body = client.post("/api/plan", json=payload).json()
+    ideas = client.post("/api/ideas", json=payload).json()
+    assert ideas == {"ideas": VALID, "ai_available": True}
 
-    assert body["ai_available"] is True
-    assert body["ideas"]["themes"][0]["title"] == "Dino dig"
-    expected = build_plan(birthday_request, TODAY).model_dump(mode="json")
-    assert body["plan"] == expected
+    plan = client.post("/api/plan", json=payload).json()
+    assert plan == {
+        "plan": build_plan(birthday_request, TODAY).model_dump(mode="json"), "ai_available": True,
+    }
+    assert len(generator._client.responses.calls) == 1  # the plan never calls the AI
 
 
 @pytest.mark.parametrize("outcome", [
@@ -44,20 +46,20 @@ def test_valid_ideas_are_attached_and_plan_is_unchanged(client, birthday_request
 ])
 def test_ai_failures_fall_back_to_rules_plan(client, birthday_request, outcome):
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator(outcome)
-    response = client.post("/api/plan", json=birthday_request.model_dump(mode="json"))
+    response = client.post("/api/ideas", json=birthday_request.model_dump(mode="json"))
 
     assert response.status_code == 200
-    body = response.json()
     # AI is still configured, so the page offers a retry.
-    assert body["ideas"] is None and body["ai_available"] is True
-    assert body["plan"]["budget_status"] == "tight"
+    assert response.json() == {"ideas": None, "ai_available": True}
 
 
 def test_no_api_key_returns_full_plan(client, wedding_request, birthday_request, diwali_request):
     for request in (wedding_request, birthday_request, diwali_request):
-        body = client.post("/api/plan", json=request.model_dump(mode="json")).json()
-        assert body["ai_available"] is False and body["ideas"] is None
+        payload = request.model_dump(mode="json")
+        body = client.post("/api/plan", json=payload).json()
+        assert body["ai_available"] is False
         assert body["plan"]["budget_lines"] and body["plan"]["checklist"]
+        assert client.post("/api/ideas", json=payload).json() == {"ideas": None, "ai_available": False}
 
 
 def test_repeated_request_uses_cache(birthday_request):

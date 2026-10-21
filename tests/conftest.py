@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from app.ai.ideas import IdeasGenerator
 from app.config import Settings
-from app.main import app, get_ideas_generator, rate_limiter, today_in_india
+from app.main import RATE_LIMITERS, app, get_ideas_generator, today_in_india
 from app.models import PlanRequest
 
 TODAY = date(2026, 10, 21)
@@ -68,6 +68,7 @@ def client():
     """API client with a pinned date and no real OpenAI access."""
     app.dependency_overrides[today_in_india] = lambda: TODAY
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
-    rate_limiter.reset()
+    for limiter in RATE_LIMITERS.values():
+        limiter.reset()
     yield TestClient(app)
     app.dependency_overrides.clear()

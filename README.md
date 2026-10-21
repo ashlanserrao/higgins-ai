@@ -43,20 +43,22 @@ The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, to
 ## How the solution works
 
 ```
-Browser (form, localStorage, share links)
-   │  POST /api/plan
-   ▼
-FastAPI ── validate (Pydantic) ── rules engine (pure, today in Asia/Kolkata) ── plan
-   │                                                                          │
-   └── cache hit? ── OpenAI Structured Outputs (15 s timeout) ── Pydantic ────┘
-                        ↳ no key / timeout / invalid JSON → plan without ideas
+Browser (form, what-if sliders, localStorage, share links)
+   │ 1. POST /api/plan  (milliseconds)        │ 2. POST /api/ideas  (seconds, in background)
+   ▼                                          ▼
+validate (Pydantic) → rules engine     validate → rules engine → cache hit?
+(pure, today in Asia/Kolkata) → plan        → OpenAI Structured Outputs (15 s timeout) → Pydantic
+                                              ↳ no key / timeout / invalid JSON → ideas: null
 ```
 
-- **Backend:** Python + FastAPI. `POST /api/plan` returns `{plan, ideas, ai_available}`. `ai_available` means an API key is configured; if one AI call fails, `ideas` is null and the page offers "Try again". `GET /api/options` lists the priority choices, so the form never duplicates the rules. `GET /health` is a health check.
+The plan is on screen as soon as the rules engine returns. The ideas card shows a loading placeholder and fills in a few seconds later.
+
+- **Backend:** Python + FastAPI. `POST /api/plan` returns the rules-only `{plan, ai_available}` in milliseconds. `POST /api/ideas` takes the same inputs and returns `{ideas, ai_available}`. `ai_available` means an API key is configured; if one AI call fails, `ideas` is null and the page offers "Try again". `GET /api/options` lists the priority choices, so the form never duplicates the rules. `GET /health` is a health check.
 - **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. The model name comes from `.env`, so it can be swapped.
 - **Frontend (`static/`):** plain HTML/CSS/JS modules, no build step, no third-party scripts.
 - **No accounts, no database.** The latest plan and checklist ticks are kept in the browser's `localStorage`.
 - **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
+- **What if…:** guest and budget sliders (¼× to 2× her own numbers) re-run the rules engine as she drags, with no AI call, so "what if we invite 150 instead of 200?" is answered instantly. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
 - **Download as PDF:** a print stylesheet, so the browser's "Save as PDF" gives a clean document.
 
 ## Demo scenarios
@@ -122,7 +124,8 @@ Open http://127.0.0.1:8000. **No API key? It still works.** You get the full rul
 | `OPENAI_MODEL` | `gpt-5-nano` | Cheapest current OpenAI model with Structured Outputs |
 | `OPENAI_REASONING_EFFORT` | `minimal` | Keeps reasoning models fast. Leave empty for non-reasoning models |
 | `AI_TIMEOUT_SECONDS` | `15` | One attempt, no retries |
-| `RATE_LIMIT_PER_MINUTE` | `20` | Plan requests per IP per minute |
+| `RATE_LIMIT_PER_MINUTE` | `20` | AI idea requests per IP per minute |
+| `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including slider updates) per IP per minute |
 
 ## Deploying
 
@@ -141,10 +144,10 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-43 tests, offline and free (the OpenAI client is faked):
+45 tests, offline and free (the OpenAI client is faked):
 
 - **`test_engine.py`:** the three golden scenarios, the monsoon rule, the contingency floor with 3 priorities, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
-- **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting, security headers, options
+- **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options
 - **`test_ai.py`:** valid ideas are attached and leave the plan unchanged. Bad JSON, extra fields, over-long text, empty lists and timeouts all fall back to the rules plan. Also: no key, caching, triage advice dropped outside triage, preference fencing
 
 ## Security
@@ -154,12 +157,12 @@ pytest
 - **Prompt injection:** preferences are treated as untrusted data. Markup characters are stripped, the text is fenced in `<preferences>` tags, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
 - Everything (AI output, shared links) is rendered with `textContent`, never `innerHTML`. Shared ideas are checked for shape and size before display.
 - Security headers on every response: strict `Content-Security-Policy` (same-origin scripts and styles only), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
-- Per-IP rate limiting (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
+- Per-IP rate limiting, strict for the AI endpoint and looser for the cheap rules endpoint (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
 - No personal data is stored on the server.
 
 ## Efficiency
 
-- The rules engine runs in microseconds. Only the ideas need an AI call: one per plan, with no retries.
+- The rules engine runs in microseconds, so the plan appears immediately and the what-if sliders can re-run it freely (debounced, outdated responses discarded). Only the ideas need an AI call: one per plan, in the background, with no retries.
 - An in-memory LRU cache (1 hour) means a repeated plan doesn't repeat the AI call. A shared link restores ideas from the URL instead of calling the AI again.
 - The cheapest suitable model, minimal reasoning effort and capped output tokens.
 - No frontend framework, no build step, no external requests. The whole app is a few small static files.

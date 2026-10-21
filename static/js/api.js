@@ -21,11 +21,17 @@ async function request(path, options = {}) {
   return body;
 }
 
-export const fetchOptions = () => request("/api/options");
-
-export const requestPlan = (inputs, includeIdeas) =>
-  request("/api/plan", {
+const postJson = (path, inputs) =>
+  request(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...inputs, include_ideas: includeIdeas }),
+    body: JSON.stringify(inputs),
   });
+
+export const fetchOptions = () => request("/api/options");
+
+/** Rules-only plan: fast, safe to call on every "what if" change. */
+export const requestPlan = (inputs) => postJson("/api/plan", inputs);
+
+/** AI ideas for the same inputs: slow (seconds), fetched after the plan is shown. */
+export const requestIdeas = (inputs) => postJson("/api/ideas", inputs);
