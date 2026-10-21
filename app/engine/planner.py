@@ -25,7 +25,8 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
 
     budget_lines = split_budget(request)
     checklist = build_checklist(request, today)
-    book_today = [item.id for item in checklist if item.book_today]
+    book_today = [item.id for item in checklist if item.status == "book_today"]
+    tight_count = sum(item.status == "tight" for item in checklist)
     triage = Triage(
         active=bool(book_today),
         book_today=book_today,
@@ -46,8 +47,13 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
         )
     if triage.active:
         warnings.append(
-            f"Your event is {days_remaining} days away and {len(book_today)} bookings are "
-            f"past their ideal lead time. Book these today."
+            f"Your event is {days_remaining} days away. Less than half the usual lead time is "
+            f"left for {_bookings(len(book_today))}: book {_them(len(book_today))} today."
+        )
+    if tight_count:
+        warnings.append(
+            f"{_bookings(tight_count)} {'is' if tight_count == 1 else 'are'} inside the usual "
+            f"lead time but still doable: book {_them(tight_count)} this week."
         )
 
     return Plan(
@@ -72,6 +78,14 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
             else None
         ),
     )
+
+
+def _bookings(count: int) -> str:
+    return "1 booking" if count == 1 else f"{count} bookings"
+
+
+def _them(count: int) -> str:
+    return "it" if count == 1 else "them"
 
 
 def city_tier(city: str, override: int | None = None) -> int:
@@ -152,7 +166,16 @@ def _take_proportionally(splits: dict[str, float], points: float, protected: set
         splits[key] = value - points * value / pool
 
 
+def booking_status(days_remaining: int, lead_days: int) -> str:
+    if days_remaining >= lead_days:
+        return "on_track"
+    if days_remaining >= lead_days * rules.TIGHT_LEAD_FRACTION:
+        return "tight"
+    return "book_today"
+
+
 def build_checklist(request: PlanRequest, today: date) -> list[ChecklistItem]:
+    days_remaining = (request.event_date - today).days
     lead_times = dict(rules.LEAD_TIMES[request.event_type])
     if request.venue_type == "home":
         lead_times.pop("venue", None)
@@ -174,7 +197,7 @@ def build_checklist(request: PlanRequest, today: date) -> list[ChecklistItem]:
             label = "Book the venue (with in-house catering)"
         items.append(ChecklistItem(
             id=item_id, label=label, lead_days=lead, book_by=book_by,
-            book_today=book_by <= today, essential=item_id in rules.ESSENTIAL_ITEMS,
+            status=booking_status(days_remaining, lead), essential=item_id in rules.ESSENTIAL_ITEMS,
         ))
     return sorted(items, key=lambda item: (item.book_by, item.id))
 
@@ -182,18 +205,20 @@ def build_checklist(request: PlanRequest, today: date) -> list[ChecklistItem]:
 def build_timeline(
     request: PlanRequest, checklist: list[ChecklistItem], today: date
 ) -> list[TimelineEntry]:
-    """Bookings and milestones worked backward from the event date; overdue ones move to today."""
+    """Bookings and milestones worked backward from the event date; late ones move to today."""
+    booking_timeline_status = {"on_track": "on_track", "tight": "tight", "book_today": "overdue"}
     entries = [
         TimelineEntry(
             date=max(item.book_by, today), label=item.label, kind="booking",
-            overdue=item.book_by < today,
+            status=booking_timeline_status[item.status],
         )
         for item in checklist
     ]
     for days_before, label in rules.MILESTONES[request.event_type]:
         due = request.event_date - timedelta(days=days_before)
         entries.append(TimelineEntry(
-            date=max(due, today), label=label, kind="milestone", overdue=due < today,
+            date=max(due, today), label=label, kind="milestone",
+            status="overdue" if due < today else "on_track",
         ))
     entries.append(TimelineEntry(
         date=request.event_date, label=f"Your {rules.EVENT_LABELS[request.event_type]}",

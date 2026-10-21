@@ -123,6 +123,10 @@ VENDOR_LABELS: dict[str, str] = {
     "weather_backup": "Plan a monsoon weather backup (covered area, tarps, drainage)",
 }
 
+# Inside a vendor's lead time, a booking is "tight but doable" while at least this
+# fraction of the lead time is left, and "book today" below it.
+TIGHT_LEAD_FRACTION = 0.5
+
 # Essentials are flagged "book today" in triage but never suggested as cuts.
 ESSENTIAL_ITEMS = frozenset({"venue", "permissions", "caterer"})
 

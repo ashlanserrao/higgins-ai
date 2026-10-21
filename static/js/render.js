@@ -15,6 +15,16 @@ function el(tag, text, className) {
 const LEVEL_LABELS = {
   tight: "Tight", modest: "Modest", comfortable: "Comfortable", generous: "Generous",
 };
+// Status is always spelled out in text, never shown by colour alone.
+const BOOKING_CLASSES = { on_track: "", tight: "tight", book_today: "urgent" };
+const TIMELINE_NOTES = { on_track: "", tight: " (book this week)", overdue: " (overdue)" };
+
+function bookingWhen(item) {
+  if (item.status === "book_today") return "Book today";
+  if (item.status === "tight") return "Book this week";
+  return `Book by ${formatDate(item.book_by)}`;
+}
+
 const IDEA_HEADINGS = { themes: "Themes", decor: "Décor", food: "Food & menu", entertainment: "Entertainment" };
 
 /** Render the rules-based plan. Ideas are rendered separately, when they arrive. */
@@ -68,7 +78,7 @@ function renderBudget(plan, total) {
 function renderTriage(plan) {
   $("triage-card").hidden = !plan.triage.active;
   if (!plan.triage.active) return;
-  const urgent = plan.checklist.filter((item) => item.book_today);
+  const urgent = plan.checklist.filter((item) => item.status === "book_today");
   $("book-today").replaceChildren(...urgent.map((item) =>
     el("li", `${item.label}${item.essential ? " (essential)" : ""}`)));
   $("cuts").replaceChildren(...plan.triage.cut_suggestions.map((text) => el("li", text)));
@@ -76,14 +86,13 @@ function renderTriage(plan) {
 
 function renderChecklist(list, items, checked, onToggle) {
   list.replaceChildren(...items.map((item) => {
-    const row = el("li", undefined, item.book_today ? "urgent" : "");
+    const row = el("li", undefined, BOOKING_CLASSES[item.status]);
     const label = el("label");
     const box = Object.assign(document.createElement("input"), {
       type: "checkbox", checked: checked.has(item.id),
     });
     box.addEventListener("change", () => onToggle(item.id, box.checked));
-    const when = item.book_today ? "Book today" : `Book by ${formatDate(item.book_by)}`;
-    label.append(box, ` ${item.label} `, el("span", when, "when"));
+    label.append(box, ` ${item.label} `, el("span", bookingWhen(item), "when"));
     row.append(label);
     return row;
   }));
@@ -91,10 +100,10 @@ function renderChecklist(list, items, checked, onToggle) {
 
 function renderTimeline(entries) {
   $("timeline").replaceChildren(...entries.map((entry) => {
-    const item = el("li", undefined, `timeline-${entry.kind}${entry.overdue ? " overdue" : ""}`);
+    const item = el("li", undefined, `timeline-${entry.kind} ${entry.status}`);
     const time = el("time", formatDate(entry.date));
     time.dateTime = entry.date;
-    item.append(time, el("span", entry.overdue ? `${entry.label} (overdue)` : entry.label));
+    item.append(time, el("span", `${entry.label}${TIMELINE_NOTES[entry.status]}`));
     return item;
   }));
 }

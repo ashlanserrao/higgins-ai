@@ -55,17 +55,40 @@ def test_golden_diwali_triage(diwali_request):
     plan = build_plan(diwali_request, TODAY)
 
     assert plan.days_remaining == 18
-    assert plan.triage.active
-    assert set(plan.triage.book_today) == {"venue", "permissions", "performers", "sound", "caterer"}
-    # Essentials (venue, permissions, caterer) are booked, never cut.
-    assert set(plan.triage.cut_suggestions) == {
-        rules.CUT_ALTERNATIVES["performers"], rules.CUT_ALTERNATIVES["sound"],
+    statuses = {item.id: item.status for item in plan.checklist}
+    # Venue (45-day lead) has less than half its lead time left; 21-30-day leads are tight.
+    assert plan.triage.active and plan.triage.book_today == ["venue"]
+    assert {k for k, v in statuses.items() if v == "tight"} == {
+        "permissions", "performers", "sound", "caterer",
     }
+    assert statuses["security"] == statuses["tent"] == "on_track"
+    assert plan.triage.cut_suggestions == []  # the venue is essential: booked, never cut
     assert plan.per_flat_inr == 1250
     assert "tent" in lines_by_key(plan)
     ids = {item.id for item in plan.checklist}
     assert "weather_backup" not in ids  # November is outside the monsoon
     assert plan.budget_status == "ok"  # ₹300/guest is above the ₹250 metro floor
+
+
+def test_wedding_five_months_out_is_tight_not_triage():
+    request = PlanRequest(
+        event_type="wedding", event_date=TODAY + timedelta(days=150), guests=200,
+        budget_inr=2_000_000, city="Pune",
+    )
+    plan = build_plan(request, TODAY)
+    statuses = {item.id: item.status for item in plan.checklist}
+    assert not plan.triage.active
+    assert {k for k, v in statuses.items() if v == "tight"} == {"venue", "photographer", "caterer"}
+    assert "3 bookings are inside the usual lead time" in plan.warnings[0]
+
+
+def test_late_cut_suggestions_skip_essentials(diwali_request):
+    nine_days = diwali_request.model_copy(update={"event_date": TODAY + timedelta(days=9)})
+    plan = build_plan(nine_days, TODAY)
+    assert {"venue", "permissions", "performers", "sound", "caterer"} <= set(plan.triage.book_today)
+    assert set(plan.triage.cut_suggestions) == {
+        rules.CUT_ALTERNATIVES["performers"], rules.CUT_ALTERNATIVES["sound"],
+    }
 
 
 def test_monsoon_outdoor_event_gets_weather_backup(diwali_request):

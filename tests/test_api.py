@@ -21,9 +21,7 @@ def test_diwali_plan_over_http(client, diwali_request):
     assert response.status_code == 200
     body = response.json()
     assert body["ai_available"] is False
-    assert set(body["plan"]["triage"]["book_today"]) == {
-        "venue", "permissions", "performers", "sound", "caterer",
-    }
+    assert body["plan"]["triage"]["book_today"] == ["venue"]
 
 
 def test_past_date_gives_clean_error(client, diwali_request):

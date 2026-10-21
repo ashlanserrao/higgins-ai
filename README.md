@@ -37,7 +37,7 @@ The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, to
 5. **Too-tight check.** Budget per guest is compared with a minimum per guest (metro: wedding ₹1,500, birthday ₹500, community ₹250), scaled by city size (metro ×1.0, tier-2 ×0.8, smaller town ×0.65). Below the floor, the plan warns and suggests cost-saving swaps.
 6. **Budget level.** Budget per guest ÷ floor gives *tight* (< 1), *modest* (< 2), *comfortable* (< 4) or *generous* (≥ 4). This tells the AI how ambitious its ideas may be.
 7. **Timeline.** Every vendor has an ideal lead time. Book-by date = event date − lead time. **Peak wedding season (Nov–Feb)** adds 60 days to the venue and photographer.
-8. **Triage.** If a book-by date is today or already past, that vendor becomes **"Book today"** and the plan switches to triage. Essentials (venue, permissions, caterer) are flagged, never cut. Other late items get a cheaper alternative (e.g. hired performers → resident talent).
+8. **Triage in three stages.** Each booking is **on track** (the full lead time is left), **tight but doable** (inside the lead time, but at least half of it left: "Book this week"), or **book today** (less than half left). Only "book today" items switch the plan into triage, so a wedding planned 5 months ahead reads as tight, not as an emergency. Essentials (venue, permissions, caterer) are flagged, never cut. Other "book today" items get a cheaper alternative (e.g. hired performers → resident talent).
 9. **Community events.** If the number of households is given, the plan shows a per-flat contribution (budget ÷ households), which is how committees actually raise money.
 
 ## How the solution works
@@ -97,11 +97,14 @@ Bengaluru · outdoor · 500 attendees · 120 households · ₹1,50,000 · 8 Nov 
 
 **18 days to go · ₹300 per guest (above the ₹250 floor) · per-flat contribution ₹1,250**
 
-> ⚠ Your event is 18 days away and 5 bookings are past their ideal lead time. Book these today.
+> ⚠ Your event is 18 days away. Less than half the usual lead time is left for 1 booking: book it today.
+>
+> ⚠ 4 bookings are inside the usual lead time but still doable: book them this week.
 
-- **Book today:** venue, permissions, performers, sound & lighting, caterer
-- **Still on time:** security & first aid, tent (by 25 Oct 2026)
-- **Cut or swap:** resident talent instead of hired performers, a basic PA package instead of full stage lighting. The essentials (venue, permissions, caterer) are never suggested as cuts.
+- **Book today:** venue (45-day lead time, only 18 days left)
+- **Book this week:** permissions, performers, sound & lighting, caterer (21–30-day lead times, at least half left)
+- **On track:** security & first aid, tent (by 25 Oct 2026)
+- **Cut or swap:** none, because the venue is an essential and is never suggested as a cut. Nine days out, performers and sound would also be "book today", and the plan would suggest resident talent and a basic PA package instead.
 - A "Tent & weather backup" line is added (outdoor). There's **no** monsoon task, because November is outside June–September.
 
 ## Running it

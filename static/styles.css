@@ -165,12 +165,14 @@ button:disabled { opacity: 0.6; cursor: progress; }
 .checklist label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-weight: 500; }
 .checklist .when { color: var(--muted); font-size: 0.9rem; }
 .checklist .urgent .when { color: var(--danger); font-weight: 700; }
+.checklist .tight .when { color: var(--warn-text); font-weight: 700; }
 
 .timeline { list-style: none; padding: 0; margin: 0; border-left: 3px solid var(--accent-soft); }
 .timeline li { display: flex; flex-direction: column; padding: 6px 0 6px 14px; }
 .timeline time { font-size: 0.85rem; color: var(--muted); }
 .timeline .timeline-event { font-weight: 700; }
 .timeline .overdue span { color: var(--danger); }
+.timeline .tight span { color: var(--warn-text); }
 
 .idea-group ul { padding-left: 20px; margin: 0; }
 .idea-group li { margin: 6px 0; }

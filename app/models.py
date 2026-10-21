@@ -11,6 +11,9 @@ EventType = Literal["wedding", "birthday", "community"]
 VenueType = Literal["venue", "home", "outdoor"]
 BudgetStatus = Literal["ok", "tight"]
 BudgetLevel = Literal["tight", "modest", "comfortable", "generous"]
+# on_track: full lead time left; tight: inside the lead time but at least half of it left;
+# book_today: less than half left.
+BookingStatus = Literal["on_track", "tight", "book_today"]
 
 _CITY_EXTRA_CHARS = set(" .-'")
 
@@ -64,7 +67,7 @@ class ChecklistItem(BaseModel):
     label: str
     lead_days: int
     book_by: date
-    book_today: bool
+    status: BookingStatus
     essential: bool
 
 
@@ -72,7 +75,7 @@ class TimelineEntry(BaseModel):
     date: date
     label: str
     kind: Literal["booking", "milestone", "event"]
-    overdue: bool = False
+    status: Literal["on_track", "tight", "overdue"] = "on_track"
 
 
 class Triage(BaseModel):
