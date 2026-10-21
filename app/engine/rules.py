@@ -77,7 +77,7 @@ METRO_CITIES = frozenset({
 })
 
 # Budget per guest ÷ floor → budget level passed to the AI. Ratios at or above the last
-# threshold are "premium".
+# threshold are "generous".
 BUDGET_LEVEL_THRESHOLDS: tuple[tuple[float, str], ...] = (
     (1, "tight"), (2, "modest"), (4, "comfortable"),
 )

@@ -13,11 +13,14 @@ function el(tag, text, className) {
 }
 
 const LEVEL_LABELS = {
-  tight: "Tight", modest: "Modest", comfortable: "Comfortable", premium: "Generous",
+  tight: "Tight", modest: "Modest", comfortable: "Comfortable", generous: "Generous",
 };
 const IDEA_HEADINGS = { themes: "Themes", decor: "Décor", food: "Food & menu", entertainment: "Entertainment" };
 
-export function renderPlan({ plan, ideas, ai_available: aiAvailable }, { plannedOn, checked, onToggle }) {
+export function renderPlan(
+  { plan, ideas, ai_available: aiAvailable },
+  { plannedOn, checked, onToggle, ideasRequested },
+) {
   const total = plan.budget_lines.reduce((sum, line) => sum + line.amount_inr, 0);
   $("planned-on").textContent = plannedOn ? `Plan created on ${formatDate(plannedOn)}` : "";
 
@@ -27,7 +30,7 @@ export function renderPlan({ plan, ideas, ai_available: aiAvailable }, { planned
   renderTriage(plan, ideas);
   renderChecklist($("checklist"), plan.checklist, checked, onToggle);
   renderTimeline(plan.timeline);
-  renderIdeas(ideas, aiAvailable);
+  renderIdeas(ideas, aiAvailable, ideasRequested);
   $("results").hidden = false;
 }
 
@@ -100,14 +103,19 @@ function renderTimeline(entries) {
   }));
 }
 
-function renderIdeas(ideas, aiAvailable) {
+/** Render ideas, or explain why there are none and offer a (re)try when AI is configured. */
+function renderIdeas(ideas, aiAvailable, ideasRequested) {
   const container = $("ideas");
+  const button = $("ideas-button");
   container.replaceChildren();
-  $("ideas-button").hidden = Boolean(ideas) || !aiAvailable;
+  button.hidden = Boolean(ideas) || !aiAvailable;
+  button.textContent = ideasRequested ? "Try again" : "Generate ideas";
   if (!ideas) {
-    $("ideas-note").textContent = aiAvailable
-      ? "Want personalised theme, décor and food ideas? Generate them below."
-      : "Personalised ideas aren't available right now. Your plan above is complete without them.";
+    $("ideas-note").textContent = !aiAvailable
+      ? "Personalised ideas aren't available on this server. Your plan above is complete without them."
+      : ideasRequested
+        ? "We couldn't generate ideas this time. Your plan above is complete; you can try again."
+        : "Want personalised theme, décor and food ideas? Generate them below.";
     return;
   }
   $("ideas-note").textContent = "AI-generated suggestions. Check them against your budget.";

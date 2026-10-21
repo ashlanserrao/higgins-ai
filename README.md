@@ -52,7 +52,7 @@ FastAPI ── validate (Pydantic) ── rules engine (pure, today in Asia/Kolk
                         ↳ no key / timeout / invalid JSON → plan without ideas
 ```
 
-- **Backend:** Python + FastAPI. `POST /api/plan` returns `{plan, ideas, ai_available}`. `GET /api/options` lists the priority choices, so the form never duplicates the rules. `GET /health` is a health check.
+- **Backend:** Python + FastAPI. `POST /api/plan` returns `{plan, ideas, ai_available}`. `ai_available` means an API key is configured; if one AI call fails, `ideas` is null and the page offers "Try again". `GET /api/options` lists the priority choices, so the form never duplicates the rules. `GET /health` is a health check.
 - **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. The model name comes from `.env`, so it can be swapped.
 - **Frontend (`static/`):** plain HTML/CSS/JS modules, no build step, no third-party scripts.
 - **No accounts, no database.** The latest plan and checklist ticks are kept in the browser's `localStorage`.
@@ -124,6 +124,16 @@ Open http://127.0.0.1:8000. **No API key? It still works.** You get the full rul
 | `AI_TIMEOUT_SECONDS` | `15` | One attempt, no retries |
 | `RATE_LIMIT_PER_MINUTE` | `20` | Plan requests per IP per minute |
 
+## Deploying
+
+Behind a hosting proxy (Render, Cloud Run, a load balancer), tell uvicorn to trust the proxy's `X-Forwarded-For` header. Otherwise every visitor shares the proxy's IP and the per-IP rate limit applies to everyone together:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+```
+
+Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. Set `OPENAI_API_KEY` as a platform secret, not in a committed file.
+
 ## Testing
 
 ```bash
@@ -131,20 +141,20 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-38 tests, offline and free (the OpenAI client is faked):
+43 tests, offline and free (the OpenAI client is faked):
 
 - **`test_engine.py`:** the three golden scenarios, the monsoon rule, the contingency floor with 3 priorities, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
-- **`test_api.py`:** the plan over HTTP, clean 422 errors that don't echo input, 413 for oversized bodies, 429 rate limiting, security headers, options
+- **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting, security headers, options
 - **`test_ai.py`:** valid ideas are attached and leave the plan unchanged. Bad JSON, extra fields, over-long text, empty lists and timeouts all fall back to the rules plan. Also: no key, caching, triage advice dropped outside triage, preference fencing
 
 ## Security
 
 - The OpenAI key lives only in the server's `.env` (git-ignored). The browser never calls OpenAI.
-- Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 10 KB request cap.
+- Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 10 KB request cap. API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
 - **Prompt injection:** preferences are treated as untrusted data. Markup characters are stripped, the text is fenced in `<preferences>` tags, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
 - Everything (AI output, shared links) is rendered with `textContent`, never `innerHTML`. Shared ideas are checked for shape and size before display.
 - Security headers on every response: strict `Content-Security-Policy` (same-origin scripts and styles only), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
-- Per-IP rate limiting. Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
+- Per-IP rate limiting (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
 - No personal data is stored on the server.
 
 ## Efficiency

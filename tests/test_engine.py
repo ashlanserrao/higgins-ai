@@ -22,7 +22,7 @@ def test_golden_wedding_happy_path(wedding_request):
 
     assert plan.days_remaining == 417
     assert plan.per_guest_inr == 6000
-    assert plan.budget_status == "ok" and plan.warnings == []
+    assert plan.budget_status == "ok" and plan.budget_level == "generous" and plan.warnings == []
     assert "venue" not in lines and "food" not in lines
     assert lines["venue_food"].percent == 55 and lines["venue_food"].boosted
     assert lines["photography"].percent == 15 and lines["photography"].boosted

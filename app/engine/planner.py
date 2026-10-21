@@ -86,7 +86,7 @@ def budget_level(per_guest: int, floor: int) -> str:
     for threshold, level in rules.BUDGET_LEVEL_THRESHOLDS:
         if ratio < threshold:
             return level
-    return "premium"
+    return "generous"
 
 
 def split_budget(request: PlanRequest) -> list[BudgetLine]:

@@ -14,6 +14,7 @@ from app.ai.ideas import IdeasGenerator
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine import rules
+from app.errors import friendly_message
 from app.engine.planner import PlanInputError, build_plan
 from app.models import Plan, PlanRequest
 from app.security import SECURITY_HEADERS, RateLimiter
@@ -30,7 +31,8 @@ ideas_generator = IdeasGenerator(settings)
 class PlanResponse(BaseModel):
     plan: Plan
     ideas: EventIdeas | None
-    # False when no API key is configured or this request's AI call failed.
+    # True when an API key is configured. Ideas can still be null if this call failed,
+    # so the page can offer a retry.
     ai_available: bool
 
 
@@ -54,8 +56,13 @@ def _error(status: int, message: str, fields: list[dict] | None = None) -> JSONR
 async def guard_requests(request: Request, call_next):
     if request.url.path.startswith("/api/"):
         content_length = request.headers.get("content-length")
-        if content_length and (not content_length.isdigit() or int(content_length) > settings.max_body_bytes):
+        if request.method == "POST" and not content_length:
+            # Requiring a declared length stops chunked bodies from bypassing the size cap.
+            response = _error(411, "Request must include a Content-Length header.")
+        elif content_length and (not content_length.isdigit() or int(content_length) > settings.max_body_bytes):
             response = _error(413, "Request is too large.")
+        # Behind a proxy this is the real client IP only when uvicorn runs with
+        # --proxy-headers --forwarded-allow-ips (see README > Deploying).
         elif request.method == "POST" and not rate_limiter.allow(request.client.host if request.client else "unknown"):
             response = _error(429, "Too many requests. Please wait a minute and try again.")
         else:
@@ -68,14 +75,12 @@ async def guard_requests(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-    # Report which field is wrong and why, without echoing the submitted values back.
-    fields = [
-        {
-            "field": ".".join(str(part) for part in err["loc"] if part != "body") or "body",
-            "message": err["msg"].removeprefix("Value error, "),
-        }
-        for err in exc.errors()
-    ]
+    # Report which field is wrong in plain language, without echoing the submitted values back.
+    fields = []
+    for err in exc.errors():
+        parts = [str(part) for part in err["loc"] if part != "body"]
+        field = parts[0] if parts else "body"
+        fields.append({"field": field, "message": friendly_message(field, err)})
     return _error(422, "Please check the highlighted fields.", fields)
 
 
@@ -116,8 +121,7 @@ def create_plan(
 ) -> PlanResponse:
     plan = build_plan(request, today)
     ideas = generator.generate(request, plan) if request.include_ideas else None
-    ai_available = generator.available and (ideas is not None or not request.include_ideas)
-    return PlanResponse(plan=plan, ideas=ideas, ai_available=ai_available)
+    return PlanResponse(plan=plan, ideas=ideas, ai_available=generator.available)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

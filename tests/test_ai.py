@@ -48,7 +48,8 @@ def test_ai_failures_fall_back_to_rules_plan(client, birthday_request, outcome):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["ideas"] is None and body["ai_available"] is False
+    # AI is still configured, so the page offers a retry.
+    assert body["ideas"] is None and body["ai_available"] is True
     assert body["plan"]["budget_status"] == "tight"
 
 

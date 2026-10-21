@@ -76,3 +76,21 @@ def test_options_list_priorities_without_contingency(client):
     assert set(options) == {"wedding", "birthday", "community"}
     assert {"key": "decor", "label": "Décor"} in options["birthday"]
     assert all(o["key"] != "contingency" for event in options.values() for o in event)
+
+
+@pytest.mark.parametrize("change, field, message", [
+    ({"event_date": ""}, "event_date", "Please enter the event date."),
+    ({"guests": 0}, "guests", "The number of guests must be at least 1."),
+    ({"budget_inr": 500}, "budget_inr", "The budget must be at least ₹1,000."),
+    ({"preferences": "x" * 501}, "preferences", "Please keep the preferences under 500 characters."),
+])
+def test_validation_messages_are_plain_language(client, diwali_request, change, field, message):
+    response = client.post("/api/plan", json=as_json(diwali_request) | change)
+    assert {"field": field, "message": message} in response.json()["fields"]
+
+
+def test_chunked_body_without_length_is_rejected(client):
+    response = client.post(
+        "/api/plan", content=iter([b"{}"]), headers={"Content-Type": "application/json"},
+    )
+    assert response.status_code == 411

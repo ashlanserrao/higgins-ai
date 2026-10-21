@@ -10,7 +10,7 @@ from app.engine.rules import BASE_SPLITS
 EventType = Literal["wedding", "birthday", "community"]
 VenueType = Literal["venue", "home", "outdoor"]
 BudgetStatus = Literal["ok", "tight"]
-BudgetLevel = Literal["tight", "modest", "comfortable", "premium"]
+BudgetLevel = Literal["tight", "modest", "comfortable", "generous"]
 
 _CITY_EXTRA_CHARS = set(" .-'")
 

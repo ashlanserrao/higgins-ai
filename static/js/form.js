@@ -3,6 +3,7 @@
 import { inrShort, todayInIndia } from "./format.js";
 
 const MAX_PRIORITIES = 3;
+const MERGED_VENUE_FOOD_LABEL = "Venue & catering";
 
 export class PlanForm {
   constructor(form, priorityOptions) {
@@ -20,10 +21,35 @@ export class PlanForm {
     return this.form.elements.event_type.value;
   }
 
+  get cateringMerged() {
+    const { elements } = this.form;
+    return elements.venue_type.value !== "home" && elements.venue_includes_catering.checked;
+  }
+
   onChange(event) {
-    if (event.target.name === "event_type") this.renderPriorities([]);
-    if (event.target.name === "priority") this.limitPriorities();
+    const { name } = event.target;
     this.syncVisibility();
+    if (name === "event_type") this.renderPriorities([]);
+    if (name === "venue_type" || name === "venue_includes_catering") this.renderPriorities(this.selectedPriorities());
+    if (name === "priority") this.limitPriorities();
+  }
+
+  selectedPriorities() {
+    return [...this.form.querySelectorAll('input[name="priority"]:checked')].map((box) => box.value);
+  }
+
+  /**
+   * Priorities that match the plan's budget lines: no venue at home, and one
+   * "Venue & catering" choice when the venue includes catering.
+   */
+  availablePriorities() {
+    const atHome = this.form.elements.venue_type.value === "home";
+    const merged = this.cateringMerged;
+    return this.priorityOptions[this.eventType].flatMap((option) => {
+      if (option.key === "venue") return atHome || merged ? [] : [option];
+      if (option.key === "food" && merged) return [{ key: "food", label: MERGED_VENUE_FOOD_LABEL }];
+      return [option];
+    });
   }
 
   onInput(event) {
@@ -38,11 +64,13 @@ export class PlanForm {
   }
 
   renderPriorities(selected) {
+    // A "venue" pick carries over to the merged venue & catering line.
+    const wanted = new Set(selected.map((key) => (key === "venue" && this.cateringMerged ? "food" : key)));
     const container = this.form.querySelector("#priorities");
-    container.replaceChildren(...this.priorityOptions[this.eventType].map(({ key, label }) => {
+    container.replaceChildren(...this.availablePriorities().map(({ key, label }) => {
       const wrapper = document.createElement("label");
       const box = Object.assign(document.createElement("input"), {
-        type: "checkbox", name: "priority", value: key, checked: selected.includes(key),
+        type: "checkbox", name: "priority", value: key, checked: wanted.has(key),
       });
       wrapper.append(box, ` ${label}`);
       return wrapper;
@@ -77,7 +105,7 @@ export class PlanForm {
       city_tier: optionalNumber(elements.city_tier),
       venue_type: elements.venue_type.value,
       venue_includes_catering: elements.venue_includes_catering.checked,
-      priorities: [...this.form.querySelectorAll('input[name="priority"]:checked')].map((box) => box.value),
+      priorities: this.selectedPriorities(),
       households: this.eventType === "community" ? optionalNumber(elements.households) : null,
       preferences: elements.preferences.value.trim(),
     };

@@ -18,7 +18,9 @@ const storage = {
   },
 };
 
-const state = { inputs: null, response: null, plannedOn: null, checked: new Set(), shared: false };
+const state = {
+  inputs: null, response: null, plannedOn: null, checked: new Set(), shared: false, ideasRequested: false,
+};
 let planForm;
 
 const $ = (id) => document.getElementById(id);
@@ -36,6 +38,7 @@ function show({ focus = true } = {}) {
   renderPlan(state.response, {
     plannedOn: state.plannedOn,
     checked: state.checked,
+    ideasRequested: state.ideasRequested,
     onToggle(id, isChecked) {
       if (isChecked) state.checked.add(id); else state.checked.delete(id);
       persist();
@@ -53,6 +56,13 @@ async function loadPlan(inputs, { includeIdeas, keepIdeas = null }) {
   if (!response.ideas && keepIdeas) response.ideas = keepIdeas;
   state.inputs = inputs;
   state.response = response;
+  state.ideasRequested = includeIdeas;
+}
+
+/** Errors outside the form (e.g. an expired share link) must be visible, not just announced. */
+function showPageError(error) {
+  planForm.showErrors(error.message, error.fields || []);
+  announce(error.message);
 }
 
 async function onSubmit(event) {
@@ -70,8 +80,7 @@ async function onSubmit(event) {
     persist();
     show();
   } catch (error) {
-    planForm.showErrors(error.message, error.fields || []);
-    announce(error.message);
+    showPageError(error);
   } finally {
     button.disabled = false;
   }
@@ -84,8 +93,9 @@ async function onGenerateIdeas(event) {
     await loadPlan(state.inputs, { includeIdeas: true });
     persist();
     show({ focus: false });
-    if (!state.response.ideas) announce("Ideas aren't available right now. Please try again later.");
+    if (!state.response.ideas) announce("We couldn't generate ideas this time. You can try again.");
   } catch (error) {
+    $("ideas-note").textContent = error.message;
     announce(error.message);
   } finally {
     event.target.disabled = false;
@@ -119,7 +129,13 @@ async function restore() {
     state.plannedOn = shared.plannedOn;
     planForm.fill(shared.inputs);
     // Recalculate against today's date; ideas come from the link, not a new AI call.
-    await loadPlan(shared.inputs, { includeIdeas: false, keepIdeas: await readSharedIdeas() });
+    try {
+      await loadPlan(shared.inputs, { includeIdeas: false, keepIdeas: await readSharedIdeas() });
+    } catch (error) {
+      error.message = `This shared plan can't be shown: ${error.message} Change the details below to make a new plan.`;
+      showPageError(error);
+      return;
+    }
     show({ focus: false });
     return;
   }
@@ -152,7 +168,7 @@ async function init() {
   $("ideas-button").addEventListener("click", onGenerateIdeas);
   $("share-button").addEventListener("click", onShare);
   $("print-button").addEventListener("click", () => window.print());
-  await restore().catch((error) => announce(error.message));
+  await restore().catch(showPageError);
 }
 
 init();
