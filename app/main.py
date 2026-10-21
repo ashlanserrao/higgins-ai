@@ -10,6 +10,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from app.ai.ideas import IdeasGenerator
+from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine.planner import PlanInputError, build_plan
 from app.models import Plan, PlanRequest
@@ -21,16 +23,23 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, openapi_url=None)
 rate_limiter = RateLimiter(settings.rate_limit_per_minute)
+ideas_generator = IdeasGenerator(settings)
 
 
 class PlanResponse(BaseModel):
     plan: Plan
+    ideas: EventIdeas | None
+    # False when no API key is configured or this request's AI call failed.
     ai_available: bool
 
 
 def today_in_india() -> date:
     """Plans count days in India time, so a late-night plan doesn't shift by a day."""
     return datetime.now(IST).date()
+
+
+def get_ideas_generator() -> IdeasGenerator:
+    return ideas_generator
 
 
 def _error(status: int, message: str, fields: list[dict] | None = None) -> JSONResponse:
@@ -86,9 +95,15 @@ def health() -> dict:
 
 
 @app.post("/api/plan", response_model=PlanResponse)
-def create_plan(request: PlanRequest, today: date = Depends(today_in_india)) -> PlanResponse:
+def create_plan(
+    request: PlanRequest,
+    today: date = Depends(today_in_india),
+    generator: IdeasGenerator = Depends(get_ideas_generator),
+) -> PlanResponse:
     plan = build_plan(request, today)
-    return PlanResponse(plan=plan, ai_available=False)
+    ideas = generator.generate(request, plan) if request.include_ideas else None
+    ai_available = generator.available and (ideas is not None or not request.include_ideas)
+    return PlanResponse(plan=plan, ideas=ideas, ai_available=ai_available)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

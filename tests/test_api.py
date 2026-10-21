@@ -3,18 +3,9 @@
 from datetime import timedelta
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app, rate_limiter, today_in_india
+from app.main import rate_limiter
 from tests.conftest import TODAY
-
-
-@pytest.fixture
-def client():
-    app.dependency_overrides[today_in_india] = lambda: TODAY
-    rate_limiter.reset()
-    yield TestClient(app)
-    app.dependency_overrides.clear()
 
 
 def as_json(request) -> dict:

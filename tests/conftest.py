@@ -1,7 +1,12 @@
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
+from fastapi.testclient import TestClient
 
+from app.ai.ideas import IdeasGenerator
+from app.config import Settings
+from app.main import app, get_ideas_generator, rate_limiter, today_in_india
 from app.models import PlanRequest
 
 TODAY = date(2026, 10, 21)
@@ -31,3 +36,38 @@ def diwali_request() -> PlanRequest:
         event_type="community", event_date=date(2026, 11, 8), guests=500, budget_inr=150_000,
         city="Bengaluru", venue_type="outdoor", households=120,
     )
+
+
+class FakeResponses:
+    def __init__(self, outcome):
+        self.outcome = outcome
+        self.calls = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        if isinstance(self.outcome, Exception):
+            raise self.outcome
+        return SimpleNamespace(output_text=self.outcome)
+
+
+class FakeOpenAI:
+    """Stands in for openai.OpenAI: returns `outcome` as output_text, or raises it."""
+
+    def __init__(self, outcome):
+        self.responses = FakeResponses(outcome)
+
+
+def make_generator(outcome=None) -> IdeasGenerator:
+    """outcome=None gives a generator with no API key configured."""
+    no_key = Settings(openai_api_key="")
+    return IdeasGenerator(no_key, client=FakeOpenAI(outcome) if outcome is not None else None)
+
+
+@pytest.fixture
+def client():
+    """API client with a pinned date and no real OpenAI access."""
+    app.dependency_overrides[today_in_india] = lambda: TODAY
+    app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
+    rate_limiter.reset()
+    yield TestClient(app)
+    app.dependency_overrides.clear()
