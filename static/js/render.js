@@ -82,6 +82,7 @@ function renderTriage(plan) {
   $("book-today").replaceChildren(...urgent.map((item) =>
     el("li", `${item.label}${item.essential ? " (essential)" : ""}`)));
   $("cuts").replaceChildren(...plan.triage.cut_suggestions.map((text) => el("li", text)));
+  $("cuts-block").hidden = !plan.triage.cut_suggestions.length;
 }
 
 function renderChecklist(list, items, checked, onToggle) {

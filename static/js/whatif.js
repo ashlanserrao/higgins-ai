@@ -10,7 +10,6 @@ const MAX_BUDGET = 100_000_000;
 
 /** A round slider step: ~1% of the amount, as a power of ten (₹1,50,000 → ₹1,000). */
 const niceStep = (amount) => Math.max(100, 10 ** Math.floor(Math.log10(amount) - 2));
-const roundTo = (value, step) => Math.round(value / step) * step;
 
 export class WhatIf {
   constructor(onChange) {
@@ -34,9 +33,12 @@ export class WhatIf {
     Object.assign(this.guests, {
       min: Math.max(1, Math.round(guests / 4)), max: Math.min(MAX_GUESTS, Math.max(guests * 2, 10)), step: 1,
     });
+    // A range only stops at min + k × step, so min sits a whole number of steps below
+    // the budget (never under ₹1,000), keeping the organiser's own number reachable.
     const step = niceStep(budget);
+    const stepsDown = Math.floor(Math.min(budget * 0.75, budget - MIN_BUDGET) / step);
     Object.assign(this.budget, {
-      min: Math.max(MIN_BUDGET, roundTo(budget / 4, step)), max: Math.min(MAX_BUDGET, budget * 2), step,
+      min: budget - stepsDown * step, max: Math.min(MAX_BUDGET, budget * 2), step,
     });
     this.show(guests, budget);
   }

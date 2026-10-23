@@ -147,11 +147,11 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-45 tests, offline and free (the OpenAI client is faked):
+47 tests, offline and free (the OpenAI client is faked):
 
-- **`test_engine.py`:** the three golden scenarios, the monsoon rule, the contingency floor with 3 priorities, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
+- **`test_engine.py`:** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor with 3 priorities, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
 - **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options
-- **`test_ai.py`:** valid ideas are attached and leave the plan unchanged. Bad JSON, extra fields, over-long text, empty lists and timeouts all fall back to the rules plan. Also: no key, caching, triage advice dropped outside triage, preference fencing
+- **`test_ai.py`:** `/api/ideas` returns valid ideas and the plan stays rules-only. Bad JSON, extra fields, over-long text, empty lists and timeouts all return no ideas, never an error. Also: no API key (the plan still works and ideas are reported unavailable), caching, triage advice dropped outside triage, preference fencing
 
 ## Security
 
