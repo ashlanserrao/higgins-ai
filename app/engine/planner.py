@@ -6,8 +6,9 @@ from app.engine import rules
 from app.engine.errors import PlanInputError
 from app.engine.money import format_inr
 from app.engine.progress import apply_progress, delay_warnings, is_actionable
+from app.engine.quotes import apply_quotes, capacity, compare_quotes, quote_bookings, quotes_in_plan
 from app.engine.wording import bookings, them
-from app.models import BudgetLine, ChecklistItem, Plan, PlanRequest, TimelineEntry, Triage
+from app.models import BudgetLine, ChecklistItem, Plan, PlanRequest, Quote, TimelineEntry, Triage
 
 
 def build_plan(request: PlanRequest, today: date) -> Plan:
@@ -22,8 +23,13 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
     floor = round(rules.MIN_PER_GUEST_METRO[request.event_type] * rules.TIER_MULTIPLIER[tier])
     tight = per_guest < floor
 
-    budget_lines = split_budget(request)
-    checklist, ignored_progress = apply_progress(request, build_checklist(request, today), today)
+    estimates = split_budget(request)
+    quotes, ignored_quotes = quotes_in_plan(request, estimates)
+    budget_lines, rebalance = apply_quotes(request, estimates, quotes, today)
+    over_budget = bool(rebalance and rebalance.over_budget_inr)
+    checklist, ignored_progress = apply_progress(
+        request, build_checklist(request, today), today, quote_bookings(request, quotes),
+    )
     # Booked tasks, and tasks waiting on a delay, can't be booked today.
     open_items = [item for item in checklist if is_actionable(item, today)]
     book_today = [item.id for item in open_items if item.status == "book_today"]
@@ -57,6 +63,9 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
             f"lead time but still doable: book {them(tight_count)} this week."
         )
     warnings += delay_warnings(request, checklist, today)
+    if rebalance and (rebalance.cuts or over_budget):
+        warnings.append(rebalance.explanation)
+    warnings += _capacity_warnings(request, quotes, estimates)
 
     return Plan(
         event_type=request.event_type,
@@ -66,11 +75,11 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
         city_tier=tier,
         per_guest_inr=per_guest,
         floor_per_guest_inr=floor,
-        budget_status="tight" if tight else "ok",
+        budget_status="tight" if tight or over_budget else "ok",
         budget_level=budget_level(per_guest, floor),
         budget_lines=budget_lines,
         warnings=warnings,
-        cost_saving_swaps=rules.COST_SAVING_SWAPS[request.event_type] if tight else [],
+        cost_saving_swaps=rules.COST_SAVING_SWAPS[request.event_type] if tight or over_budget else [],
         triage=triage,
         timeline=build_timeline(request, checklist, today),
         checklist=checklist,
@@ -80,7 +89,20 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
             else None
         ),
         ignored_progress=ignored_progress,
+        quote_comparisons=compare_quotes(request, quotes, estimates, today),
+        ignored_quotes=ignored_quotes,
+        rebalance=rebalance,
     )
+
+
+def _capacity_warnings(request: PlanRequest, quotes: list[Quote], lines: list[BudgetLine]) -> list[str]:
+    labels = {line.key: line.label for line in lines}
+    return [
+        f"The accepted {labels[q.category].lower()} quote covers {q.guests_covered} guests, "
+        f"but you're planning for {request.guests}."
+        for q in quotes
+        if q.accepted_on and capacity(q, request.guests) == "too_small"
+    ]
 
 
 def city_tier(city: str, override: int | None = None) -> int:
@@ -136,11 +158,12 @@ def split_budget(request: PlanRequest) -> list[BudgetLine]:
         allocated += amount
         lines.append(BudgetLine(
             key=key, label=labels[key], percent=round(percent, 1),
-            amount_inr=amount, boosted=key in boosted,
+            amount_inr=amount, estimate_inr=amount, boosted=key in boosted,
         ))
+    contingency = request.budget_inr - allocated
     lines.append(BudgetLine(
         key="contingency", label=labels["contingency"],
-        percent=round(splits["contingency"], 1), amount_inr=request.budget_inr - allocated,
+        percent=round(splits["contingency"], 1), amount_inr=contingency, estimate_inr=contingency,
     ))
     return lines
 

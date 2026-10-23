@@ -160,6 +160,29 @@ DEPENDS_ON: dict[str, dict[str, tuple[str, ...]]] = {
 # Outdoor events: the tent is sized to the ground, and the weather backup to the tent.
 OUTDOOR_DEPENDS_ON: dict[str, tuple[str, ...]] = {"tent": ("venue",), "weather_backup": ("tent",)}
 
+# Accepting a quote for a budget line books this task. Lines that cover several vendors
+# (birthday food & cake, community décor) have no task: the organiser marks those by hand.
+LINE_TASKS: dict[str, dict[str, str]] = {
+    "wedding": {
+        "venue": "venue", "food": "caterer", "decor": "decor", "photography": "photographer",
+        "attire": "attire", "entertainment": "music", "invitations": "invitations",
+    },
+    "birthday": {
+        "venue": "venue", "decor": "decor", "entertainment": "entertainer",
+        "return_gifts": "return_gifts",
+    },
+    "community": {
+        "venue": "venue", "food": "caterer", "sound": "sound", "performers": "performers",
+        "safety": "security",
+    },
+}
+# Lines added by venue type book the same task for every event type.
+EXTRA_LINE_TASKS: dict[str, str] = {"venue_food": "venue", "tent": "tent"}
+
+# When accepted quotes cost more than estimated, contingency pays first; after that each
+# unconfirmed line gives up a share, but never more than this fraction of its amount.
+MAX_REBALANCE_CUT = 0.5
+
 # Inside a vendor's lead time, a booking is "tight but doable" while at least this
 # fraction of the lead time is left, and "book today" below it.
 TIGHT_LEAD_FRACTION = 0.5

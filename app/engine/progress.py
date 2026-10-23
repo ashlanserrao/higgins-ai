@@ -20,10 +20,12 @@ def dependencies(request: PlanRequest, task_ids: set[str]) -> dict[str, list[str
 
 
 def apply_progress(
-    request: PlanRequest, items: list[ChecklistItem], today: date
+    request: PlanRequest, items: list[ChecklistItem], today: date,
+    quote_bookings: dict[str, date] | None = None,
 ) -> tuple[list[ChecklistItem], list[str]]:
     """Mark booked tasks done and push delayed ones (and everything after them) later.
 
+    `quote_bookings` are tasks booked by accepting a quote; a date the organiser entered wins.
     Returns the updated items and the ids of progress entries that aren't in this plan.
     """
     by_id = {item.id: item for item in items}
@@ -31,9 +33,10 @@ def apply_progress(
     ignored = sorted(task_id for task_id in tasks if task_id not in by_id)
     _validate(request, {k: v for k, v in tasks.items() if k in by_id}, today)
 
-    for task_id, update in tasks.items():
-        if task_id in by_id and update.state == "booked":
-            by_id[task_id] = by_id[task_id].model_copy(update={"done": True, "booked_on": update.on})
+    booked = (quote_bookings or {}) | {k: u.on for k, u in tasks.items() if u.state == "booked"}
+    for task_id, on in booked.items():
+        if task_id in by_id:
+            by_id[task_id] = by_id[task_id].model_copy(update={"done": True, "booked_on": on})
 
     prerequisites = dependencies(request, set(by_id))
     resolved: dict[str, ChecklistItem] = {}

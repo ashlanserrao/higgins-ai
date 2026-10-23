@@ -50,7 +50,7 @@ def test_invalid_input_is_rejected_without_echo(client, diwali_request, change):
 
 
 def test_oversized_body_is_rejected(client, diwali_request):
-    payload = as_json(diwali_request) | {"preferences": "x" * 20_000}
+    payload = as_json(diwali_request) | {"preferences": "x" * 70_000}
     assert client.post("/api/plan", json=payload).status_code == 413
 
 
@@ -121,3 +121,21 @@ def test_bad_progress_gives_clean_error(client, diwali_request, task, message):
     response = client.post("/api/plan", json=payload)
     assert response.status_code == 422
     assert {"field": "progress", "message": message} in response.json()["fields"]
+
+
+def test_accepted_quote_over_http(client, diwali_request):
+    quote = {"id": "q1", "category": "food", "total_inr": 50_000, "verified": True, "accepted_on": str(TODAY)}
+    payload = as_json(diwali_request) | {"progress": {"quotes": [quote]}}
+    response = client.post("/api/plan", json=payload)
+    assert response.status_code == 200
+    plan = response.json()["plan"]
+    food = next(line for line in plan["budget_lines"] if line["key"] == "food")
+    assert food["source"] == "confirmed" and food["change_inr"] == food["amount_inr"] - food["estimate_inr"]
+    assert plan["quote_comparisons"]["food"][0]["accepted"] is True
+
+
+def test_unchecked_quote_gives_clean_error(client, diwali_request):
+    quote = {"id": "q1", "category": "food", "total_inr": 50_000, "accepted_on": str(TODAY)}
+    response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": {"quotes": [quote]}})
+    assert response.status_code == 422
+    assert {"field": "progress", "message": "Check a quote's details before accepting it."} in response.json()["fields"]

@@ -3,7 +3,9 @@
 from datetime import date
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from pydantic import (
+    BaseModel, ConfigDict, Field, StringConstraints, computed_field, field_validator, model_validator,
+)
 
 from app.engine.rules import BASE_SPLITS
 
@@ -17,6 +19,9 @@ BookingStatus = Literal["on_track", "tight", "book_today"]
 # booked: done on `on`; delayed: the vendor can only confirm on `on`.
 TaskState = Literal["booked", "delayed"]
 TaskId = Annotated[str, StringConstraints(max_length=30)]
+QuoteId = Annotated[str, StringConstraints(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")]
+QuoteNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+Capacity = Literal["fits", "too_small", "not_stated"]
 
 _CITY_EXTRA_CHARS = set(" .-'")
 
@@ -28,12 +33,52 @@ class TaskUpdate(BaseModel):
     on: date
 
 
+class Quote(BaseModel):
+    """A vendor's quote as the organiser entered or reviewed it. Unknown fields stay null."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    id: QuoteId
+    category: TaskId  # a budget line key, e.g. "food" or "venue_food"
+    vendor: str = Field(default="", max_length=80)
+    total_inr: int | None = Field(default=None, ge=0, le=100_000_000)
+    per_plate_inr: int | None = Field(default=None, ge=0, le=1_000_000)
+    guests_covered: int | None = Field(default=None, ge=1, le=10_000)
+    inclusions: list[QuoteNote] = Field(default_factory=list, max_length=12)
+    exclusions: list[QuoteNote] = Field(default_factory=list, max_length=12)
+    taxes_included: bool | None = None
+    valid_until: date | None = None
+    source: Literal["manual", "ai_extracted"] = "manual"
+    # The organiser has checked the details against the vendor's quote.
+    verified: bool = False
+    # Accepting a quote confirms the cost and books the matching task on this date.
+    accepted_on: date | None = None
+
+    @model_validator(mode="after")
+    def accepted_quotes_are_checked_and_priced(self) -> "Quote":
+        if self.accepted_on and not self.verified:
+            raise ValueError("Check a quote's details before accepting it.")
+        if self.accepted_on and self.total_inr is None and self.per_plate_inr is None:
+            raise ValueError("A quote needs a price before it can be accepted.")
+        return self
+
+
 class Progress(BaseModel):
     """What the organiser has done so far. Kept in the browser and sent with every plan."""
 
     model_config = ConfigDict(extra="forbid")
 
     tasks: dict[TaskId, TaskUpdate] = Field(default_factory=dict, max_length=30)
+    quotes: list[Quote] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def one_accepted_quote_per_category(self) -> "Progress":
+        if len({q.id for q in self.quotes}) != len(self.quotes):
+            raise ValueError("Each quote needs its own id.")
+        accepted = [q.category for q in self.quotes if q.accepted_on]
+        if len(set(accepted)) != len(accepted):
+            raise ValueError("Only one quote per category can be accepted.")
+        return self
 
 
 class PlanRequest(BaseModel):
@@ -78,7 +123,48 @@ class BudgetLine(BaseModel):
     label: str
     percent: float
     amount_inr: int
+    # The benchmark amount before any quote was accepted.
+    estimate_inr: int
     boosted: bool = False
+    source: Literal["estimate", "confirmed"] = "estimate"
+    quote_id: str | None = None
+
+    @computed_field
+    @property
+    def change_inr(self) -> int:
+        return self.amount_inr - self.estimate_inr
+
+
+class QuoteComparison(BaseModel):
+    """One quote set against the plan's estimate for its category."""
+
+    quote_id: str
+    vendor: str
+    total_inr: int | None
+    # True when the total is per-plate price × planned guests, not a figure on the quote.
+    calculated: bool
+    per_guest_inr: int | None
+    capacity: Capacity
+    vs_estimate_inr: int | None  # positive: over the estimate
+    missing: list[str]
+    accepted: bool
+    expired: bool
+
+
+class BudgetCut(BaseModel):
+    key: str
+    label: str
+    amount_inr: int
+
+
+class Rebalance(BaseModel):
+    """How the plan absorbed accepted quotes that differ from the estimates."""
+
+    change_inr: int  # confirmed minus estimated, across accepted quotes
+    from_contingency_inr: int
+    cuts: list[BudgetCut]
+    over_budget_inr: int
+    explanation: str
 
 
 class ChecklistItem(BaseModel):
@@ -134,3 +220,7 @@ class Plan(BaseModel):
     per_flat_inr: int | None = None
     # Progress for tasks that aren't in this plan (e.g. a venue after switching to "home").
     ignored_progress: list[str] = Field(default_factory=list)
+    # Quotes, by category, for budget lines in this plan; ids of the others.
+    quote_comparisons: dict[str, list[QuoteComparison]] = Field(default_factory=dict)
+    ignored_quotes: list[str] = Field(default_factory=list)
+    rebalance: Rebalance | None = None
