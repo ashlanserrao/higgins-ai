@@ -5,6 +5,7 @@ from datetime import date, timedelta
 from app.engine import rules
 from app.engine.errors import PlanInputError
 from app.engine.money import format_inr
+from app.engine.moves import apply_moves
 from app.engine.progress import apply_progress, delay_warnings, is_actionable
 from app.engine.quotes import apply_quotes, capacity, compare_quotes, quote_bookings, quotes_in_plan
 from app.engine.wording import bookings, them
@@ -23,8 +24,10 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
     floor = round(rules.MIN_PER_GUEST_METRO[request.event_type] * rules.TIER_MULTIPLIER[tier])
     tight = per_guest < floor
 
-    estimates = split_budget(request)
-    quotes, ignored_quotes = quotes_in_plan(request, estimates)
+    benchmark = split_budget(request)
+    quotes, ignored_quotes = quotes_in_plan(request, benchmark)
+    confirmed = {q.category for q in quotes if q.accepted_on}
+    estimates, ignored_moves = apply_moves(request, benchmark, confirmed)
     budget_lines, rebalance = apply_quotes(request, estimates, quotes, today)
     over_budget = bool(rebalance and rebalance.over_budget_inr)
     checklist, ignored_progress = apply_progress(
@@ -91,6 +94,7 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
         ignored_progress=ignored_progress,
         quote_comparisons=compare_quotes(request, quotes, estimates, today),
         ignored_quotes=ignored_quotes,
+        ignored_moves=ignored_moves,
         rebalance=rebalance,
     )
 

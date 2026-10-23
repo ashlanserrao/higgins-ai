@@ -13,12 +13,17 @@ FIELD_LABELS = {
     "priorities": "priorities",
     "households": "number of households",
     "preferences": "preferences",
-    "progress": "booking status",
+    "moves": "budget move",
 }
+# Errors inside `progress` are named after the part that's wrong.
+PROGRESS_LABELS = {"tasks": "booking status", "quotes": "quote", "moves": "budget move"}
 
 
 def friendly_message(field: str, error: dict) -> str:
     label = FIELD_LABELS.get(field, "value")
+    if field == "progress":
+        part = next((str(p) for p in error["loc"] if str(p) in PROGRESS_LABELS), "")
+        label = PROGRESS_LABELS.get(part, "progress")
     kind = error["type"]
     ctx = error.get("ctx", {})
 
@@ -41,6 +46,8 @@ def friendly_message(field: str, error: dict) -> str:
         return f"Please keep the {label} under {ctx['max_length']} characters."
     if kind == "too_long":
         return f"Please pick up to {ctx['max_length']} {label}."
+    if kind == "multiple_of":
+        return f"The {label} must be in steps of {format_inr(ctx['multiple_of'])}."
     if kind == "literal_error":
         return f"Please choose a valid {label}."
     if kind == "extra_forbidden":

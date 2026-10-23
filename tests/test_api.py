@@ -139,3 +139,9 @@ def test_unchecked_quote_gives_clean_error(client, diwali_request):
     response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": {"quotes": [quote]}})
     assert response.status_code == 422
     assert {"field": "progress", "message": "Check a quote's details before accepting it."} in response.json()["fields"]
+
+
+def test_bad_move_in_a_plan_gives_clean_error(client, diwali_request):
+    move = {"from_key": "decor", "to_key": "food", "amount_inr": 150}
+    response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": {"moves": [move]}})
+    assert {"field": "progress", "message": "The budget move must be in steps of ₹100."} in response.json()["fields"]

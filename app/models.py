@@ -1,7 +1,7 @@
 """Request and response schemas shared by the API and the planning engine."""
 
 from datetime import date
-from typing import Annotated, Literal
+from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import (
     BaseModel, ConfigDict, Field, StringConstraints, computed_field, field_validator, model_validator,
@@ -22,6 +22,7 @@ TaskId = Annotated[str, StringConstraints(max_length=30)]
 QuoteId = Annotated[str, StringConstraints(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")]
 QuoteNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 Capacity = Literal["fits", "too_small", "not_stated"]
+T = TypeVar("T")
 
 _CITY_EXTRA_CHARS = set(" .-'")
 
@@ -63,6 +64,22 @@ class Quote(BaseModel):
         return self
 
 
+class Move(BaseModel):
+    """Money the organiser moved from one budget line to another."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    from_key: TaskId
+    to_key: TaskId
+    amount_inr: int = Field(ge=100, le=100_000_000, multiple_of=100)
+
+    @model_validator(mode="after")
+    def two_different_lines(self) -> "Move":
+        if self.from_key == self.to_key:
+            raise ValueError("Pick two different categories to move money between.")
+        return self
+
+
 class Progress(BaseModel):
     """What the organiser has done so far. Kept in the browser and sent with every plan."""
 
@@ -70,6 +87,7 @@ class Progress(BaseModel):
 
     tasks: dict[TaskId, TaskUpdate] = Field(default_factory=dict, max_length=30)
     quotes: list[Quote] = Field(default_factory=list, max_length=20)
+    moves: list[Move] = Field(default_factory=list, max_length=10)
 
     @model_validator(mode="after")
     def one_accepted_quote_per_category(self) -> "Progress":
@@ -118,13 +136,51 @@ class PlanRequest(BaseModel):
         return self
 
 
+class PlanEdit(BaseModel):
+    """Fields to change in a plan; anything left out stays as it is.
+
+    The event type and free-text preferences can't be edited: changing them is a new plan.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    event_date: date | None = None
+    guests: int | None = None
+    budget_inr: int | None = None
+    city: str | None = None
+    city_tier: Literal[1, 2, 3] | None = None
+    venue_type: VenueType | None = None
+    venue_includes_catering: bool | None = None
+    priorities: list[str] | None = None
+    households: int | None = None
+    # Replaces the whole list of money moves.
+    moves: list[Move] | None = None
+
+    def apply_to(self, base: PlanRequest) -> PlanRequest:
+        """The edited request, validated like a new one (raises ValidationError)."""
+        changes = self.model_dump(exclude_unset=True)
+        data = base.model_dump()
+        if "moves" in changes:
+            data["progress"]["moves"] = changes.pop("moves")
+        return PlanRequest.model_validate(data | changes)
+
+
+class CompareRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    base: PlanRequest
+    changes: PlanEdit
+
+
 class BudgetLine(BaseModel):
     key: str
     label: str
     percent: float
     amount_inr: int
-    # The benchmark amount before any quote was accepted.
+    # The planned amount before any quote was accepted: the benchmark split plus moved money.
     estimate_inr: int
+    # Money the organiser moved into (+) or out of (−) this line.
+    moved_inr: int = 0
     boosted: bool = False
     source: Literal["estimate", "confirmed"] = "estimate"
     quote_id: str | None = None
@@ -223,4 +279,44 @@ class Plan(BaseModel):
     # Quotes, by category, for budget lines in this plan; ids of the others.
     quote_comparisons: dict[str, list[QuoteComparison]] = Field(default_factory=dict)
     ignored_quotes: list[str] = Field(default_factory=list)
+    # Positions of money moves that touch a line not in this plan, or one a quote confirmed.
+    ignored_moves: list[int] = Field(default_factory=list)
     rebalance: Rebalance | None = None
+
+
+class Pair(BaseModel, Generic[T]):
+    before: T
+    after: T
+
+
+class LineChange(BaseModel):
+    key: str
+    label: str
+    before_inr: int | None  # None: the line wasn't in the plan
+    after_inr: int | None
+    delta_inr: int
+
+
+class TaskChange(BaseModel):
+    id: str
+    label: str
+    # done, at_risk, book_today, tight or on_track; None: the task wasn't in the plan.
+    before: str | None
+    after: str | None
+
+
+class PlanDiff(BaseModel):
+    """What changes between two plans: the numbers, each budget line and each task."""
+
+    days_remaining: Pair[int]
+    per_guest_inr: Pair[int]
+    budget_status: Pair[BudgetStatus]
+    budget_level: Pair[BudgetLevel]
+    triage_active: Pair[bool]
+    over_budget_inr: Pair[int]
+    lines: list[LineChange]
+    tasks: list[TaskChange]
+    warnings_added: list[str]
+    warnings_removed: list[str]
+    # The headline changes in plain words, for a confirm step or a screen reader.
+    summary: list[str]

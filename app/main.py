@@ -8,16 +8,17 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.ai.ideas import IdeasGenerator
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine import rules
 from app.engine.errors import PlanInputError
+from app.engine.diff import diff_plans
 from app.engine.planner import build_plan
 from app.errors import friendly_message
-from app.models import Plan, PlanRequest
+from app.models import CompareRequest, Plan, PlanDiff, PlanRequest
 from app.security import SECURITY_HEADERS, RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, o
 # The rules-only plan is cheap and called on every "what if" change; AI calls are not.
 plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
 ideas_limiter = RateLimiter(settings.rate_limit_per_minute)
-RATE_LIMITERS = {"/api/plan": plan_limiter, "/api/ideas": ideas_limiter}
+RATE_LIMITERS = {"/api/plan": plan_limiter, "/api/compare": plan_limiter, "/api/ideas": ideas_limiter}
 ideas_generator = IdeasGenerator(settings)
 
 
@@ -36,6 +37,12 @@ class PlanResponse(BaseModel):
     plan: Plan
     # True when an API key is configured, so the page knows to fetch ideas next.
     ai_available: bool
+
+
+class CompareResponse(BaseModel):
+    inputs: PlanRequest  # the edited request, to keep if the organiser confirms
+    plan: Plan
+    changes: PlanDiff
 
 
 class IdeasResponse(BaseModel):
@@ -85,12 +92,16 @@ async def guard_requests(request: Request, call_next):
     return response
 
 
+_REQUEST_WRAPPERS = {"body", "base", "changes"}
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
     # Report which field is wrong in plain language, without echoing the submitted values back.
     fields = []
     for err in exc.errors():
-        parts = [str(part) for part in err["loc"] if part != "body"]
+        # /api/compare nests the inputs in "base" and "changes"; report the form field itself.
+        parts = [str(part) for part in err["loc"] if part not in _REQUEST_WRAPPERS]
         field = parts[0] if parts else "body"
         fields.append({"field": field, "message": friendly_message(field, err)})
     return _error(422, "Please check the highlighted fields.", fields)
@@ -133,6 +144,17 @@ def create_plan(
 ) -> PlanResponse:
     """Rules-only plan: returns in milliseconds so the page can show it immediately."""
     return PlanResponse(plan=build_plan(request, today), ai_available=generator.available)
+
+
+@app.post("/api/compare", response_model=CompareResponse)
+def compare_plans(body: CompareRequest, today: date = Depends(today_in_india)) -> CompareResponse:
+    """Before/after for a what-if, a money move or a typed revision. Nothing is saved."""
+    try:
+        proposed = body.changes.apply_to(body.base)
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors()) from exc
+    before, after = build_plan(body.base, today), build_plan(proposed, today)
+    return CompareResponse(inputs=proposed, plan=after, changes=diff_plans(before, after))
 
 
 @app.post("/api/ideas", response_model=IdeasResponse)
