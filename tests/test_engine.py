@@ -7,7 +7,8 @@ from pydantic import ValidationError
 
 from app.engine import rules
 from app.engine.money import format_inr
-from app.engine.planner import PlanInputError, build_plan
+from app.engine.errors import PlanInputError
+from app.engine.planner import build_plan
 from app.models import PlanRequest
 from tests.conftest import TODAY
 

@@ -13,6 +13,7 @@ FIELD_LABELS = {
     "priorities": "priorities",
     "households": "number of households",
     "preferences": "preferences",
+    "progress": "booking status",
 }
 
 

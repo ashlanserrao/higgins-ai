@@ -14,7 +14,8 @@ from app.ai.ideas import IdeasGenerator
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine import rules
-from app.engine.planner import PlanInputError, build_plan
+from app.engine.errors import PlanInputError
+from app.engine.planner import build_plan
 from app.errors import friendly_message
 from app.models import Plan, PlanRequest
 from app.security import SECURITY_HEADERS, RateLimiter
@@ -97,7 +98,7 @@ async def validation_error(_: Request, exc: RequestValidationError) -> JSONRespo
 
 @app.exception_handler(PlanInputError)
 async def plan_input_error(_: Request, exc: PlanInputError) -> JSONResponse:
-    return _error(422, str(exc), [{"field": "event_date", "message": str(exc)}])
+    return _error(422, str(exc), [{"field": exc.field, "message": str(exc)}])
 
 
 @app.exception_handler(Exception)

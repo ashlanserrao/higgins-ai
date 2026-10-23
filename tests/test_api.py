@@ -102,3 +102,22 @@ def test_chunked_body_without_length_is_rejected(client):
         "/api/plan", content=iter([b"{}"]), headers={"Content-Type": "application/json"},
     )
     assert response.status_code == 411
+
+
+def test_progress_over_http(client, diwali_request):
+    payload = as_json(diwali_request) | {"progress": {"tasks": {"venue": {"state": "booked", "on": str(TODAY)}}}}
+    response = client.post("/api/plan", json=payload)
+    assert response.status_code == 200
+    venue = next(item for item in response.json()["plan"]["checklist"] if item["id"] == "venue")
+    assert venue["done"] and venue["booked_on"] == str(TODAY)
+
+
+@pytest.mark.parametrize("task, message", [
+    ({"state": "cancelled", "on": str(TODAY)}, "Please choose a valid booking status."),
+    ({"state": "booked", "on": str(TODAY + timedelta(days=1))}, "Venue can't be marked booked on a future date."),
+])
+def test_bad_progress_gives_clean_error(client, diwali_request, task, message):
+    payload = as_json(diwali_request) | {"progress": {"tasks": {"venue": task}}}
+    response = client.post("/api/plan", json=payload)
+    assert response.status_code == 422
+    assert {"field": "progress", "message": message} in response.json()["fields"]

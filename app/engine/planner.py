@@ -3,12 +3,11 @@
 from datetime import date, timedelta
 
 from app.engine import rules
+from app.engine.errors import PlanInputError
 from app.engine.money import format_inr
+from app.engine.progress import apply_progress, delay_warnings, is_actionable
+from app.engine.wording import bookings, them
 from app.models import BudgetLine, ChecklistItem, Plan, PlanRequest, TimelineEntry, Triage
-
-
-class PlanInputError(ValueError):
-    """Input that is well-formed but cannot be planned (e.g. a past date)."""
 
 
 def build_plan(request: PlanRequest, today: date) -> Plan:
@@ -24,9 +23,11 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
     tight = per_guest < floor
 
     budget_lines = split_budget(request)
-    checklist = build_checklist(request, today)
-    book_today = [item.id for item in checklist if item.status == "book_today"]
-    tight_count = sum(item.status == "tight" for item in checklist)
+    checklist, ignored_progress = apply_progress(request, build_checklist(request, today), today)
+    # Booked tasks, and tasks waiting on a delay, can't be booked today.
+    open_items = [item for item in checklist if is_actionable(item, today)]
+    book_today = [item.id for item in open_items if item.status == "book_today"]
+    tight_count = sum(item.status == "tight" for item in open_items)
     triage = Triage(
         active=bool(book_today),
         book_today=book_today,
@@ -48,13 +49,14 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
     if triage.active:
         warnings.append(
             f"Your event is {days_remaining} days away. Less than half the usual lead time is "
-            f"left for {_bookings(len(book_today))}: book {_them(len(book_today))} today."
+            f"left for {bookings(len(book_today))}: book {them(len(book_today))} today."
         )
     if tight_count:
         warnings.append(
-            f"{_bookings(tight_count)} {'is' if tight_count == 1 else 'are'} inside the usual "
-            f"lead time but still doable: book {_them(tight_count)} this week."
+            f"{bookings(tight_count)} {'is' if tight_count == 1 else 'are'} inside the usual "
+            f"lead time but still doable: book {them(tight_count)} this week."
         )
+    warnings += delay_warnings(request, checklist, today)
 
     return Plan(
         event_type=request.event_type,
@@ -77,15 +79,8 @@ def build_plan(request: PlanRequest, today: date) -> Plan:
             if request.event_type == "community" and request.households
             else None
         ),
+        ignored_progress=ignored_progress,
     )
-
-
-def _bookings(count: int) -> str:
-    return "1 booking" if count == 1 else f"{count} bookings"
-
-
-def _them(count: int) -> str:
-    return "it" if count == 1 else "them"
 
 
 def city_tier(city: str, override: int | None = None) -> int:
@@ -205,15 +200,11 @@ def build_checklist(request: PlanRequest, today: date) -> list[ChecklistItem]:
 def build_timeline(
     request: PlanRequest, checklist: list[ChecklistItem], today: date
 ) -> list[TimelineEntry]:
-    """Bookings and milestones worked backward from the event date; late ones move to today."""
-    booking_timeline_status = {"on_track": "on_track", "tight": "tight", "book_today": "overdue"}
-    entries = [
-        TimelineEntry(
-            date=max(item.book_by, today), label=item.label, kind="booking",
-            status=booking_timeline_status[item.status],
-        )
-        for item in checklist
-    ]
+    """Bookings and milestones worked backward from the event date; late ones move to today.
+
+    Booked tasks sit on the day they were booked, delayed ones on their new date.
+    """
+    entries = [_booking_entry(item, today) for item in checklist]
     for days_before, label in rules.MILESTONES[request.event_type]:
         due = request.event_date - timedelta(days=days_before)
         entries.append(TimelineEntry(
@@ -226,3 +217,17 @@ def build_timeline(
     ))
     kind_order = {"booking": 0, "milestone": 1, "event": 2}
     return sorted(entries, key=lambda e: (e.date, kind_order[e.kind], e.label))
+
+
+_BOOKING_TIMELINE_STATUS = {"on_track": "on_track", "tight": "tight", "book_today": "overdue"}
+
+
+def _booking_entry(item: ChecklistItem, today: date) -> TimelineEntry:
+    if item.done:
+        when, status = item.booked_on, "done"
+    elif item.expected_on:
+        when = item.expected_on
+        status = "at_risk" if item.at_risk else _BOOKING_TIMELINE_STATUS[item.status]
+    else:
+        when, status = max(item.book_by, today), _BOOKING_TIMELINE_STATUS[item.status]
+    return TimelineEntry(date=when, label=item.label, kind="booking", status=status)

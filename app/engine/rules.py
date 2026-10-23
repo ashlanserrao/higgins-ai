@@ -123,6 +123,43 @@ VENDOR_LABELS: dict[str, str] = {
     "weather_backup": "Plan a monsoon weather backup (covered area, tarps, drainage)",
 }
 
+# Short names for warnings ("the caterer is delayed…"), matching VENDOR_LABELS.
+VENDOR_NAMES: dict[str, str] = {
+    "venue": "venue",
+    "photographer": "photographer",
+    "caterer": "caterer",
+    "decor": "decorator",
+    "makeup": "makeup artist",
+    "attire": "outfits",
+    "music": "music / DJ",
+    "invitations": "invitations",
+    "entertainer": "entertainer",
+    "cake": "cake",
+    "return_gifts": "return gifts",
+    "permissions": "permissions",
+    "performers": "performers",
+    "sound": "sound & lighting",
+    "security": "security & first aid",
+    "tent": "tent",
+    "weather_backup": "weather backup",
+}
+
+# Bookings that need another booking first: the caterer, decorator and sound team need
+# the venue's address, capacity and rules; invitations need the venue's address; security
+# follows the permissions. A prerequisite that isn't in the plan (no venue at home) is dropped.
+DEPENDS_ON: dict[str, dict[str, tuple[str, ...]]] = {
+    "wedding": {
+        "caterer": ("venue",), "decor": ("venue",), "music": ("venue",), "invitations": ("venue",),
+    },
+    "birthday": {"decor": ("venue",), "entertainer": ("venue",), "invitations": ("venue",)},
+    "community": {
+        "permissions": ("venue",), "sound": ("venue",), "caterer": ("venue",),
+        "security": ("permissions",),
+    },
+}
+# Outdoor events: the tent is sized to the ground, and the weather backup to the tent.
+OUTDOOR_DEPENDS_ON: dict[str, tuple[str, ...]] = {"tent": ("venue",), "weather_backup": ("tent",)}
+
 # Inside a vendor's lead time, a booking is "tight but doable" while at least this
 # fraction of the lead time is left, and "book today" below it.
 TIGHT_LEAD_FRACTION = 0.5

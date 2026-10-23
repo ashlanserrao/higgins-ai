@@ -1,9 +1,9 @@
 """Request and response schemas shared by the API and the planning engine."""
 
 from datetime import date
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 from app.engine.rules import BASE_SPLITS
 
@@ -14,8 +14,26 @@ BudgetLevel = Literal["tight", "modest", "comfortable", "generous"]
 # on_track: full lead time left; tight: inside the lead time but at least half of it left;
 # book_today: less than half left.
 BookingStatus = Literal["on_track", "tight", "book_today"]
+# booked: done on `on`; delayed: the vendor can only confirm on `on`.
+TaskState = Literal["booked", "delayed"]
+TaskId = Annotated[str, StringConstraints(max_length=30)]
 
 _CITY_EXTRA_CHARS = set(" .-'")
+
+
+class TaskUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    state: TaskState
+    on: date
+
+
+class Progress(BaseModel):
+    """What the organiser has done so far. Kept in the browser and sent with every plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tasks: dict[TaskId, TaskUpdate] = Field(default_factory=dict, max_length=30)
 
 
 class PlanRequest(BaseModel):
@@ -34,6 +52,7 @@ class PlanRequest(BaseModel):
     priorities: list[str] = Field(default_factory=list, max_length=3)
     households: int | None = Field(default=None, ge=1, le=10_000)
     preferences: str = Field(default="", max_length=500)
+    progress: Progress = Field(default_factory=Progress)
 
     @field_validator("city")
     @classmethod
@@ -69,13 +88,23 @@ class ChecklistItem(BaseModel):
     book_by: date
     status: BookingStatus
     essential: bool
+    done: bool = False
+    booked_on: date | None = None
+    # Set when a delay (its own, or a prerequisite's) pushes the booking later.
+    expected_on: date | None = None
+    # The task whose delay set expected_on: this task itself, or a prerequisite.
+    delayed_by: str | None = None
+    # Prerequisites that aren't booked yet.
+    waiting_on: list[str] = Field(default_factory=list)
+    # expected_on is after book_by.
+    at_risk: bool = False
 
 
 class TimelineEntry(BaseModel):
     date: date
     label: str
     kind: Literal["booking", "milestone", "event"]
-    status: Literal["on_track", "tight", "overdue"] = "on_track"
+    status: Literal["on_track", "tight", "overdue", "at_risk", "done"] = "on_track"
 
 
 class Triage(BaseModel):
@@ -103,3 +132,5 @@ class Plan(BaseModel):
     timeline: list[TimelineEntry]
     checklist: list[ChecklistItem]
     per_flat_inr: int | None = None
+    # Progress for tasks that aren't in this plan (e.g. a venue after switching to "home").
+    ignored_progress: list[str] = Field(default_factory=list)

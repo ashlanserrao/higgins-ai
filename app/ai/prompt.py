@@ -36,7 +36,8 @@ def sanitize_preferences(text: str) -> str:
 
 
 def build_prompt_input(request: PlanRequest, plan: Plan) -> str:
-    urgent = [item for item in plan.checklist if item.status == "book_today"]
+    # Only what triage says to book today: booked and delayed tasks are already handled.
+    urgent = [item for item in plan.checklist if item.id in plan.triage.book_today]
     summary = {
         "event_type": rules.EVENT_LABELS[plan.event_type],
         "city": request.city,
