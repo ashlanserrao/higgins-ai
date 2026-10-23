@@ -172,6 +172,13 @@ class CompareRequest(BaseModel):
     changes: PlanEdit
 
 
+class QuoteExtractRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    inputs: PlanRequest
+    text: str = Field(min_length=1, max_length=3000)
+
+
 class BudgetLine(BaseModel):
     key: str
     label: str

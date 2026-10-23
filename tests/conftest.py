@@ -4,9 +4,11 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+from app.ai.client import StructuredAI
 from app.ai.ideas import IdeasGenerator
+from app.ai.quotes import QuoteExtractor
 from app.config import Settings
-from app.main import RATE_LIMITERS, app, get_ideas_generator, today_in_india
+from app.main import RATE_LIMITERS, app, get_ideas_generator, get_quote_extractor, today_in_india
 from app.models import PlanRequest
 
 TODAY = date(2026, 10, 21)
@@ -57,10 +59,23 @@ class FakeOpenAI:
         self.responses = FakeResponses(outcome)
 
 
-def make_generator(outcome=None) -> IdeasGenerator:
-    """outcome=None gives a generator with no API key configured."""
+def make_ai(outcome=None) -> StructuredAI:
+    """An AI client whose replies are `outcome`; outcome=None means no API key is configured."""
     no_key = Settings(openai_api_key="")
-    return IdeasGenerator(no_key, client=FakeOpenAI(outcome) if outcome is not None else None)
+    return StructuredAI(no_key, client=FakeOpenAI(outcome) if outcome is not None else None)
+
+
+def make_generator(outcome=None) -> IdeasGenerator:
+    return IdeasGenerator(make_ai(outcome))
+
+
+def make_extractor(outcome=None) -> QuoteExtractor:
+    return QuoteExtractor(make_ai(outcome))
+
+
+def ai_calls(feature) -> list[dict]:
+    """The requests a fake-backed feature sent to the model."""
+    return feature.ai._client.responses.calls
 
 
 @pytest.fixture
@@ -68,6 +83,7 @@ def client():
     """API client with a pinned date and no real OpenAI access."""
     app.dependency_overrides[today_in_india] = lambda: TODAY
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
+    app.dependency_overrides[get_quote_extractor] = lambda: make_extractor()
     for limiter in RATE_LIMITERS.values():
         limiter.reset()
     yield TestClient(app)

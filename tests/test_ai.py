@@ -9,7 +9,7 @@ from openai import APITimeoutError
 from app.ai.prompt import build_prompt_input
 from app.engine.planner import build_plan
 from app.main import app, get_ideas_generator
-from tests.conftest import TODAY, make_generator
+from tests.conftest import TODAY, ai_calls, make_generator
 
 
 def idea(title="Dino dig", detail="Bury toy fossils in a sand tray for a treasure hunt."):
@@ -34,7 +34,7 @@ def test_ideas_endpoint_returns_ideas_and_plan_stays_rules_only(client, birthday
     assert plan == {
         "plan": build_plan(birthday_request, TODAY).model_dump(mode="json"), "ai_available": True,
     }
-    assert len(generator._client.responses.calls) == 1  # the plan never calls the AI
+    assert len(ai_calls(generator)) == 1  # the plan never calls the AI
 
 
 @pytest.mark.parametrize("outcome", [
@@ -67,7 +67,7 @@ def test_repeated_request_uses_cache(birthday_request):
     plan = build_plan(birthday_request, TODAY)
     generator.generate(birthday_request, plan)
     generator.generate(birthday_request, plan)
-    assert len(generator._client.responses.calls) == 1
+    assert len(ai_calls(generator)) == 1
 
 
 def test_triage_advice_dropped_when_not_in_triage(birthday_request):

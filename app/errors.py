@@ -14,6 +14,7 @@ FIELD_LABELS = {
     "households": "number of households",
     "preferences": "preferences",
     "moves": "budget move",
+    "text": "quote text",
 }
 # Errors inside `progress` are named after the part that's wrong.
 PROGRESS_LABELS = {"tasks": "booking status", "quotes": "quote", "moves": "budget move"}

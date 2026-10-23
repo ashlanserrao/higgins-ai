@@ -10,7 +10,9 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 
+from app.ai.client import StructuredAI
 from app.ai.ideas import IdeasGenerator
+from app.ai.quotes import QuoteDraft, QuoteExtractor
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine import rules
@@ -18,7 +20,7 @@ from app.engine.errors import PlanInputError
 from app.engine.diff import diff_plans
 from app.engine.planner import build_plan
 from app.errors import friendly_message
-from app.models import CompareRequest, Plan, PlanDiff, PlanRequest
+from app.models import CompareRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest
 from app.security import SECURITY_HEADERS, RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -28,9 +30,14 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, openapi_url=None)
 # The rules-only plan is cheap and called on every "what if" change; AI calls are not.
 plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
-ideas_limiter = RateLimiter(settings.rate_limit_per_minute)
-RATE_LIMITERS = {"/api/plan": plan_limiter, "/api/compare": plan_limiter, "/api/ideas": ideas_limiter}
-ideas_generator = IdeasGenerator(settings)
+ai_limiter = RateLimiter(settings.rate_limit_per_minute)
+RATE_LIMITERS = {
+    "/api/plan": plan_limiter, "/api/compare": plan_limiter,
+    "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter,
+}
+ai = StructuredAI(settings)
+ideas_generator = IdeasGenerator(ai)
+quote_extractor = QuoteExtractor(ai)
 
 
 class PlanResponse(BaseModel):
@@ -43,6 +50,12 @@ class CompareResponse(BaseModel):
     inputs: PlanRequest  # the edited request, to keep if the organiser confirms
     plan: Plan
     changes: PlanDiff
+
+
+class QuoteExtractResponse(BaseModel):
+    # Null if nothing could be read; the organiser can still type the quote in.
+    quote: QuoteDraft | None
+    ai_available: bool
 
 
 class IdeasResponse(BaseModel):
@@ -58,6 +71,10 @@ def today_in_india() -> date:
 
 def get_ideas_generator() -> IdeasGenerator:
     return ideas_generator
+
+
+def get_quote_extractor() -> QuoteExtractor:
+    return quote_extractor
 
 
 def _error(status: int, message: str, fields: list[dict] | None = None) -> JSONResponse:
@@ -92,7 +109,7 @@ async def guard_requests(request: Request, call_next):
     return response
 
 
-_REQUEST_WRAPPERS = {"body", "base", "changes"}
+_REQUEST_WRAPPERS = {"body", "base", "changes", "inputs"}
 
 
 @app.exception_handler(RequestValidationError)
@@ -100,7 +117,7 @@ async def validation_error(_: Request, exc: RequestValidationError) -> JSONRespo
     # Report which field is wrong in plain language, without echoing the submitted values back.
     fields = []
     for err in exc.errors():
-        # /api/compare nests the inputs in "base" and "changes"; report the form field itself.
+        # Some endpoints nest the plan inputs ("base", "inputs"); report the form field itself.
         parts = [str(part) for part in err["loc"] if part not in _REQUEST_WRAPPERS]
         field = parts[0] if parts else "body"
         fields.append({"field": field, "message": friendly_message(field, err)})
@@ -166,6 +183,18 @@ def create_ideas(
     """AI ideas for the same inputs, fetched after the plan is already on screen."""
     ideas = generator.generate(request, build_plan(request, today))
     return IdeasResponse(ideas=ideas, ai_available=generator.available)
+
+
+
+@app.post("/api/quotes/extract", response_model=QuoteExtractResponse)
+def extract_quote(
+    body: QuoteExtractRequest,
+    today: date = Depends(today_in_india),
+    extractor: QuoteExtractor = Depends(get_quote_extractor),
+) -> QuoteExtractResponse:
+    """Read a pasted quote into a draft for the organiser to check. Nothing is saved."""
+    draft = extractor.extract(body.inputs, build_plan(body.inputs, today), body.text, today)
+    return QuoteExtractResponse(quote=draft, ai_available=extractor.available)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
