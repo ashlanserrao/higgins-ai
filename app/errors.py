@@ -13,11 +13,25 @@ FIELD_LABELS = {
     "priorities": "priorities",
     "households": "number of households",
     "preferences": "preferences",
+    "must_haves": "must-haves",
     "moves": "budget move",
     "text": "quote text",
+    "message": "message",
 }
+# Some endpoints nest the plan inputs ("base", "current"…); errors name the form field itself.
+REQUEST_WRAPPERS = {"body", "base", "changes", "inputs", "current"}
 # Errors inside `progress` are named after the part that's wrong.
 PROGRESS_LABELS = {"tasks": "booking status", "quotes": "quote", "moves": "budget move"}
+
+
+def field_errors(errors: list[dict]) -> list[dict]:
+    """Pydantic errors as [{field, message}], without echoing the submitted values back."""
+    fields = []
+    for err in errors:
+        parts = [str(part) for part in err["loc"] if part not in REQUEST_WRAPPERS]
+        field = parts[0] if parts else "body"
+        fields.append({"field": field, "message": friendly_message(field, err)})
+    return fields
 
 
 def friendly_message(field: str, error: dict) -> str:

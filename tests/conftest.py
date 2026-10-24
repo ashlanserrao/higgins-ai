@@ -7,8 +7,11 @@ from fastapi.testclient import TestClient
 from app.ai.client import StructuredAI
 from app.ai.ideas import IdeasGenerator
 from app.ai.quotes import QuoteExtractor
+from app.ai.understand import PlanInterpreter
 from app.config import Settings
-from app.main import RATE_LIMITERS, app, get_ideas_generator, get_quote_extractor, today_in_india
+from app.main import (
+    RATE_LIMITERS, ai, app, get_ideas_generator, get_plan_interpreter, get_quote_extractor, today_in_india,
+)
 from app.models import PlanRequest
 
 TODAY = date(2026, 10, 21)
@@ -73,6 +76,10 @@ def make_extractor(outcome=None) -> QuoteExtractor:
     return QuoteExtractor(make_ai(outcome))
 
 
+def make_interpreter(outcome=None) -> PlanInterpreter:
+    return PlanInterpreter(make_ai(outcome))
+
+
 def ai_calls(feature) -> list[dict]:
     """The requests a fake-backed feature sent to the model."""
     return feature.ai._client.responses.calls
@@ -84,7 +91,14 @@ def client():
     app.dependency_overrides[today_in_india] = lambda: TODAY
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
     app.dependency_overrides[get_quote_extractor] = lambda: make_extractor()
+    app.dependency_overrides[get_plan_interpreter] = lambda: make_interpreter()
     for limiter in RATE_LIMITERS.values():
         limiter.reset()
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def no_real_ai(monkeypatch):
+    """Tests never reach the real AI provider, even with a key in .env."""
+    monkeypatch.setattr(ai, "_client", None)

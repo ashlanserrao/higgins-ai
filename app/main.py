@@ -3,6 +3,7 @@
 import logging
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -13,14 +14,15 @@ from pydantic import BaseModel, ValidationError
 from app.ai.client import StructuredAI
 from app.ai.ideas import IdeasGenerator
 from app.ai.quotes import QuoteDraft, QuoteExtractor
+from app.ai.understand import REQUIRED_FIELDS, PlanInterpreter
 from app.ai.schema import EventIdeas
 from app.config import IST, settings
 from app.engine import rules
 from app.engine.errors import PlanInputError
 from app.engine.diff import diff_plans
 from app.engine.planner import build_plan
-from app.errors import friendly_message
-from app.models import CompareRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest
+from app.errors import FIELD_LABELS, field_errors
+from app.models import CompareRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest, UnderstandRequest
 from app.security import SECURITY_HEADERS, RateLimiter
 
 logger = logging.getLogger(__name__)
@@ -33,11 +35,12 @@ plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
 ai_limiter = RateLimiter(settings.rate_limit_per_minute)
 RATE_LIMITERS = {
     "/api/plan": plan_limiter, "/api/compare": plan_limiter,
-    "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter,
+    "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter, "/api/understand": ai_limiter,
 }
 ai = StructuredAI(settings)
 ideas_generator = IdeasGenerator(ai)
 quote_extractor = QuoteExtractor(ai)
+plan_interpreter = PlanInterpreter(ai)
 
 
 class PlanResponse(BaseModel):
@@ -58,6 +61,31 @@ class QuoteExtractResponse(BaseModel):
     ai_available: bool
 
 
+class FieldChange(BaseModel):
+    field: str
+    label: str
+    before: Any  # None: not set before
+    after: Any
+
+
+class FieldError(BaseModel):
+    field: str
+    message: str
+
+
+class UnderstandResponse(BaseModel):
+    ai_available: bool
+    understood: bool  # False: the AI failed or the message asked for nothing it could use
+    inputs: dict[str, Any]  # new event: values to fill the form with; revision: the edited request
+    fields: list[FieldChange]
+    missing: list[str]  # required fields a new event still needs
+    unclear: list[str]
+    errors: list[FieldError]
+    # Revisions only, when the edited request is valid: the new plan and what changes.
+    plan: Plan | None = None
+    changes: PlanDiff | None = None
+
+
 class IdeasResponse(BaseModel):
     # Null if this call failed; the page offers a retry while ai_available is true.
     ideas: EventIdeas | None
@@ -75,6 +103,10 @@ def get_ideas_generator() -> IdeasGenerator:
 
 def get_quote_extractor() -> QuoteExtractor:
     return quote_extractor
+
+
+def get_plan_interpreter() -> PlanInterpreter:
+    return plan_interpreter
 
 
 def _error(status: int, message: str, fields: list[dict] | None = None) -> JSONResponse:
@@ -109,19 +141,9 @@ async def guard_requests(request: Request, call_next):
     return response
 
 
-_REQUEST_WRAPPERS = {"body", "base", "changes", "inputs"}
-
-
 @app.exception_handler(RequestValidationError)
 async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-    # Report which field is wrong in plain language, without echoing the submitted values back.
-    fields = []
-    for err in exc.errors():
-        # Some endpoints nest the plan inputs ("base", "inputs"); report the form field itself.
-        parts = [str(part) for part in err["loc"] if part not in _REQUEST_WRAPPERS]
-        field = parts[0] if parts else "body"
-        fields.append({"field": field, "message": friendly_message(field, err)})
-    return _error(422, "Please check the highlighted fields.", fields)
+    return _error(422, "Please check the highlighted fields.", field_errors(exc.errors()))
 
 
 @app.exception_handler(PlanInputError)
@@ -195,6 +217,58 @@ def extract_quote(
     """Read a pasted quote into a draft for the organiser to check. Nothing is saved."""
     draft = extractor.extract(body.inputs, build_plan(body.inputs, today), body.text, today)
     return QuoteExtractResponse(quote=draft, ai_available=extractor.available)
+
+
+
+@app.post("/api/understand", response_model=UnderstandResponse)
+def understand(
+    body: UnderstandRequest,
+    today: date = Depends(today_in_india),
+    interpreter: PlanInterpreter = Depends(get_plan_interpreter),
+) -> UnderstandResponse:
+    """Turn a typed request into form values (new event) or a proposed revision with its
+    before/after. Nothing is saved or applied."""
+    current = body.current
+    result = UnderstandResponse(
+        ai_available=interpreter.available, understood=False, inputs={}, fields=[],
+        missing=[], unclear=[], errors=[],
+    )
+    interpretation = interpreter.interpret(body.message, current, today)
+    if interpretation is None:
+        return result
+    values = interpretation.values
+    before = current.model_dump() if current else {}
+    result.understood = bool(values)
+    result.unclear = interpretation.unclear
+    result.fields = [
+        FieldChange(field=name, label=FIELD_LABELS.get(name, name), before=before.get(name), after=value)
+        for name, value in values.items()
+        if before.get(name) != value
+    ]
+    if current and values.get("event_type", current.event_type) != current.event_type:
+        result.errors = [FieldError(
+            field="event_type", message="Changing the event type starts a new plan. Use the form instead.",
+        )]
+        return result
+
+    merged = before | values
+    result.inputs = values if current is None else merged
+    result.missing = [name for name in REQUIRED_FIELDS if merged.get(name) is None]
+    if result.missing:
+        return result
+    try:
+        proposed = PlanRequest.model_validate(merged)
+        plan = build_plan(proposed, today)  # also catches dates the engine rejects
+    except ValidationError as exc:
+        result.errors = [FieldError(**error) for error in field_errors(exc.errors())]
+        return result
+    except PlanInputError as exc:
+        result.errors = [FieldError(field=exc.field, message=str(exc))]
+        return result
+    if current:
+        result.inputs = proposed.model_dump()
+        result.plan, result.changes = plan, diff_plans(build_plan(current, today), plan)
+    return result
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

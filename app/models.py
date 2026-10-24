@@ -115,6 +115,8 @@ class PlanRequest(BaseModel):
     priorities: list[str] = Field(default_factory=list, max_length=3)
     households: int | None = Field(default=None, ge=1, le=10_000)
     preferences: str = Field(default="", max_length=500)
+    # Things the organiser insists on ("Jain food", "live dhol"); like preferences, untrusted.
+    must_haves: str = Field(default="", max_length=300)
     progress: Progress = Field(default_factory=Progress)
 
     @field_validator("city")
@@ -170,6 +172,13 @@ class CompareRequest(BaseModel):
 
     base: PlanRequest
     changes: PlanEdit
+
+
+class UnderstandRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    message: str = Field(min_length=1, max_length=500)
+    current: PlanRequest | None = None  # None: a new event
 
 
 class QuoteExtractRequest(BaseModel):
