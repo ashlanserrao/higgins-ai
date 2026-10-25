@@ -2,7 +2,7 @@
 // The open event follows the URL, so back and forward move between events too.
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Undo2, X } from "lucide-react";
+import { CalendarCheck, Loader2, PieChart, Share2, Undo2, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BudgetSection } from "@/features/budget/budget-section";
 import { GuestsSection } from "@/features/guests/guests-section";
@@ -57,6 +57,12 @@ function DeletedNotice() {
   );
 }
 
+const YOU_GET: { icon: LucideIcon; label: string }[] = [
+  { icon: PieChart, label: "A budget split" },
+  { icon: CalendarCheck, label: "Book-by dates" },
+  { icon: Share2, label: "A plan to share" },
+];
+
 function Onboarding() {
   const { returnTo, events, cancelNewEvent } = usePlanner();
   const canGoBack = events.some((e) => e.id === returnTo);
@@ -69,12 +75,16 @@ function Onboarding() {
         </div>
         <h1 className="text-3xl md:text-[2.75rem] md:leading-tight">Let's plan your celebration, calmly</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
-          Weddings, birthdays and community events. In a few minutes you'll have a realistic budget, book-by dates and a
+          Weddings, birthdays and community events. In about a minute you'll have a realistic budget, book-by dates and a
           timeline to share with family, and it keeps up as quotes come in and plans change.
         </p>
+        <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground" aria-label="What you'll get">
+          {YOU_GET.map(({ icon: Icon, label }) => (
+            <li key={label} className="flex items-center gap-1.5"><Icon className="size-4 text-primary" aria-hidden="true" /> {label}</li>
+          ))}
+        </ul>
       </header>
       <main><Questionnaire onCancel={canGoBack ? cancelNewEvent : undefined} /></main>
-      <footer className="mx-auto mt-10 max-w-3xl text-xs text-muted-foreground">Your plan stays in this browser. Nothing goes to our server.</footer>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 // Step-by-step questionnaire, with a plain-language box that fills it in. Used for a new
 // plan and for editing one: the same event type keeps bookings, quotes, moves and guests.
+// For a new event the box is the main path; the steps are the fallback and the place to check.
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Cake, Heart, Loader2, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, Cake, Check, Heart, Loader2, Lock, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { usePlanner } from "@/state/planner";
 
 interface Values {
-  event_type: EventType;
+  event_type: EventType | ""; // "" until the organiser picks one
   event_date: string;
   guests: string;
   budget_inr: string;
@@ -34,7 +35,7 @@ interface Values {
 }
 
 const blank: Values = {
-  event_type: "wedding", event_date: "", guests: "", budget_inr: "", city: "", city_tier: "",
+  event_type: "", event_date: "", guests: "", budget_inr: "", city: "", city_tier: "",
   venue_type: "venue", venue_includes_catering: false, priorities: [], households: "", must_haves: "", preferences: "",
 };
 
@@ -57,12 +58,20 @@ const FIELD_NAMES: Record<string, string> = {
   event_type: "event type", event_date: "event date", guests: "number of guests", budget_inr: "budget", city: "city",
 };
 const EVENT_ICONS: Record<EventType, LucideIcon> = { wedding: Heart, birthday: Cake, community: Users };
+const GUEST_PICKS = [50, 100, 200, 300];
+// The order AI-read values appear in, so the organiser can watch what was understood.
+const FILL_ORDER: (keyof Values)[] = [
+  "event_type", "event_date", "guests", "budget_inr", "city", "city_tier", "venue_type", "venue_includes_catering", "households",
+];
+const TIME_LEFT = ["Takes about a minute", "About 40 seconds left", "Almost done"];
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function ChoiceCards<T extends string>({ legend, name, value, options, onChange }: {
-  legend: string; name: string; value: T; options: { value: T; label: string; icon?: LucideIcon }[]; onChange: (v: T) => void;
+function ChoiceCards<T extends string>({ legend, name, value, options, onChange, error, flash }: {
+  legend: string; name: string; value: T | ""; options: { value: T; label: string; icon?: LucideIcon }[]; onChange: (v: T) => void;
+  error?: string; flash?: boolean;
 }) {
   return (
-    <fieldset>
+    <fieldset aria-describedby={error ? `${name}-error` : undefined} className={cn("rounded-lg", flash && "animate-filled")}>
       <legend className="mb-2 text-sm font-medium">{legend}</legend>
       <div className="grid gap-2 sm:grid-cols-3">
         {options.map(({ value: v, label, icon: Icon }) => (
@@ -76,16 +85,20 @@ function ChoiceCards<T extends string>({ legend, name, value, options, onChange 
             <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} className="sr-only" />
             {Icon && <Icon className="size-4" aria-hidden="true" />}
             {label}
+            {value === v && <Check className="ml-auto size-4" aria-hidden="true" />}
           </label>
         ))}
       </div>
+      <FieldError id={`${name}-error`}>{error}</FieldError>
     </fieldset>
   );
 }
 
-function Field({ id, label, error, hint, children }: { id: string; label: string; error?: string; hint?: ReactNode; children: ReactNode }) {
+function Field({ id, label, error, hint, flash, children }: {
+  id: string; label: string; error?: string; hint?: ReactNode; flash?: boolean; children: ReactNode;
+}) {
   return (
-    <div className="grid content-start gap-1.5">
+    <div className={cn("grid content-start gap-1.5 rounded-lg", flash && "animate-filled")}>
       <Label htmlFor={id}>{label}</Label>
       {children}
       {hint && !error && <p id={`${id}-hint`} className="text-xs text-muted-foreground">{hint}</p>}
@@ -95,27 +108,44 @@ function Field({ id, label, error, hint, children }: { id: string; label: string
 }
 
 /** Plain language → form values. The AI reads; the organiser checks the form and submits. */
-function DescribeBox({ onFilled }: { onFilled: (result: UnderstandResponse) => void }) {
+function DescribeBox({ active, onFilled, onTyping }: {
+  active: boolean; onFilled: (result: UnderstandResponse) => void; onTyping: (typing: boolean) => void;
+}) {
   // There's no plan yet, so AI availability comes from this call's own response.
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const empty = !text.trim();
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!text.trim()) return;
+    if (empty) {
+      setNote("Write a line about your event first.");
+      document.getElementById("describe")?.focus();
+      return;
+    }
     setBusy(true);
     setNote("");
     try {
       const result = await api.understand(text, null);
       if (!result.ai_available) setNote("That needs the AI, which isn't set up here. The steps below work just as well.");
       else if (!result.understood) setNote(result.unclear[0] || "I couldn't find event details in that. Try naming the occasion, guests, city, date and budget.");
-      else onFilled(result);
+      else {
+        onTyping(false);
+        onFilled(result);
+      }
     } catch (error) {
       setNote((error as Error).message);
     } finally {
       setBusy(false);
     }
+  };
+
+  // Enter sends, Shift+Enter starts a new line.
+  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   return (
@@ -125,16 +155,26 @@ function DescribeBox({ onFilled }: { onFilled: (result: UnderstandResponse) => v
         <AiBadge />
       </div>
       <Textarea
-        id="describe" value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={3}
+        id="describe" value={text} maxLength={500} rows={3} onKeyDown={onKeyDown}
+        onChange={(e) => {
+          setText(e.target.value);
+          onTyping(Boolean(e.target.value.trim()));
+        }}
         placeholder="e.g. Wedding for 300 in Jaipur on 14 Feb 2027, about 25 lakh, the venue does food"
         className="bg-card" aria-describedby="describe-note"
       />
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <AiNote>AI fills in the steps below. You check them before planning.</AiNote>
-        <Button type="submit" variant="ai" size="sm" disabled={busy || !text.trim()}>
+        {/* Focusable even when empty, so it can say why it isn't ready. */}
+        <Button
+          type="submit" size="lg" variant={empty ? "outline" : active ? "aiSolid" : "ai"} disabled={busy}
+          aria-disabled={empty || undefined} aria-describedby={empty ? "describe-reason" : undefined}
+          className="w-full aria-disabled:cursor-not-allowed aria-disabled:border-dashed aria-disabled:bg-surface-soft aria-disabled:text-muted-foreground aria-disabled:shadow-none sm:w-auto"
+        >
           {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
           {busy ? "Reading…" : "Fill the form for me"}
         </Button>
+        {empty && <span id="describe-reason" className="sr-only">Write a line about your event first.</span>}
       </div>
       <p id="describe-note" aria-live="polite" className="mt-2 text-sm text-muted-foreground">
         {note}
@@ -144,40 +184,73 @@ function DescribeBox({ onFilled }: { onFilled: (result: UnderstandResponse) => v
 }
 
 export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCancel?: () => void }) {
-  const { options, inputs: current, guests, makePlan, bootError } = usePlanner();
+  const { options, inputs: current, guests, events, makePlan, bootError } = usePlanner();
   const editing = Boolean(current && onCancel);
-  const [values, setValues] = useState<Values>(() => (current ? fromInputs(current) : blank));
+  // A new event starts with no type picked, or the type of the most recently added event.
+  const [values, setValues] = useState<Values>(() =>
+    current ? fromInputs(current) : { ...blank, event_type: events.at(-1)?.inputs.event_type ?? "" });
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState(bootError);
   const [filled, setFilled] = useState<UnderstandResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
+  const [aiPath, setAiPath] = useState(false); // typing in the box: its button is the main one
+  const [filling, setFilling] = useState<{ values: Values; keys: (keyof Values)[]; step: number } | null>(null);
+  const [flash, setFlash] = useState<keyof Values | null>(null);
 
   // A new plan previews its event's colours as the type is picked; App sets them otherwise.
   useEffect(() => {
-    if (!editing) document.documentElement.dataset.event = values.event_type;
+    if (!editing) document.documentElement.dataset.event = values.event_type || "wedding";
   }, [editing, values.event_type]);
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) => {
     setValues((v) => ({ ...v, [key]: value }));
     setErrors(({ [key]: _gone, ...rest }) => rest);
   };
-  const priorities = options?.[values.event_type] ?? [];
+  const priorities = (values.event_type && options?.[values.event_type]) || [];
 
   const onFilled = (result: UnderstandResponse) => {
-    setValues((v) => fromInputs(result.inputs, v));
+    const next = fromInputs(result.inputs, values);
+    const target = result.missing.map((f) => FIELD_STEP[f]).sort()[0] ?? 2;
     setFilled(result);
     setErrors(Object.fromEntries(result.missing.map((f) => [f, `Please enter the ${FIELD_NAMES[f] ?? f}.`])));
-    const first = result.missing.map((f) => FIELD_STEP[f]).sort()[0];
-    setStep(first ?? 2);
+    const keys = FILL_ORDER.filter((key) => next[key] !== values[key]);
+    if (!keys.length || reducedMotion()) {
+      setValues(next);
+      setStep(target);
+      return;
+    }
+    setStep(FIELD_STEP[keys[0]]);
+    setFilling({ values: next, keys, step: target });
   };
+
+  // Fill one understood value at a time, on its own step, then land where checking is needed.
+  useEffect(() => {
+    if (!filling) return;
+    const timer = window.setTimeout(() => {
+      const [key, ...rest] = filling.keys;
+      if (!key) {
+        setValues(filling.values);
+        setStep(filling.step);
+        setFlash(null);
+        setFilling(null);
+        return;
+      }
+      setStep(FIELD_STEP[key]);
+      setValues((v) => ({ ...v, [key]: filling.values[key] }));
+      setFlash(key);
+      setFilling({ ...filling, keys: rest });
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [filling]);
 
   const stepErrors = (index: number) => {
     const found: Record<string, string> = {};
     if (index === 0) {
+      if (!values.event_type) found.event_type = "Pick what you're planning to continue.";
       if (!values.event_date) found.event_date = "Please pick the event date.";
-      if (!values.guests) found.guests = "Please enter the number of guests.";
+      if (!/^\d+$/.test(values.guests.trim()) || Number(values.guests) < 1) found.guests = "Enter a number of guests, like 150.";
     }
     if (index === 1) {
       if (!values.budget_inr) found.budget_inr = "Please enter the budget.";
@@ -193,7 +266,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
   };
 
   const request = (fresh: boolean): PlanRequest => ({
-    event_type: values.event_type,
+    event_type: values.event_type as EventType, // checked on the first step
     event_date: values.event_date,
     guests: Number(values.guests),
     budget_inr: Number(values.budget_inr),
@@ -243,7 +316,16 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
-      {!editing && <DescribeBox onFilled={onFilled} />}
+      {!editing && (
+        <>
+          <DescribeBox active={aiPath} onFilled={onFilled} onTyping={setAiPath} />
+          <p className="flex items-center gap-3 text-sm text-muted-foreground">
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+            Or fill it in step by step
+            <span className="h-px flex-1 bg-border" aria-hidden="true" />
+          </p>
+        </>
+      )}
 
       <form onSubmit={onSubmit} noValidate className="rounded-xl bg-card p-5 shadow-card md:p-7">
         <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Steps">
@@ -286,16 +368,24 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
             <ChoiceCards
               legend="What are you planning?" name="event_type" value={values.event_type}
               options={(Object.keys(EVENT_LABELS) as EventType[]).map((v) => ({ value: v, label: EVENT_LABELS[v], icon: EVENT_ICONS[v] }))}
-              onChange={(v) => set("event_type", v)}
+              onChange={(v) => set("event_type", v)} error={err("event_type")} flash={flash === "event_type"}
             />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="event_date" label="Event date" error={err("event_date")}>
+              <Field id="event_date" label="Event date" error={err("event_date")} flash={flash === "event_date"}>
                 <Input id="event_date" type="date" required value={values.event_date} min={addDays(todayInIndia(), 1)}
                   onChange={(e) => set("event_date", e.target.value)} aria-invalid={Boolean(err("event_date"))} aria-describedby={describedBy("event_date")} />
               </Field>
-              <Field id="guests" label="Number of guests" error={err("guests")}>
-                <Input id="guests" type="number" inputMode="numeric" min={1} max={5000} required value={values.guests}
+              <Field id="guests" label="Number of guests" error={err("guests")} flash={flash === "guests"}>
+                <Input id="guests" inputMode="numeric" pattern="[0-9]*" autoComplete="off" required value={values.guests} placeholder="e.g. 150"
                   onChange={(e) => set("guests", e.target.value)} aria-invalid={Boolean(err("guests"))} aria-describedby={describedBy("guests")} />
+                <div className="flex flex-wrap gap-2" role="group" aria-label="Quick picks for guests">
+                  {GUEST_PICKS.map((count) => (
+                    <Button key={count} type="button" size="sm" variant="outline" className="num h-11 min-w-11 rounded-full sm:h-9"
+                      aria-pressed={values.guests === String(count)} onClick={() => set("guests", String(count))}>
+                      {count}
+                    </Button>
+                  ))}
+                </div>
               </Field>
             </div>
           </div>
@@ -304,7 +394,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
         {step === 1 && (
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field id="budget_inr" label="Total budget (₹)" error={err("budget_inr")} hint={values.budget_inr ? shortInr(Number(values.budget_inr)) : "Your all-in budget, in rupees"}>
+              <Field id="budget_inr" label="Total budget (₹)" error={err("budget_inr")} flash={flash === "budget_inr"} hint={values.budget_inr ? shortInr(Number(values.budget_inr)) : "Your all-in budget, in rupees"}>
                 <div className="relative">
                   <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">₹</span>
                   <Input id="budget_inr" type="number" inputMode="numeric" min={1000} max={100000000} step={1000} required className="num pl-7"
@@ -312,7 +402,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
                     aria-invalid={Boolean(err("budget_inr"))} aria-describedby={describedBy("budget_inr")} />
                 </div>
               </Field>
-              <Field id="city" label="City" error={err("city")}>
+              <Field id="city" label="City" error={err("city")} flash={flash === "city"}>
                 <Input id="city" autoComplete="address-level2" maxLength={60} required value={values.city}
                   onChange={(e) => set("city", e.target.value)} aria-invalid={Boolean(err("city"))} aria-describedby={describedBy("city")} />
               </Field>
@@ -378,24 +468,35 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
           </div>
         )}
 
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-2 border-t pt-5">
+        <div className="mt-7 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2">
             {step > 0 && (
               <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
                 <ArrowLeft aria-hidden="true" /> Back
               </Button>
             )}
-            {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
+            {/* A new event can be cancelled from the first step, back to the event that was open. */}
+            {onCancel && (editing || step === 0) && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
           </div>
-          {step < STEPS.length - 1 ? (
-            <Button type="submit" size="lg">Next <ArrowRight aria-hidden="true" /></Button>
-          ) : (
-            <Button type="submit" size="lg" disabled={busy} aria-busy={busy}>
-              {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
-              {busy ? "Making your plan…" : editing ? "Update my plan" : "Make my plan (takes a second)"}
-            </Button>
-          )}
+          <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:items-center sm:gap-4">
+            {!editing && <span className="text-center text-sm text-muted-foreground">{TIME_LEFT[step]}</span>}
+            {step < STEPS.length - 1 ? (
+              <Button type="submit" size="lg" variant={aiPath ? "outline" : "default"} className="w-full sm:w-auto">
+                Next <ArrowRight aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button type="submit" size="lg" variant={aiPath ? "outline" : "default"} disabled={busy} aria-busy={busy} className="w-full sm:w-auto">
+                {busy && <Loader2 className="animate-spin" aria-hidden="true" />}
+                {busy ? "Making your plan…" : editing ? "Update my plan" : "Make my plan"}
+              </Button>
+            )}
+          </div>
         </div>
+        {!editing && (
+          <p className="mt-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+            <Lock className="size-3.5 shrink-0" aria-hidden="true" /> Your plan is saved in this browser only. Our server works it out but doesn't keep a copy.
+          </p>
+        )}
         {editing && hasProgress && (
           <p className="mt-3 text-xs text-muted-foreground">
             <StatusBadge tone="success">Kept</StatusBadge> Your bookings, quotes, money moves and guests stay put, unless you change the event type.
@@ -408,7 +509,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
           <DialogHeader>
             <DialogTitle>Start this plan over?</DialogTitle>
             <DialogDescription>
-              A {EVENT_LABELS[values.event_type].toLowerCase()} has different bookings and budget lines, so your bookings,
+              A {values.event_type ? EVENT_LABELS[values.event_type].toLowerCase() : "different event"} has different bookings and budget lines, so your bookings,
               quotes, money moves and guest list for this event will be cleared. Your other events stay as they are.
             </DialogDescription>
           </DialogHeader>

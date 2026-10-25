@@ -202,7 +202,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
             <PencilLine className="size-4" aria-hidden="true" /> Edit event details
           </button>
-          <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Nothing goes to our server.</p>
+          <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
         </div>
       </aside>
 
