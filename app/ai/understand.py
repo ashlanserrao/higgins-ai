@@ -41,6 +41,24 @@ _RELATIVE_WEEKDAY = re.compile(
 _LABEL_STOPWORDS = {"first"}
 # The model must not invent priorities: keep them only if the message talks about them.
 _PRIORITY_WORDS = re.compile(r"priorit|matters?\b|important|focus|\bmost\b|\bmain\b", re.IGNORECASE)
+# Which way a relative change goes, read from the organiser's own words about that field.
+# Seen live: "reduce budget by 1 lakh" came back as +1 lakh.
+_LESS = re.compile(
+    r"\b(?:reduce|cut|lower|less|fewer|remove|drop|decrease|minus|subtract|trim|slash|down|"
+    r"forward|earlier|sooner|prepone)\b", re.IGNORECASE,
+)
+_MORE = re.compile(
+    r"\b(?:add|more|extra|increase|raise|plus|up|boost|bump|back|later|postpone|delay)\b", re.IGNORECASE,
+)
+_BUDGET_WORDS = re.compile(r"budget|lakh|crore|₹|\brs\b|rupees?|\d\s*k\b|money|spend", re.IGNORECASE)
+_CHANGE_TOPICS = {
+    "guests_change": re.compile(r"guest|people|persons?|pax|heads?", re.IGNORECASE),
+    "budget_change_inr": _BUDGET_WORDS,
+    "budget_change_percent": _BUDGET_WORDS,
+    "event_date_change_days": re.compile(
+        r"date|days?|weeks?|months?|forward|back|earlier|later|postpone|prepone", re.IGNORECASE,
+    ),
+}
 
 INSTRUCTIONS = """\
 You turn an event organiser's message into changes to their event plan, as JSON fields. \
@@ -52,6 +70,8 @@ Never guess values the message doesn't give, and don't repeat values from the cu
 relative changes: put them ONLY in the change fields and leave the matching plain field \
 null. "add 40 guests" is guests_change 40, "20% more budget" is budget_change_percent 20, \
 "50k more" is budget_change_inr 50000, "push it back a week" is event_date_change_days 7. \
+Decreases are negative: "reduce the budget by 1 lakh" is budget_change_inr -100000, "20 fewer \
+guests" is guests_change -20, "bring it forward 3 days" is event_date_change_days -3. \
 Never work out the new total yourself.
 - guests is exactly the number the message states. Don't add parents, staff or anyone else.
 - Amounts are whole rupees. Convert units: "25 lakh" is 2500000, "1.5L" is 150000, \
@@ -162,6 +182,7 @@ def apply_patch(patch: PlanPatch, current: PlanRequest | None, message: str, tod
     # Models often send "" or [] for "not mentioned": treat them like null.
     values = {name: getattr(patch, name) for name in DIRECT_FIELDS if getattr(patch, name) not in (None, "", [])}
     unclear = list(patch.unclear) + _keep_what_the_message_says(values, message, today)
+    patch = _signs_from_the_message(patch, message)
 
     def start(name: str):
         # A change applies to the current value. If the model also filled in a total, ignore
@@ -207,6 +228,27 @@ def _keep_what_the_message_says(values: dict[str, Any], message: str, today: dat
         else:
             del values["priorities"]
     return notes
+
+
+def _direction(message: str, topic: re.Pattern) -> int:
+    """+1 or -1 when every part of the message about this field points the same way, else 0."""
+    found = set()
+    for part in re.split(r"[,;.]|\band\b|\bbut\b|\bthen\b", message, flags=re.IGNORECASE):
+        if topic.search(part):
+            less, more = bool(_LESS.search(part)), bool(_MORE.search(part))
+            if less != more:
+                found.add(-1 if less else 1)
+    return found.pop() if len(found) == 1 else 0
+
+
+def _signs_from_the_message(patch: PlanPatch, message: str) -> PlanPatch:
+    """Give each relative change the direction the organiser's words say."""
+    flipped = {}
+    for name, topic in _CHANGE_TOPICS.items():
+        value = getattr(patch, name)
+        if value and (direction := _direction(message, topic)) and (value > 0) != (direction > 0):
+            flipped[name] = -value
+    return patch.model_copy(update=flipped)
 
 
 def _next_weekday(name: str, today: date) -> date:

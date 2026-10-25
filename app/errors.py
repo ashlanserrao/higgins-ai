@@ -17,6 +17,8 @@ FIELD_LABELS = {
     "moves": "budget move",
     "text": "quote text",
     "message": "message",
+    "task_id": "booking",
+    "kind": "message type",
 }
 # Some endpoints nest the plan inputs ("base", "current"…); errors name the form field itself.
 REQUEST_WRAPPERS = {"body", "base", "changes", "inputs", "current"}

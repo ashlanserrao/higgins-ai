@@ -22,6 +22,7 @@ TaskId = Annotated[str, StringConstraints(max_length=30)]
 QuoteId = Annotated[str, StringConstraints(min_length=1, max_length=40, pattern=r"^[A-Za-z0-9_-]+$")]
 QuoteNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 Capacity = Literal["fits", "too_small", "not_stated"]
+MessageKind = Literal["enquiry", "follow_up", "confirmation"]
 T = TypeVar("T")
 
 _CITY_EXTRA_CHARS = set(" .-'")
@@ -172,6 +173,15 @@ class CompareRequest(BaseModel):
 
     base: PlanRequest
     changes: PlanEdit
+
+
+class MessageRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    inputs: PlanRequest
+    task_id: TaskId
+    kind: MessageKind
+    include_budget: bool = False
 
 
 class UnderstandRequest(BaseModel):

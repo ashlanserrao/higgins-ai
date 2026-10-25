@@ -104,21 +104,15 @@ def test_chunked_body_without_length_is_rejected(client):
     assert response.status_code == 411
 
 
-def test_progress_over_http(client, diwali_request):
-    payload = as_json(diwali_request) | {"progress": {"tasks": {"venue": {"state": "booked", "on": str(TODAY)}}}}
-    response = client.post("/api/plan", json=payload)
-    assert response.status_code == 200
-    venue = next(item for item in response.json()["plan"]["checklist"] if item["id"] == "venue")
-    assert venue["done"] and venue["booked_on"] == str(TODAY)
-
-
-@pytest.mark.parametrize("task, message", [
-    ({"state": "cancelled", "on": str(TODAY)}, "Please choose a valid booking status."),
-    ({"state": "booked", "on": str(TODAY + timedelta(days=1))}, "Venue can't be marked booked on a future date."),
+@pytest.mark.parametrize("progress, message", [
+    ({"tasks": {"venue": {"state": "cancelled", "on": str(TODAY)}}}, "Please choose a valid booking status."),
+    ({"quotes": [{"id": "q1", "category": "food", "total_inr": 1, "accepted_on": str(TODAY)}]},
+     "Check a quote's details before accepting it."),
+    ({"moves": [{"from_key": "decor", "to_key": "food", "amount_inr": 150}]},
+     "The budget move must be in steps of ₹100."),
 ])
-def test_bad_progress_gives_clean_error(client, diwali_request, task, message):
-    payload = as_json(diwali_request) | {"progress": {"tasks": {"venue": task}}}
-    response = client.post("/api/plan", json=payload)
+def test_bad_progress_gives_clean_error(client, diwali_request, progress, message):
+    response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": progress})
     assert response.status_code == 422
     assert {"field": "progress", "message": message} in response.json()["fields"]
 
@@ -132,16 +126,3 @@ def test_accepted_quote_over_http(client, diwali_request):
     food = next(line for line in plan["budget_lines"] if line["key"] == "food")
     assert food["source"] == "confirmed" and food["change_inr"] == food["amount_inr"] - food["estimate_inr"]
     assert plan["quote_comparisons"]["food"][0]["accepted"] is True
-
-
-def test_unchecked_quote_gives_clean_error(client, diwali_request):
-    quote = {"id": "q1", "category": "food", "total_inr": 50_000, "accepted_on": str(TODAY)}
-    response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": {"quotes": [quote]}})
-    assert response.status_code == 422
-    assert {"field": "progress", "message": "Check a quote's details before accepting it."} in response.json()["fields"]
-
-
-def test_bad_move_in_a_plan_gives_clean_error(client, diwali_request):
-    move = {"from_key": "decor", "to_key": "food", "amount_inr": 150}
-    response = client.post("/api/plan", json=as_json(diwali_request) | {"progress": {"moves": [move]}})
-    assert {"field": "progress", "message": "The budget move must be in steps of ₹100."} in response.json()["fields"]

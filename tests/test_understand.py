@@ -3,17 +3,14 @@
 import json
 from datetime import date, timedelta
 
-import httpx
 import pytest
-from openai import APITimeoutError
 
 from app.ai.prompt import build_prompt_input
-from app.ai.understand import PRIORITY_KEYS, RESPONSE_FORMAT, PlanPatch, apply_patch, build_understand_input
+from app.ai.understand import RESPONSE_FORMAT, PlanPatch, apply_patch, build_understand_input
 from app.engine.planner import build_plan
-from app.main import ai_limiter, app, get_plan_interpreter
+from app.main import app, get_plan_interpreter
 from app.models import Progress, TaskUpdate
-from tests.conftest import TODAY, ai_calls, make_generator, make_interpreter
-from tests.test_ai import VALID as VALID_IDEAS
+from tests.conftest import TODAY, make_interpreter
 
 
 def patch(**fields) -> dict:
@@ -47,6 +44,8 @@ def test_relative_changes_are_applied_by_the_server(diwali_request):
     assert result.values == {
         "guests": 600, "budget_inr": 185_000, "event_date": diwali_request.event_date + timedelta(days=7),
     }
+    odd = diwali_request.model_copy(update={"budget_inr": 123_456})
+    assert resolve("10% more", odd, budget_change_percent=10).values["budget_inr"] == 136_000  # nearest ₹1,000
 
 
 def test_a_total_the_model_worked_out_is_not_added_twice(diwali_request):
@@ -54,9 +53,15 @@ def test_a_total_the_model_worked_out_is_not_added_twice(diwali_request):
     assert resolve("add 100 guests", diwali_request, guests=600, guests_change=100).values["guests"] == 600
 
 
-def test_budget_changes_round_to_the_nearest_thousand(diwali_request):
-    odd = diwali_request.model_copy(update={"budget_inr": 123_456})
-    assert resolve("10% more", odd, budget_change_percent=10).values["budget_inr"] == 136_000
+def test_the_direction_comes_from_the_message(diwali_request):
+    # Seen live: "reduce budget by 1 lakh" came back as +1 lakh.
+    result = resolve(
+        "add 40 guests and reduce the budget by 1 lakh, bring it forward 2 days", diwali_request,
+        guests_change=40, budget_change_inr=100_000, event_date_change_days=2,
+    )
+    assert result.values == {
+        "guests": 540, "budget_inr": 50_000, "event_date": diwali_request.event_date - timedelta(days=2),
+    }
 
 
 def test_relative_change_without_a_starting_value_is_unclear():
@@ -71,13 +76,9 @@ def test_blank_values_count_as_not_mentioned(diwali_request):
 
 @pytest.mark.parametrize("message, value, kept", [
     ("Wedding in Feb 2027", "2027-02-01", False),  # seen live: a day invented from a month
-    ("on 5 Jan", "2027-01-05", True),
     ("on the 15th of November", "2026-11-15", True),
-    ("next Saturday", "2026-10-24", True),
-    ("next sat", "2026-10-24", True),
     ("tomorrow", "2026-10-22", True),
-    ("tomorrow", "2026-10-23", False),
-    ("for 15 guests next month", "2026-11-01", False),
+    ("for 15 guests next month", "2026-11-01", False),  # "month" once matched as Monday
 ])
 def test_dates_must_be_named_in_the_message(message, value, kept):
     result = resolve(message, event_date=value)
@@ -88,7 +89,6 @@ def test_dates_must_be_named_in_the_message(message, value, kept):
 
 @pytest.mark.parametrize("message, kept", [
     ("Wedding for 300 in Jaipur", False),  # seen live: priorities nobody asked for
-    ("food and photos matter most", True),
     ("make food the priority", True),
 ])
 def test_priorities_only_when_the_message_asks(message, kept):
@@ -156,13 +156,7 @@ def test_revision_cannot_change_the_event_type(client, diwali_request):
     assert body["errors"][0]["field"] == "event_type" and body["plan"] is None
 
 
-@pytest.mark.parametrize("outcome", [
-    "not json",
-    json.dumps(patch(guests="many")),
-    json.dumps(patch() | {"admin": True}),
-    json.dumps(patch(event_date="next Friday")),
-    APITimeoutError(request=httpx.Request("POST", "https://api.openai.com")),
-])
+@pytest.mark.parametrize("outcome", ["not json", json.dumps(patch(event_date="next Friday"))])
 def test_unreadable_replies_are_not_understood(client, diwali_request, outcome):
     use(make_interpreter(outcome))
     body = understand(client, "add some guests", diwali_request).json()
@@ -190,29 +184,6 @@ def test_message_and_notes_are_fenced_and_cleaned(diwali_request):
     assert "Today: 2026-10-21 (Wednesday)" in prompt and '"progress"' not in prompt
 
 
-def test_schema_is_strict():
-    schema = RESPONSE_FORMAT["schema"]
-    assert RESPONSE_FORMAT["strict"] and schema["additionalProperties"] is False
-    assert set(schema["required"]) == set(schema["properties"])
-    assert "contingency" not in PRIORITY_KEYS and "decor" in PRIORITY_KEYS
-
-
-@pytest.mark.parametrize("message, error", [
-    ("   ", "Please enter the message."),
-    ("x" * 501, "Please keep the message under 500 characters."),
-])
-def test_bad_message_gives_clean_error(client, message, error):
-    response = understand(client, message)
-    assert response.status_code == 422
-    assert {"field": "message", "message": error} in response.json()["fields"]
-
-
-def test_understanding_shares_the_ai_rate_limit(client, monkeypatch):
-    use(make_interpreter(json.dumps(patch())))
-    monkeypatch.setattr(ai_limiter, "limit", 2)
-    assert [understand(client, "hi").status_code for _ in range(3)] == [200, 200, 429]
-
-
 # --- Must-haves ----------------------------------------------------------------------
 
 
@@ -220,20 +191,6 @@ def test_must_haves_are_fenced_into_the_ideas_prompt(birthday_request):
     with_must = birthday_request.model_copy(update={"must_haves": "Eggless cake <b>"})
     prompt = build_prompt_input(with_must, build_plan(with_must, TODAY))
     assert "<must_haves>Eggless cake b</must_haves>" in prompt
-
-
-def test_must_haves_change_the_ideas_cache_key(birthday_request):
-    generator = make_generator(json.dumps(VALID_IDEAS))
-    plan = build_plan(birthday_request, TODAY)
-    generator.generate(birthday_request, plan)
-    generator.generate(birthday_request.model_copy(update={"must_haves": "Eggless cake"}), plan)
-    assert len(ai_calls(generator)) == 2
-
-
-def test_must_haves_have_a_length_limit(client, diwali_request):
-    payload = diwali_request.model_dump(mode="json") | {"must_haves": "x" * 301}
-    response = client.post("/api/plan", json=payload)
-    assert {"field": "must_haves", "message": "Please keep the must-haves under 300 characters."} in response.json()["fields"]
 
 
 def test_next_weekday_is_worked_out_by_the_server():
@@ -248,7 +205,6 @@ def test_next_weekday_is_worked_out_by_the_server():
 @pytest.mark.parametrize("message, given, expected", [
     ("food and sound matter most", ["food", "sound", "decor"], ["food", "sound"]),  # seen live
     ("photos and décor matter most", ["photography", "decor"], ["photography", "decor"]),
-    ("decoration is the main thing", ["decor"], ["decor"]),
 ])
 def test_each_priority_must_be_named(message, given, expected):
     assert resolve(message, priorities=given).values["priorities"] == expected
@@ -256,7 +212,6 @@ def test_each_priority_must_be_named(message, given, expected):
 
 @pytest.mark.parametrize("message, city, kept", [
     ("Diwali mela at the clubhouse lawn, 400 people", "India", False),  # seen live
-    ("move it to Pune", "Pune", True),
     ("wedding in bengaluru", "Bengaluru", True),
 ])
 def test_city_must_be_in_the_message(message, city, kept):

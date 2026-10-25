@@ -20,21 +20,25 @@ from app.config import IST, settings
 from app.engine import rules
 from app.engine.errors import PlanInputError
 from app.engine.diff import diff_plans
+from app.engine.messages import vendor_message
 from app.engine.planner import build_plan
 from app.errors import FIELD_LABELS, field_errors
-from app.models import CompareRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest, UnderstandRequest
+from app.models import (
+    CompareRequest, MessageRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest, UnderstandRequest,
+)
 from app.security import SECURITY_HEADERS, RateLimiter
 
 logger = logging.getLogger(__name__)
 
-STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+# The React build (cd frontend && npm run build). The API works without it, e.g. in tests.
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, openapi_url=None)
 # The rules-only plan is cheap and called on every "what if" change; AI calls are not.
 plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
 ai_limiter = RateLimiter(settings.rate_limit_per_minute)
 RATE_LIMITERS = {
-    "/api/plan": plan_limiter, "/api/compare": plan_limiter,
+    "/api/plan": plan_limiter, "/api/compare": plan_limiter, "/api/messages": plan_limiter,
     "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter, "/api/understand": ai_limiter,
 }
 ai = StructuredAI(settings)
@@ -59,6 +63,10 @@ class QuoteExtractResponse(BaseModel):
     # Null if nothing could be read; the organiser can still type the quote in.
     quote: QuoteDraft | None
     ai_available: bool
+
+
+class MessageResponse(BaseModel):
+    text: str
 
 
 class FieldChange(BaseModel):
@@ -196,6 +204,13 @@ def compare_plans(body: CompareRequest, today: date = Depends(today_in_india)) -
     return CompareResponse(inputs=proposed, plan=after, changes=diff_plans(before, after))
 
 
+@app.post("/api/messages", response_model=MessageResponse)
+def create_message(body: MessageRequest, today: date = Depends(today_in_india)) -> MessageResponse:
+    """A ready-to-send enquiry, follow-up or confirmation for one booking. No AI."""
+    plan = build_plan(body.inputs, today)
+    return MessageResponse(text=vendor_message(body.inputs, plan, body.task_id, body.kind, body.include_budget, today))
+
+
 @app.post("/api/ideas", response_model=IdeasResponse)
 def create_ideas(
     request: PlanRequest,
@@ -207,7 +222,6 @@ def create_ideas(
     return IdeasResponse(ideas=ideas, ai_available=generator.available)
 
 
-
 @app.post("/api/quotes/extract", response_model=QuoteExtractResponse)
 def extract_quote(
     body: QuoteExtractRequest,
@@ -217,7 +231,6 @@ def extract_quote(
     """Read a pasted quote into a draft for the organiser to check. Nothing is saved."""
     draft = extractor.extract(body.inputs, build_plan(body.inputs, today), body.text, today)
     return QuoteExtractResponse(quote=draft, ai_available=extractor.available)
-
 
 
 @app.post("/api/understand", response_model=UnderstandResponse)
@@ -271,4 +284,5 @@ def understand(
     return result
 
 
-app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+if FRONTEND_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

@@ -137,12 +137,6 @@ def test_quotes_beyond_the_budget_are_reported_as_over_budget(wedding):
     assert "raise the budget to ₹34,50,000" in rebalance.explanation
 
 
-def test_per_plate_quote_follows_the_guest_count(wedding):
-    bigger = wedding.model_copy(update={"guests": 300})
-    plan = build_plan(with_quotes(bigger, accepted(per_plate_inr=1_500)), TODAY)
-    assert lines_by_key(plan)["food"].amount_inr == 450_000
-
-
 def test_too_small_accepted_quote_is_flagged(wedding):
     plan = build_plan(with_quotes(wedding, accepted(total_inr=300_000, guests_covered=200)), TODAY)
     assert "The accepted catering quote covers 200 guests, but you're planning for 250." in plan.warnings

@@ -237,6 +237,98 @@ COST_SAVING_SWAPS: dict[str, list[str]] = {
     ],
 }
 
+# --- Vendor messages ---------------------------------------------------------------
+
+# What an enquiry asks for, per task. Tasks without a vendor to message (permissions,
+# weather backup) are left out. The questions match the quote fields, so replies compare.
+VENDOR_ASK: dict[str, str] = {
+    "venue": "a venue",
+    "photographer": "a photographer and videographer",
+    "caterer": "a caterer",
+    "decor": "a decorator",
+    "makeup": "a makeup artist",
+    "attire": "outfits",
+    "music": "music or a DJ",
+    "invitations": "invitations",
+    "entertainer": "an entertainer",
+    "cake": "a cake",
+    "return_gifts": "return gifts",
+    "performers": "performers",
+    "sound": "sound, stage and lighting",
+    "security": "security and first aid",
+    "tent": "a tent or covered space",
+}
+
+VENDOR_QUESTIONS: dict[str, list[str]] = {
+    "venue": [
+        "Can it hold {guests} guests, and what are the timings?",
+        "Is in-house catering included, or can we bring our own caterer?",
+        "Is there parking, and are there rules on décor or music?",
+        "What is the advance, and what is the cancellation policy?",
+    ],
+    "photographer": [
+        "How many hours of coverage, and how many photographers and videographers?",
+        "What do we get: edited photos, album, video, and when?",
+        "Are travel charges extra?",
+    ],
+    "caterer": [
+        "What is the per-plate price (veg and non-veg) for {guests} guests?",
+        "Is there a minimum number of plates?",
+        "Are service staff, crockery and setup included?",
+        "Is GST included? Can we do a tasting?",
+    ],
+    "decor": [
+        "What is included (stage, entrance, flowers, lighting)?",
+        "When do you set up and clear away?",
+        "Is GST included?",
+    ],
+    "makeup": [
+        "How many looks are included, and is there a trial?",
+        "Do you travel to the venue, and is that extra?",
+    ],
+    "attire": [
+        "When can the outfits be ready, and are alterations included?",
+        "Is there a rental option?",
+    ],
+    "music": [
+        "How many hours, and what equipment do you bring?",
+        "Can we share a song list in advance?",
+    ],
+    "invitations": [
+        "What is the price for {guests} invitations, printed or digital?",
+        "How long does printing and delivery take?",
+    ],
+    "entertainer": [
+        "How long is the show, and what age group is it for?",
+        "What space and equipment do you need?",
+    ],
+    "cake": [
+        "What flavours and sizes would serve {guests} guests? Is eggless possible?",
+        "Can you deliver on the day, and at what time?",
+    ],
+    "return_gifts": [
+        "What is the price per piece for {guests} gifts?",
+        "Can they be personalised, and when can you deliver?",
+    ],
+    "performers": [
+        "How long is the performance, and how many performers?",
+        "What sound and stage setup do you need?",
+    ],
+    "sound": [
+        "Which speakers, mics and lights are included, with an operator?",
+        "Do you bring power backup or a generator?",
+        "When do you set up?",
+    ],
+    "security": [
+        "How many guards, and for how many hours?",
+        "Do you provide first-aid staff or a kit?",
+    ],
+    "tent": [
+        "What size of tent covers {guests} guests, and is it rain-proof?",
+        "When do you set up and remove it?",
+    ],
+}
+
 # Fixed planning milestones (days before the event).
 MILESTONES: dict[str, list[tuple[int, str]]] = {
     "wedding": [

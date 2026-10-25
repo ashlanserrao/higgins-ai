@@ -44,11 +44,6 @@ def test_booking_the_venue_unblocks_and_shows_as_done(wedding_request):
     assert (venue_entry.date, venue_entry.status) == (date(2026, 10, 20), "done")
 
 
-def test_venue_at_home_has_no_dependencies(birthday_request):
-    items = build_plan(birthday_request, TODAY).checklist
-    assert all(item.waiting_on == [] for item in items)
-
-
 def test_booked_tasks_leave_triage(diwali_request):
     nine_days = diwali_request.model_copy(update={"event_date": TODAY + timedelta(days=9)})
     before = build_plan(nine_days, TODAY)

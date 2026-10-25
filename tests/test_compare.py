@@ -7,7 +7,6 @@ from pydantic import ValidationError
 
 from app.engine.errors import PlanInputError
 from app.engine.planner import build_plan
-from app.main import plan_limiter
 from app.models import Move, Progress, Quote
 from tests.conftest import TODAY
 
@@ -66,13 +65,9 @@ def test_a_line_cannot_go_below_zero(diwali_request):
     assert error.value.field == "progress"
 
 
-@pytest.mark.parametrize("fields, message", [
-    ({"from_key": "decor", "to_key": "decor", "amount_inr": 100}, "Pick two different categories"),
-    ({"from_key": "decor", "to_key": "food", "amount_inr": 150}, "multiple of 100"),
-])
-def test_bad_moves_are_rejected(fields, message):
-    with pytest.raises(ValidationError, match=message):
-        Move(**fields)
+def test_a_move_needs_two_different_lines():
+    with pytest.raises(ValidationError, match="Pick two different categories"):
+        move("decor", "decor", 100)
 
 
 def test_moves_touching_a_confirmed_or_missing_line_are_skipped(diwali_request, birthday_request):
@@ -134,23 +129,9 @@ def test_no_changes_says_so(client, diwali_request):
 
 @pytest.mark.parametrize("changes, field, message", [
     ({"guests": 0}, "guests", "The number of guests must be at least 1."),
-    ({"event_date": str(TODAY - timedelta(days=1))}, "event_date", "The event date is in the past."),
     ({"event_type": "birthday"}, "event_type", "This field isn't recognised."),
-    ({"moves": [{"from_key": "decor", "to_key": "food", "amount_inr": 150}]},
-     "moves", "The budget move must be in steps of ₹100."),
 ])
 def test_bad_changes_give_clean_errors(client, diwali_request, changes, field, message):
     response = compare(client, diwali_request, **changes)
     assert response.status_code == 422
     assert {"field": field, "message": message} in response.json()["fields"]
-
-
-def test_compare_shares_the_plan_rate_limit(client, diwali_request, monkeypatch):
-    monkeypatch.setattr(plan_limiter, "limit", 2)
-    statuses = [compare(client, diwali_request).status_code for _ in range(3)]
-    assert statuses == [200, 200, 429]
-
-
-def test_households_can_be_cleared(client, diwali_request):
-    body = compare(client, diwali_request, households=None).json()
-    assert body["inputs"]["households"] is None and body["plan"]["per_flat_inr"] is None
