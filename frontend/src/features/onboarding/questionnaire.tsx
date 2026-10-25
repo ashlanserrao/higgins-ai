@@ -385,7 +385,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
                 <ArrowLeft aria-hidden="true" /> Back
               </Button>
             )}
-            {editing && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
+            {onCancel && <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>}
           </div>
           {step < STEPS.length - 1 ? (
             <Button type="submit" size="lg">Next <ArrowRight aria-hidden="true" /></Button>
@@ -406,10 +406,10 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
       <Dialog open={confirmFresh} onOpenChange={setConfirmFresh}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Start a new plan?</DialogTitle>
+            <DialogTitle>Start this plan over?</DialogTitle>
             <DialogDescription>
               A {EVENT_LABELS[values.event_type].toLowerCase()} has different bookings and budget lines, so your bookings,
-              quotes, money moves and guest list will be cleared.
+              quotes, money moves and guest list for this event will be cleared. Your other events stay as they are.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

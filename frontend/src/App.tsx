@@ -1,7 +1,8 @@
 // Root: onboarding until there's a plan, then the dashboard. Printing shows every section.
+// The open event follows the URL, so back and forward move between events too.
 
-import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BudgetSection } from "@/features/budget/budget-section";
 import { GuestsSection } from "@/features/guests/guests-section";
@@ -12,6 +13,7 @@ import { Shell } from "@/features/shell/shell";
 import { TasksSection } from "@/features/tasks/tasks-section";
 import { VendorsSection } from "@/features/vendors/vendors-section";
 import { SECTIONS, useNav, type Section } from "@/state/nav";
+import { eventName } from "@/lib/format";
 import { usePlanner } from "@/state/planner";
 
 const VIEWS: Record<Section, () => React.JSX.Element> = {
@@ -19,7 +21,45 @@ const VIEWS: Record<Section, () => React.JSX.Element> = {
   vendors: VendorsSection, guests: GuestsSection, ideas: IdeasSection,
 };
 
+/** Keeps the open event and the URL in step, whichever of them changed. */
+function useEventRoute() {
+  const { eventId, openEvent } = useNav();
+  const { booting, activeId, events, switchEvent } = usePlanner();
+  const synced = useRef({ eventId, activeId: null as string | null });
+
+  useEffect(() => {
+    if (booting) return;
+    const known = (id: string | null) => events.some((e) => e.id === id);
+    if (eventId !== synced.current.eventId && eventId && eventId !== activeId && known(eventId)) {
+      // Back, forward or a link: open that event.
+      synced.current = { eventId, activeId: eventId };
+      switchEvent(eventId);
+    } else if (activeId && activeId !== eventId) {
+      // Switched here: the URL follows. A missing or unknown event in the URL is replaced, not stacked.
+      synced.current = { eventId: activeId, activeId };
+      openEvent(activeId, !known(eventId));
+    } else {
+      synced.current = { eventId, activeId };
+    }
+  }, [booting, eventId, activeId, events, openEvent, switchEvent]);
+}
+
+/** After a delete: what went, and a way to bring it back. */
+function DeletedNotice() {
+  const { lastDeleted, undoDelete, dismissDeleted } = usePlanner();
+  if (!lastDeleted) return null;
+  return (
+    <div className="no-print fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center gap-3 rounded-xl bg-card px-4 py-3 text-sm shadow-raised lg:bottom-6">
+      <span className="min-w-0 flex-1 truncate">Deleted <span className="font-medium">{eventName(lastDeleted.event)}</span></span>
+      <Button size="sm" variant="outline" onClick={undoDelete}><Undo2 aria-hidden="true" /> Undo</Button>
+      <Button size="icon-sm" variant="ghost" onClick={dismissDeleted} aria-label="Dismiss"><X aria-hidden="true" /></Button>
+    </div>
+  );
+}
+
 function Onboarding() {
+  const { returnTo, events, cancelNewEvent } = usePlanner();
+  const canGoBack = events.some((e) => e.id === returnTo);
   return (
     <div className="min-h-screen px-4 py-10 md:py-16">
       <header className="mx-auto mb-8 max-w-3xl">
@@ -33,7 +73,7 @@ function Onboarding() {
           timeline to share with family, and it keeps up as quotes come in and plans change.
         </p>
       </header>
-      <main><Questionnaire /></main>
+      <main><Questionnaire onCancel={canGoBack ? cancelNewEvent : undefined} /></main>
       <footer className="mx-auto mt-10 max-w-3xl text-xs text-muted-foreground">Your plan stays in this browser. Nothing goes to our server.</footer>
     </div>
   );
@@ -41,7 +81,10 @@ function Onboarding() {
 
 function Dashboard() {
   const { section } = useNav();
-  const [editing, setEditing] = useState(false);
+  const { activeId } = usePlanner();
+  // Editing belongs to one event: switching away closes it.
+  const [editingFor, setEditingFor] = useState<string | null | undefined>(undefined);
+  const editing = editingFor === activeId;
   const [printing, setPrinting] = useState(false);
 
   // Render every section, print, then go back to the one that was open.
@@ -58,11 +101,11 @@ function Dashboard() {
 
   const View = VIEWS[section];
   return (
-    <Shell onEdit={() => setEditing(true)} onPrint={() => setPrinting(true)}>
+    <Shell onEdit={() => setEditingFor(activeId)} onPrint={() => setPrinting(true)}>
       {editing ? (
         <div className="space-y-4">
           <h1 tabIndex={-1} data-section-title className="text-2xl font-semibold tracking-tight">Edit event details</h1>
-          <Questionnaire onDone={() => setEditing(false)} onCancel={() => setEditing(false)} />
+          <Questionnaire onDone={() => setEditingFor(undefined)} onCancel={() => setEditingFor(undefined)} />
         </div>
       ) : printing ? (
         SECTIONS.map((name) => {
@@ -70,7 +113,8 @@ function Dashboard() {
           return <div key={name} className="break-before-page first:break-before-auto"><Print /></div>;
         })
       ) : (
-        <View />
+        // Each event gets fresh section state: nothing half-typed carries over.
+        <View key={activeId} />
       )}
     </Shell>
   );
@@ -78,6 +122,7 @@ function Dashboard() {
 
 export default function App() {
   const { booting, bootError, options, plan, inputs, message } = usePlanner();
+  useEventRoute();
 
   // The event's own accent (wedding maroon, birthday berry, community indigo).
   useEffect(() => {
@@ -102,6 +147,7 @@ export default function App() {
       ) : (
         <Onboarding />
       )}
+      <DeletedNotice />
     </>
   );
 }

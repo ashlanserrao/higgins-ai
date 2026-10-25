@@ -51,3 +51,18 @@ export const EVENT_LABELS = { wedding: "Wedding", birthday: "Birthday", communit
 export const VENUE_LABELS = { venue: "Hall or venue", home: "At home", outdoor: "Outdoor" } as const;
 export const TIER_LABELS = { 1: "Metro", 2: "Tier-2 city", 3: "Smaller town" } as const;
 export const LEVEL_LABELS = { tight: "Tight", modest: "Modest", comfortable: "Comfortable", generous: "Generous" } as const;
+
+/** Whole days from today (in India) to the date; negative once it has passed. */
+export const daysUntil = (iso: string) => Math.round((parse(iso).getTime() - parse(todayInIndia()).getTime()) / 86_400_000);
+
+export function countdown(iso: string): string {
+  const days = daysUntil(iso);
+  if (days > 1) return `${days} days to go`;
+  if (days === 1) return "Tomorrow";
+  if (days === 0) return "Today";
+  return days === -1 ? "Happened yesterday" : `Happened ${-days} days ago`;
+}
+
+/** The organiser's own name for an event, or "Wedding in Jaipur". */
+export const eventName = (event: { name: string; inputs: { event_type: keyof typeof EVENT_LABELS; city: string } }) =>
+  event.name.trim() || `${EVENT_LABELS[event.inputs.event_type]} in ${event.inputs.city}`;

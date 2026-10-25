@@ -1,25 +1,26 @@
-// Dashboard frame: sidebar (event card, Add menu, sections), top bar (command bar,
-// share, print) and a bottom nav on phones.
+// Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (command bar,
+// share, print) and a bottom nav on phones, where the switcher moves to the top bar.
 
 import { useState, type ReactNode } from "react";
 import {
   CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
-  RotateCcw, Share2, Store, Undo2, UserPlus, Users, Wallet, X, type LucideIcon,
+  Share2, Store, Undo2, UserPlus, Users, Wallet, X, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/common";
-import { EVENT_LABELS, formatDate, inr, plural, shortInr } from "@/lib/format";
+import { formatDate, inr, plural, shortInr } from "@/lib/format";
 import { buildShareUrl } from "@/lib/share";
 import { needsAction } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
-import { useNav, type Intent, type Section } from "@/state/nav";
+import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { CommandBar } from "./command-bar";
+import { EventSwitcher } from "./event-switcher";
 
 const NAV: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -61,7 +62,7 @@ function AddMenu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={className}><Plus aria-hidden="true" /> Add</Button>
+        <Button variant="outline" className={className} aria-label="Add"><Plus aria-hidden="true" /> <span className="hidden sm:inline">Add</span></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
         <DropdownMenuLabel>Something changed?</DropdownMenuLabel>
@@ -91,11 +92,10 @@ function Logo() {
 function EventCard() {
   const { inputs, plan } = usePlan();
   return (
-    <div className="rounded-xl bg-surface p-4 text-sm shadow-card">
-      <p className="text-xs text-muted-foreground">Your event</p>
-      <p className="font-display mt-0.5 text-base">{EVENT_LABELS[inputs.event_type]} in {inputs.city}</p>
-      <p className="text-xs text-muted-foreground">{formatDate(inputs.event_date)}</p>
-      <div className="num mt-3 grid grid-cols-2 gap-y-1.5 border-t pt-3 text-xs text-muted-foreground">
+    <div className="rounded-xl bg-surface p-1.5 text-sm shadow-card">
+      <EventSwitcher className="w-full p-2.5 hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
+      <div className="num mx-2.5 mt-1 mb-2.5 grid grid-cols-2 gap-y-1.5 border-t pt-3 text-xs text-muted-foreground">
+        <span className="col-span-2">{formatDate(inputs.event_date)}</span>
         <span>{plural(inputs.guests, "guest")}</span>
         <span className="text-right font-semibold text-foreground">{inr(inputs.budget_inr)}</span>
         <span>{inr(plan.per_guest_inr)} / guest</span>
@@ -157,10 +157,9 @@ function UndoBar() {
 }
 
 export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEdit: () => void; onPrint: () => void }) {
-  const { section, go } = useNav();
-  const { shared, keepSharedPlan, startOver } = usePlan();
+  const { section, eventId, go } = useNav();
+  const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
-  const [confirmReset, setConfirmReset] = useState(false);
 
   const navLink = (item: (typeof NAV)[number], compact = false) => {
     const Icon = item.icon;
@@ -168,7 +167,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
     return (
       <a
         key={item.id}
-        href={`#${item.id}`}
+        href={routeHash({ eventId, section: item.id })}
         onClick={(e) => {
           e.preventDefault();
           go(item.id);
@@ -203,9 +202,6 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
             <PencilLine className="size-4" aria-hidden="true" /> Edit event details
           </button>
-          <button onClick={() => setConfirmReset(true)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
-            <RotateCcw className="size-4" aria-hidden="true" /> Start a new plan
-          </button>
           <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Nothing goes to our server.</p>
         </div>
       </aside>
@@ -213,10 +209,11 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       <div className="flex min-w-0 flex-col pb-20 lg:pb-0">
         <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:flex-nowrap md:px-8">
-            <div className="lg:hidden"><Logo /></div>
-            <div className="order-last w-full md:order-none md:w-auto md:flex-1"><CommandBar /></div>
-            <div className="ml-auto flex items-center gap-2">
-              <AddMenu className="lg:hidden" />
+            <EventSwitcher className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
+            {/* A fresh bar per event, so a half-typed change never applies to another one. */}
+            <div className="order-last w-full md:order-none md:w-auto md:flex-1"><CommandBar key={activeId} /></div>
+            <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+              <AddMenu className="max-sm:w-9 max-sm:px-0 lg:hidden" />
               <Button variant="ghost" size="icon" onClick={onEdit} className="lg:hidden" aria-label="Edit event details" title="Edit event details"><PencilLine aria-hidden="true" /></Button>
               <ShareButton />
               <Button variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"><Printer aria-hidden="true" /></Button>
@@ -228,7 +225,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           {shared && (
             <div className="no-print flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm">
               <Download className="size-4 text-info" aria-hidden="true" />
-              <span className="flex-1">Someone shared this plan with you. It won't replace your own unless you keep it.</span>
+              <span className="flex-1">Someone shared this plan with you. Keep it to add it to your events. Your own plans stay as they are.</span>
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
             </div>
           )}
@@ -240,19 +237,6 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       <nav aria-label="Sections" className="no-print fixed inset-x-0 bottom-0 z-30 flex bg-surface shadow-raised lg:hidden">
         {NAV.map((item) => navLink(item, true))}
       </nav>
-
-      <Dialog open={confirmReset} onOpenChange={setConfirmReset}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Start a new plan?</DialogTitle>
-            <DialogDescription>This clears everything saved in this browser: the plan, bookings, quotes, money moves, guests and ideas.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmReset(false)}>Keep my plan</Button>
-            <Button variant="destructive" onClick={() => { setConfirmReset(false); startOver(); }}>Clear everything</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

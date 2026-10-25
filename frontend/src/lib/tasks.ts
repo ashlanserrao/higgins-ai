@@ -24,6 +24,9 @@ export function taskBadge(item: ChecklistItem): TaskBadge {
 export const needsAction = (item: ChecklistItem) =>
   !item.done && (item.at_risk || item.status !== "on_track" || item.delayed_by === item.id);
 
+/** What the event switcher counts as "to do" today. */
+export const dueToday = (item: ChecklistItem) => !item.done && item.status === "book_today";
+
 export const TIMELINE_STATUS: Record<TimelineEntry["status"], TaskBadge> = {
   done: { label: "Done", tone: "success" },
   on_track: { label: "On track", tone: "success" },

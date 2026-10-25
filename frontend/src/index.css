@@ -22,11 +22,6 @@
   --text-secondary: #6b5a5f;
   --text-tertiary: #76656a; /* #9a8a8f was 3.1:1 on ivory */
 
-  /* Event accent: wedding by default; [data-event] below swaps it. */
-  --accent: #7a1f3d;
-  --accent-hover: #651832;
-  --accent-soft: #f8e9ec;
-  --accent-ink: #5e1630;
 
   /* Celebration highlights only (completed steps, small sparkles), never text. */
   --marigold: #e8a33d;
@@ -84,6 +79,16 @@
   --chart-7: #8f6bb8;
   --chart-8: #c2365e;
   --chart-9: #a89a8f;
+}
+
+/* Event accent: wedding maroon by default; [data-event] swaps it. Any element can carry it,
+   so the event switcher's dots show each event's own accent. */
+:root,
+[data-event="wedding"] {
+  --accent: #7a1f3d;
+  --accent-hover: #651832;
+  --accent-soft: #f8e9ec;
+  --accent-ink: #5e1630;
 }
 
 /* Birthday: berry coral. The brief's #e4572e was 3.7:1 with white and the same hue as "urgent". */
@@ -227,6 +232,16 @@
   body[data-scroll-locked] {
     overflow: hidden !important;
     overscroll-behavior: contain;
+  }
+}
+
+/* On phones the event switcher is a bottom sheet. Radix places menus with an inline
+   transform on this wrapper, so the sheet overrides it. */
+@media (max-width: 767px) {
+  [data-radix-popper-content-wrapper]:has(> [data-event-switcher]) {
+    inset: auto 0 0 0 !important;
+    transform: none !important;
+    min-width: 0 !important;
   }
 }
 
