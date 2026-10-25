@@ -78,14 +78,23 @@ function AddMenu({ className }: { className?: string }) {
 }
 
 function Logo() {
+  const { openPage } = useNav();
   return (
-    <div className="flex items-center gap-2.5">
+    <a
+      href="#/welcome"
+      onClick={(e) => {
+        e.preventDefault();
+        openPage("welcome");
+      }}
+      className="flex items-center gap-2.5 rounded-lg"
+      aria-label="Higgins AI home"
+    >
       <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
       <div className="leading-tight">
         <p className="font-display text-lg">Higgins AI</p>
         <p className="text-xs text-muted-foreground">Event planner</p>
       </div>
-    </div>
+    </a>
   );
 }
 

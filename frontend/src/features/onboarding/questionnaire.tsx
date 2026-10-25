@@ -2,7 +2,7 @@
 // plan and for editing one: the same event type keeps bookings, quotes, moves and guests.
 // For a new event the box is the main path; the steps are the fallback and the place to check.
 
-import { useEffect, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Cake, Check, Heart, Loader2, Lock, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -108,17 +108,17 @@ function Field({ id, label, error, hint, flash, children }: {
 }
 
 /** Plain language → form values. The AI reads; the organiser checks the form and submits. */
-function DescribeBox({ active, onFilled, onTyping }: {
-  active: boolean; onFilled: (result: UnderstandResponse) => void; onTyping: (typing: boolean) => void;
+function DescribeBox({ initialText, active, onFilled, onTyping }: {
+  initialText: string; active: boolean; onFilled: (result: UnderstandResponse) => void; onTyping: (typing: boolean) => void;
 }) {
   // There's no plan yet, so AI availability comes from this call's own response.
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const empty = !text.trim();
+  const autoRan = useRef(false);
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const read = async () => {
     if (empty) {
       setNote("Write a line about your event first.");
       document.getElementById("describe")?.focus();
@@ -128,8 +128,10 @@ function DescribeBox({ active, onFilled, onTyping }: {
     setNote("");
     try {
       const result = await api.understand(text, null);
-      if (!result.ai_available) setNote("That needs the AI, which isn't set up here. The steps below work just as well.");
-      else if (!result.understood) setNote(result.unclear[0] || "I couldn't find event details in that. Try naming the occasion, guests, city, date and budget.");
+      if (!result.ai_available) {
+        onTyping(false);
+        setNote("That needs the AI, which isn't set up here. The steps below work just as well.");
+      } else if (!result.understood) setNote(result.unclear[0] || "I couldn't find event details in that. Try naming the occasion, guests, city, date and budget.");
       else {
         onTyping(false);
         onFilled(result);
@@ -140,6 +142,18 @@ function DescribeBox({ active, onFilled, onTyping }: {
       setBusy(false);
     }
   };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void read();
+  };
+
+  // Text from the landing page is read straight away, so the form arrives filled in.
+  useEffect(() => {
+    if (!initialText.trim() || autoRan.current) return;
+    autoRan.current = true;
+    void read();
+  });
 
   // Enter sends, Shift+Enter starts a new line.
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -183,7 +197,7 @@ function DescribeBox({ active, onFilled, onTyping }: {
   );
 }
 
-export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCancel?: () => void }) {
+export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?: () => void; onCancel?: () => void; initialText?: string }) {
   const { options, inputs: current, guests, events, makePlan, bootError } = usePlanner();
   const editing = Boolean(current && onCancel);
   // A new event starts with no type picked, or the type of the most recently added event.
@@ -195,7 +209,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
   const [filled, setFilled] = useState<UnderstandResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
-  const [aiPath, setAiPath] = useState(false); // typing in the box: its button is the main one
+  const [aiPath, setAiPath] = useState(Boolean(initialText.trim())); // typing in the box: its button is the main one
   const [filling, setFilling] = useState<{ values: Values; keys: (keyof Values)[]; step: number } | null>(null);
   const [flash, setFlash] = useState<keyof Values | null>(null);
 
@@ -318,7 +332,7 @@ export function Questionnaire({ onDone, onCancel }: { onDone?: () => void; onCan
     <div className="mx-auto w-full max-w-3xl space-y-6">
       {!editing && (
         <>
-          <DescribeBox active={aiPath} onFilled={onFilled} onTyping={setAiPath} />
+          <DescribeBox initialText={initialText} active={aiPath} onFilled={onFilled} onTyping={setAiPath} />
           <p className="flex items-center gap-3 text-sm text-muted-foreground">
             <span className="h-px flex-1 bg-border" aria-hidden="true" />
             Or fill it in step by step

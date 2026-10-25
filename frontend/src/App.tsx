@@ -8,6 +8,7 @@ import { BudgetSection } from "@/features/budget/budget-section";
 import { GuestsSection } from "@/features/guests/guests-section";
 import { IdeasSection } from "@/features/ideas/ideas-section";
 import { Questionnaire } from "@/features/onboarding/questionnaire";
+import { Landing } from "@/features/landing/landing";
 import { OverviewSection } from "@/features/overview/overview-section";
 import { Shell } from "@/features/shell/shell";
 import { TasksSection } from "@/features/tasks/tasks-section";
@@ -23,12 +24,12 @@ const VIEWS: Record<Section, () => React.JSX.Element> = {
 
 /** Keeps the open event and the URL in step, whichever of them changed. */
 function useEventRoute() {
-  const { eventId, openEvent } = useNav();
+  const { eventId, page, openEvent } = useNav();
   const { booting, activeId, events, switchEvent } = usePlanner();
   const synced = useRef({ eventId, activeId: null as string | null });
 
   useEffect(() => {
-    if (booting) return;
+    if (booting || page === "welcome") return;
     const known = (id: string | null) => events.some((e) => e.id === id);
     if (eventId !== synced.current.eventId && eventId && eventId !== activeId && known(eventId)) {
       // Back, forward or a link: open that event.
@@ -41,7 +42,7 @@ function useEventRoute() {
     } else {
       synced.current = { eventId, activeId };
     }
-  }, [booting, eventId, activeId, events, openEvent, switchEvent]);
+  }, [booting, eventId, page, activeId, events, openEvent, switchEvent]);
 }
 
 /** After a delete: what went, and a way to bring it back. */
@@ -65,14 +66,24 @@ const YOU_GET: { icon: LucideIcon; label: string }[] = [
 
 function Onboarding() {
   const { returnTo, events, cancelNewEvent } = usePlanner();
+  const { draft, clearDraft, openPage } = useNav();
+  const [initialText] = useState(draft);
   const canGoBack = events.some((e) => e.id === returnTo);
+  useEffect(clearDraft, [clearDraft]);
   return (
     <div className="min-h-screen px-4 py-10 md:py-16">
       <header className="mx-auto mb-8 max-w-3xl">
-        <div className="mb-8 flex items-center gap-2.5">
+        <a
+          href="#/welcome"
+          onClick={(e) => {
+            e.preventDefault();
+            openPage("welcome");
+          }}
+          className="mb-8 inline-flex items-center gap-2.5 rounded-lg"
+        >
           <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-          <p className="font-display text-lg">Higgins AI</p>
-        </div>
+          <span className="font-display text-lg">Higgins AI</span>
+        </a>
         <h1 className="text-3xl md:text-[2.75rem] md:leading-tight">Let's plan your celebration, calmly</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
           Weddings, birthdays and community events. In about a minute you'll have a realistic budget, book-by dates and a
@@ -84,7 +95,7 @@ function Onboarding() {
           ))}
         </ul>
       </header>
-      <main><Questionnaire onCancel={canGoBack ? cancelNewEvent : undefined} /></main>
+      <main><Questionnaire initialText={initialText} onCancel={canGoBack ? cancelNewEvent : undefined} /></main>
     </div>
   );
 }
@@ -131,13 +142,16 @@ function Dashboard() {
 }
 
 export default function App() {
-  const { booting, bootError, options, plan, inputs, message } = usePlanner();
+  const { booting, bootError, options, plan, inputs, events, shared, message } = usePlanner();
+  const { page } = useNav();
   useEventRoute();
+  // First-time visitors start on the landing page; anyone with a saved event goes to it.
+  const landing = page === "welcome" || (!plan && !shared && !events.length && page !== "new");
 
-  // The event's own accent (wedding maroon, birthday berry, community indigo).
+  // The event's own accent (wedding maroon, birthday berry, community indigo); wedding on the landing page.
   useEffect(() => {
-    document.documentElement.dataset.event = inputs?.event_type ?? "wedding";
-  }, [inputs?.event_type]);
+    document.documentElement.dataset.event = landing ? "wedding" : inputs?.event_type ?? "wedding";
+  }, [landing, inputs?.event_type]);
   return (
     <>
       <p role="status" aria-live="polite" className="sr-only">{message}</p>
@@ -152,6 +166,8 @@ export default function App() {
             <Button onClick={() => location.reload()}>Try again</Button>
           </div>
         </div>
+      ) : landing ? (
+        <Landing />
       ) : plan ? (
         <Dashboard />
       ) : (

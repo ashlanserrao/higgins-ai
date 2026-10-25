@@ -1,31 +1,38 @@
 // The open event and section live in the URL hash (#/event/3f9c2a1b/budget), so the back
 // button, bookmarks and links work. An "intent" opens a specific tool when arriving from
 // the Add menu. Old links (#budget) and shared plans (no event yet) use the section alone.
+// Two pages sit outside any event: the landing page (#/welcome) and a new event (#/new).
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 export const SECTIONS = ["overview", "budget", "tasks", "vendors", "guests", "ideas"] as const;
 export type Section = (typeof SECTIONS)[number];
 export type Intent = "add-quote" | "add-guest" | "move-money" | "mark-booking" | null;
+export type Page = "welcome" | "new";
 
 interface Route {
   eventId: string | null;
   section: Section;
+  page?: Page | null;
 }
 
 export function readRoute(hash = location.hash): Route {
+  if (hash === "#/welcome" || hash === "#/new") return { eventId: null, section: "overview", page: hash.slice(2) as Page };
   const match = hash.match(/^#\/event\/([\w-]+)(?:\/(\w+))?$/);
   const name = match ? match[2] : hash.slice(1);
   const section = (SECTIONS as readonly string[]).includes(name) ? (name as Section) : "overview";
   return { eventId: match?.[1] ?? null, section };
 }
 
-export const routeHash = ({ eventId, section }: Route) => (eventId ? `#/event/${eventId}/${section}` : `#${section}`);
+export const routeHash = ({ eventId, section, page }: Route) =>
+  page ? `#/${page}` : eventId ? `#/event/${eventId}/${section}` : `#${section}`;
 
 function useNavState() {
   const [route, setRoute] = useState<Route>(() => readRoute());
   const [intent, setIntent] = useState<Intent>(null);
-  const { section, eventId } = route;
+  // What a visitor typed on the landing page, for the new-event page to read. Never in the URL.
+  const [draft, setDraft] = useState("");
+  const { section, eventId, page = null } = route;
 
   useEffect(() => {
     const onHash = () => setRoute(readRoute());
@@ -42,7 +49,7 @@ function useNavState() {
   const visit = useCallback((next: Route, replace = false) => {
     const hash = routeHash(next);
     // A shared link keeps its query until it's kept as an event.
-    const url = `${location.pathname}${next.eventId ? "" : location.search}${hash}`;
+    const url = `${location.pathname}${next.eventId || next.page ? "" : location.search}${hash}`;
     if (location.hash !== hash) history[replace ? "replaceState" : "pushState"](null, "", url);
     setRoute(next);
   }, []);
@@ -55,13 +62,20 @@ function useNavState() {
   /** Same section, another event. */
   const openEvent = useCallback((id: string, replace = false) => visit({ eventId: id, section }, replace), [section, visit]);
 
+  const openPage = useCallback((next: Page, text = "") => {
+    setDraft(text);
+    visit({ eventId: null, section: "overview", page: next });
+  }, [visit]);
+
+  const clearDraft = useCallback(() => setDraft(""), []);
+
   const consumeIntent = useCallback((wanted: Exclude<Intent, null>) => {
     if (intent !== wanted) return false;
     setIntent(null);
     return true;
   }, [intent]);
 
-  return { section, eventId, intent, go, openEvent, consumeIntent };
+  return { section, eventId, page, intent, draft, go, openEvent, openPage, clearDraft, consumeIntent };
 }
 
 const NavContext = createContext<ReturnType<typeof useNavState> | null>(null);
