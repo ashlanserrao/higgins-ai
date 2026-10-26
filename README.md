@@ -159,7 +159,7 @@ pytest
 - Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 10 KB request cap. API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
 - **Prompt injection:** preferences are treated as untrusted data. Markup characters are stripped, the text is fenced in `<preferences>` tags, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
 - Everything (AI output, shared links) is rendered with `textContent`, never `innerHTML`. Shared ideas are checked for shape and size before display.
-- Security headers on every response: strict `Content-Security-Policy` (same-origin scripts and styles only), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
+- Security headers on every response: strict `Content-Security-Policy` (same-origin scripts only; styles are same-origin plus inline, for the landing page's animation), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
 - Per-IP rate limiting, strict for the AI endpoint and looser for the cheap rules endpoint (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
 - No personal data is stored on the server.
 

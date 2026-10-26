@@ -30,6 +30,8 @@ export const COPY = {
     examplesLabel: "Examples",
     examples: ["Wedding for 300 in Jaipur", "5th birthday, 40 kids", "Society Diwali, 120 homes"],
     trust: "No sign-up needed. Your plan stays on your device.",
+    // The machine's own text alternative, for the no-script image.
+    machineAlt: "An illustrated machine shows how Higgins turns one sentence into a plan. A paper ticket that reads “Wedding for 300 in Jaipur, about ₹25 lakh” drops into a brass hopper. Coins, standing for the budget, roll down a chute into four tanks labelled Venue, Food, Décor and Other, and how full each tank gets shows the split. A calendar drum turns to the wedding month, and book-by tags move along a rail to show how far ahead to book each part. A plan card slides out toward a phone that shows the plan and a Send to family button. Two levers change the example, +25 guests and Move the date, and a reset button goes back to the start. All numbers are examples.",
   },
   values: {
     title: "How it works",

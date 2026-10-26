@@ -55,6 +55,7 @@
   --ai-solid: var(--ai); /* filled AI button, white text */
   --ai-solid-hover: var(--ai-hover);
 
+  --shadow-tone: #2b1b20; /* the colour inside the shadows below */
   --shadow-card: 0 1px 2px rgba(43, 27, 32, 0.04), 0 8px 24px rgba(43, 27, 32, 0.06);
   --shadow-raised: 0 2px 4px rgba(43, 27, 32, 0.05), 0 16px 40px rgba(43, 27, 32, 0.1);
 
@@ -164,6 +165,7 @@
     --ai-solid: #7356bd;
     --ai-solid-hover: #6448ab;
 
+    --shadow-tone: #000000;
     --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
     --shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.45);
 
@@ -392,6 +394,42 @@ html.theme-switching *::after {
   }
   .scroll-area:hover {
     scrollbar-color: var(--scroll-thumb-hover) transparent;
+  }
+}
+
+/* The landing hero's "how it works" machine (public/hm/, a web component). It reads only
+   these inputs, declared on the element so --accent follows [data-event] and the theme. */
+higgins-how-it-works {
+  --hm-paper: var(--bg-canvas);
+  --hm-surface: var(--bg-surface-soft);
+  --hm-raised: var(--bg-surface);
+  --hm-shadow: var(--shadow-tone);
+  --hm-ink: var(--text-primary);
+  --hm-accent: var(--accent);
+  --hm-highlight: var(--marigold);
+  --hm-brass: var(--gold);
+  --hm-halo-strength: 0.28;
+  --hm-font: var(--font-sans);
+  /* As wide as the column allows, short enough to stay above the fold. */
+  --hm-width: min(100%, 38rem, calc(100svh - 11rem));
+  display: block;
+  width: var(--hm-width);
+  /* The drawing has empty paper above (about 8%) and below (about 9%) it: trim those bands so
+     the machine itself lines up with the copy beside it. */
+  margin: calc(var(--hm-width) * -0.08) auto calc(var(--hm-width) * -0.09);
+}
+@media (min-width: 720px) {
+  /* Beside the copy, the empty paper at the sides (about 4% each) runs into the gap, so the
+     machine itself fills the column. */
+  higgins-how-it-works {
+    --hm-width: min(100% / 0.92, 40rem, calc(100svh - 11rem));
+    justify-self: center;
+    margin-inline: calc(var(--hm-width) * -0.04);
+  }
+}
+@media screen {
+  :root[data-theme="dark"] higgins-how-it-works {
+    --hm-halo-strength: 0.7;
   }
 }
 

@@ -8,8 +8,10 @@ from collections import deque
 from threading import Lock
 
 SECURITY_HEADERS = {
+    # Inline styles are allowed for the landing page's "how it works" web component
+    # (frontend/public/hm/), which styles its shadow root inline. Scripts stay same-origin only.
     "Content-Security-Policy": (
-        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     ),
     "X-Content-Type-Options": "nosniff",

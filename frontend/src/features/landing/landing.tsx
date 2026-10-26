@@ -1,7 +1,7 @@
 // Landing page for first-time visitors (and #/welcome). The hero box is the way in: what's
 // typed there goes to the new-event page, which reads it and fills the form. No sign-up.
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { CalendarCheck, ChevronDown, IndianRupee, Lock, Share2, Sparkles, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,6 +11,22 @@ import { usePlanner } from "@/state/planner";
 import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
 
 const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
+/** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
+const MACHINE_LOADER = "/hm/higgins-how-it-works.js";
+
+/** Just the drawing: hides the component's corner captions, legend and frame, and drops its
+ *  78vh height cap (index.css sizes it). Added to its shadow root, so it covers both the live
+ *  machine and the phone poster. */
+let machineTrim: CSSStyleSheet | null = null;
+function trimMachine(host: HTMLElement | null) {
+  const root = host?.shadowRoot;
+  if (!root) return;
+  if (!machineTrim) {
+    machineTrim = new CSSStyleSheet();
+    machineTrim.replaceSync(".hm-corner, .hm-legend { display: none } .hm-card { padding: 12px 0 0; box-shadow: none } .hm-stage svg { max-height: none }");
+  }
+  if (!root.adoptedStyleSheets.includes(machineTrim)) root.adoptedStyleSheets = [...root.adoptedStyleSheets, machineTrim];
+}
 const LINK = "rounded-md text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
 
 /** Smooth unless the visitor prefers less motion; focus follows for keyboard users. */
@@ -28,6 +44,13 @@ export function Landing() {
   const [text, setText] = useState("");
   const [signIn, setSignIn] = useState(false);
   const lastEvent = activeId ?? returnTo ?? events.at(-1)?.id ?? null;
+
+  const machine = useRef<HTMLElement>(null);
+  useEffect(() => {
+    import(/* @vite-ignore */ MACHINE_LOADER)
+      .then(() => trimMachine(machine.current))
+      .catch(() => {}); // without it the hero is just the copy
+  }, []);
 
   const start = (event: FormEvent) => {
     event.preventDefault();
@@ -74,7 +97,9 @@ export function Landing() {
       </header>
 
       <main>
-        <section aria-labelledby="hero-title" className="mx-auto max-w-[520px] px-4 pt-10 pb-16 text-center md:pt-16 md:pb-20">
+        {/* Two columns from 720px (where the machine switches from poster to live), stacked below. */}
+        <section aria-labelledby="hero-title" className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-16 md:px-8 md:pt-16 md:pb-20 min-[720px]:grid-cols-[minmax(0,520px)_minmax(18rem,1fr)] lg:gap-12">
+          <div className="mx-auto w-full max-w-[520px] text-center min-[720px]:text-left">
           <h1 id="hero-title" className="text-3xl md:text-[2.75rem] md:leading-tight">{COPY.hero.title}</h1>
           <p className="mt-4 text-base text-muted-foreground md:text-lg">{COPY.hero.body}</p>
 
@@ -92,7 +117,7 @@ export function Landing() {
             </div>
           </form>
 
-          <div className="mt-4 flex flex-wrap justify-center gap-2" role="group" aria-label={COPY.hero.examplesLabel}>
+          <div className="mt-4 flex flex-wrap justify-center gap-2 min-[720px]:justify-start" role="group" aria-label={COPY.hero.examplesLabel}>
             {COPY.hero.examples.map((example) => (
               <Button key={example} type="button" variant="outline" size="sm" className="h-11 rounded-full sm:h-9"
                 onClick={() => { setText(example); document.getElementById("hero-text")?.focus(); }}>
@@ -100,9 +125,14 @@ export function Landing() {
               </Button>
             ))}
           </div>
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-[13px] text-muted-foreground">
+          <p className="mt-5 flex items-center justify-center gap-1.5 text-[13px] text-muted-foreground min-[720px]:justify-start">
             <Lock className="size-3.5" aria-hidden="true" /> {COPY.hero.trust}
           </p>
+          </div>
+
+          <higgins-how-it-works ref={machine} src="/hm/machine-b.js" poster="/hm/poster-b.html" ratio="0.8600">
+            <noscript><img src="/hm/poster-b-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
+          </higgins-how-it-works>
         </section>
 
         <section id="how" tabIndex={-1} aria-labelledby="how-title" className="mx-auto max-w-6xl scroll-mt-6 px-4 pb-16 outline-none md:px-8 md:pb-20">
