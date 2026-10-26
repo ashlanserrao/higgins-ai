@@ -22,6 +22,8 @@
   --bg-surface-soft: #f6efe7;
   --border-subtle: #ede4da;
   --border-strong: #998578; /* form-field edges: 3.5:1 on white (#ddd0c3 was 1.5:1) */
+  --hairline: #e3d8ce; /* the landing page's drafted lines: decoration only, never a control edge */
+  --hairline-strong: #cdbfb6; /* its dashed section rules */
   --scroll-thumb: #cabab0; /* neutral for every event; #d3c5bb was 1.5:1 on the sidebar */
   --scroll-thumb-hover: #b9a79d;
   --text-primary: #2b1b20;
@@ -136,6 +138,8 @@
     --bg-surface-soft: #2f2328;
     --border-subtle: #3a2c31;
     --border-strong: #8a767c;
+    --hairline: #3a2c31;
+    --hairline-strong: #4a3a40;
     --scroll-thumb: #53434a; /* #4a3a40 was 1.4:1 on the sidebar */
     --scroll-thumb-hover: #6a565d;
     --text-primary: #f3e9e4;
@@ -290,6 +294,7 @@ html.theme-switching *::after {
   --color-accent-foreground: var(--text-primary);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
+  --color-hairline: var(--hairline);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-marigold: var(--marigold);
@@ -397,6 +402,89 @@ html.theme-switching *::after {
   }
 }
 
+/*
+  The landing page's drafted frame (features/landing/frame.tsx): side lines on one container,
+  dashed rules out to the viewport edges, "+" where they cross. Phones drop the side lines and
+  crosshairs but keep the rules.
+*/
+:root {
+  --frame-w: 1200px;
+}
+@layer components {
+  .frame {
+    position: relative;
+    width: 100%;
+    margin-inline: auto;
+  }
+  .section-rule {
+    position: relative;
+    height: 1px;
+  }
+  .section-rule-line {
+    position: absolute;
+    top: 0;
+    left: calc(50% - 50vw); /* the page clips the scrollbar's width of overflow */
+    width: 100vw;
+    border-top: 1px dashed var(--hairline-strong);
+  }
+  .section-rule-solid .section-rule-line {
+    border-top: 1px solid var(--hairline);
+  }
+  /* The vertical stroke sits on the frame's 1px border, the horizontal one on the rule. */
+  .crosshair {
+    position: absolute;
+    top: -7px;
+    display: none;
+    color: var(--text-tertiary);
+    background: var(--bg-canvas);
+  }
+  .crosshair-start {
+    left: -8px;
+  }
+  .crosshair-end {
+    right: -8px;
+  }
+  .center-line {
+    display: none;
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    border-left: 1px solid var(--hairline);
+  }
+  @media (min-width: 768px) {
+    .frame {
+      width: min(var(--frame-w), 100% - 48px);
+      border-inline: 1px solid var(--hairline);
+    }
+    .crosshair,
+    .center-line {
+      display: block;
+    }
+  }
+  .cell-grid {
+    gap: 1px;
+    background: var(--hairline);
+  }
+
+  /* Type for the landing page's sections. One class each, so the eyebrow can turn uppercase later. */
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--accent-text);
+  }
+  .headline {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+  }
+  .lede {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+}
+
 /* The landing hero's "how it works" machine (public/hm/, a web component). It reads only
    these inputs, declared on the element so --accent follows [data-event] and the theme. */
 higgins-how-it-works {
@@ -419,12 +507,11 @@ higgins-how-it-works {
   margin: calc(var(--hm-width) * -0.08) auto calc(var(--hm-width) * -0.09);
 }
 @media (min-width: 720px) {
-  /* Beside the copy, the empty paper at the sides (about 4% each) runs into the gap, so the
+  /* Beside the copy, the empty paper at the sides (about 4% each) runs into the padding, so the
      machine itself fills the column. No height cap here: it keeps the copy's size at any zoom,
      even if the base dips below the fold on short screens. */
   higgins-how-it-works {
     --hm-width: min(100% / 0.92, 40rem);
-    justify-self: center;
     margin-inline: calc(var(--hm-width) * -0.04);
   }
 }

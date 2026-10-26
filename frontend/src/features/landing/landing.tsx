@@ -1,14 +1,15 @@
 // Landing page for first-time visitors (and #/welcome). The hero box is the way in: what's
-// typed there goes to the new-event page, which reads it and fills the form. No sign-up.
+// typed there goes to the new-event page, which reads it and fills the form.
 
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { CalendarCheck, ChevronDown, IndianRupee, Lock, Share2, Sparkles, type LucideIcon } from "lucide-react";
+import { CalendarCheck, ChevronDown, IndianRupee, Share2, Sparkles, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useNav } from "@/state/nav";
 import { usePlanner } from "@/state/planner";
 import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
+import { Cell, CellGrid, CenterLine, Frame, SectionRule } from "./frame";
 
 const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
 /** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
@@ -76,8 +77,9 @@ export function Landing() {
   );
 
   return (
-    <div className="min-h-screen">
-      <header className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-5 md:px-8">
+    <div className="min-h-screen overflow-x-clip">
+      <Frame>
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-5 md:px-10 lg:px-12">
         <a href="#/welcome" onClick={(e) => e.preventDefault()} className="flex items-center gap-2.5 rounded-lg" aria-label={COPY.nav.home}>
           <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
           <span className="font-display text-lg">Higgins AI</span>
@@ -95,11 +97,14 @@ export function Landing() {
           </Button>
         </nav>
       </header>
+      <SectionRule solid />
 
       <main>
-        {/* Two columns from 720px (where the machine switches from poster to live), stacked below. */}
-        <section aria-labelledby="hero-title" className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-16 md:px-8 md:pt-16 md:pb-20 min-[720px]:grid-cols-[minmax(0,520px)_minmax(18rem,1fr)] lg:gap-12">
-          <div className="mx-auto w-full max-w-[520px] text-center min-[720px]:text-left">
+        {/* Two halves split by a centre line from 720px (where the machine switches from poster
+            to live), stacked below. */}
+        <section aria-labelledby="hero-title" className="relative grid items-center gap-y-10 pt-10 pb-16 md:pt-16 md:pb-20 min-[720px]:grid-cols-2">
+          <CenterLine />
+          <div className="mx-auto w-full max-w-[520px] px-4 text-center min-[720px]:max-w-none min-[720px]:text-left md:px-10 lg:px-12">
           <h1 id="hero-title" className="text-3xl md:text-[2.75rem] md:leading-tight">{COPY.hero.title}</h1>
           <p className="mt-4 text-base text-muted-foreground md:text-lg">{COPY.hero.body}</p>
 
@@ -125,33 +130,34 @@ export function Landing() {
               </Button>
             ))}
           </div>
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-[13px] text-muted-foreground min-[720px]:justify-start">
-            <Lock className="size-3.5" aria-hidden="true" /> {COPY.hero.trust}
-          </p>
           </div>
 
-          <higgins-how-it-works ref={machine} src="/hm/machine-b.js" poster="/hm/poster-b.html" ratio="0.8600">
-            <noscript><img src="/hm/poster-b-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
-          </higgins-how-it-works>
+          <div className="px-4 md:px-10 lg:px-12">
+            <higgins-how-it-works ref={machine} src="/hm/machine-b.js" poster="/hm/poster-b.html" ratio="0.8600">
+              <noscript><img src="/hm/poster-b-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
+            </higgins-how-it-works>
+          </div>
         </section>
 
-        <section id="how" tabIndex={-1} aria-labelledby="how-title" className="mx-auto max-w-6xl scroll-mt-6 px-4 pb-16 outline-none md:px-8 md:pb-20">
-          <h2 id="how-title" className="mb-6 text-center text-2xl">{COPY.values.title}</h2>
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <SectionRule />
+        <section id="how" tabIndex={-1} aria-labelledby="how-title" className="scroll-mt-6 outline-none">
+          <h2 id="how-title" className="headline px-4 py-12 text-center text-3xl md:py-16 lg:text-[2.5rem]">{COPY.values.title}</h2>
+          <CellGrid className="grid-cols-1 border-t border-hairline md:grid-cols-3">
             {COPY.values.items.map(({ title, body }, index) => {
               const Icon = VALUE_ICONS[index];
               return (
-                <li key={title} className="rounded-[16px] bg-surface p-6 shadow-card">
+                <Cell key={title} className="p-6 md:p-8">
                   <Icon className="size-6 text-primary-text" aria-hidden="true" />
                   <h3 className="mt-4 text-lg">{title}</h3>
                   <p className="mt-1.5 text-muted-foreground">{body}</p>
-                </li>
+                </Cell>
               );
             })}
-          </ul>
+          </CellGrid>
         </section>
 
-        <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="mx-auto max-w-5xl scroll-mt-6 px-4 pb-16 outline-none md:px-8 md:pb-20">
+        <SectionRule />
+        <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="mx-auto max-w-5xl scroll-mt-6 px-4 py-16 outline-none md:px-8 md:py-20">
           <h2 id="sample-title" className="sr-only">{COPY.sample.title}</h2>
           {/* The preview is a light screenshot; in dark it sits in a soft frame so it doesn't glare. */}
           <figure className="rounded-[24px] [[data-theme=dark]_&]:bg-surface-soft [[data-theme=dark]_&]:p-2">
@@ -163,23 +169,28 @@ export function Landing() {
           </figure>
         </section>
 
-        <section aria-labelledby="faq-title" className="mx-auto max-w-3xl px-4 pb-20 md:px-8">
-          <h2 id="faq-title" className="mb-6 text-center text-2xl">{COPY.faq.title}</h2>
-          <div className="space-y-3">
+        <SectionRule />
+        {/* The heading on the left, the questions on the right as rows divided by hairlines. */}
+        <section aria-labelledby="faq-title" className="relative grid md:grid-cols-2">
+          <CenterLine />
+          <h2 id="faq-title" className="headline px-4 py-12 text-3xl md:px-10 md:py-16 lg:px-12 lg:text-[2.5rem]">{COPY.faq.title}</h2>
+          <div className="divide-y divide-hairline border-t border-hairline md:border-t-0">
             {COPY.faq.items.filter((item) => item.answer).map(({ id, question, answer }) => (
-              <details key={id} id={id} tabIndex={-1} className="group scroll-mt-6 rounded-xl bg-surface shadow-card outline-none">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-5 py-3 font-medium [&::-webkit-details-marker]:hidden">
+              <details key={id} id={id} tabIndex={-1} className="group scroll-mt-6 outline-none">
+                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-5 text-base font-medium md:px-10 lg:px-12 [&::-webkit-details-marker]:hidden">
                   {question}
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
-                <p className="px-5 pb-4 text-muted-foreground">{answer}</p>
+                <p className="lede px-4 pb-6 md:px-10 lg:px-12">{answer}</p>
               </details>
             ))}
           </div>
         </section>
+        <SectionRule />
       </main>
+      </Frame>
 
-      <footer className="border-t">
+      <footer>
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-8">
           <p>{COPY.footer.line}</p>
           <div className="flex gap-5">
