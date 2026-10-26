@@ -38,11 +38,12 @@ export function CenterLine() {
   return <div className="center-line" aria-hidden="true" />;
 }
 
-/** A strip of cells. The 1px gaps show the hairline colour, so dividers follow any column count. */
-export function CellGrid({ className, children }: { className?: string; children: ReactNode }) {
-  return <ul role="list" className={cn("cell-grid grid", className)}>{children}</ul>;
+/** A strip of cells. The 1px gaps show the hairline colour, so dividers follow any column count.
+ *  A list by default (`ol` for steps); `div` when the cells aren't items of one kind. */
+export function CellGrid({ as: Tag = "ul", className, children }: { as?: "ul" | "ol" | "div"; className?: string; children: ReactNode }) {
+  return <Tag role={Tag === "div" ? undefined : "list"} className={cn("cell-grid grid", className)}>{children}</Tag>;
 }
 
-export function Cell({ className, children }: { className?: string; children: ReactNode }) {
-  return <li className={cn("bg-canvas", className)}>{children}</li>;
+export function Cell({ as: Tag = "li", className, children }: { as?: "li" | "div"; className?: string; children: ReactNode }) {
+  return <Tag className={cn("bg-canvas", className)}>{children}</Tag>;
 }

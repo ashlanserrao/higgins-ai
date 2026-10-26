@@ -1,7 +1,7 @@
 // Landing page for first-time visitors (and #/welcome). The hero box (PlanInput) is the way in.
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarCheck, ChevronDown, IndianRupee, Share2, type LucideIcon } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,8 @@ import { usePlanner } from "@/state/planner";
 import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
 import { Cell, CellGrid, CenterLine, Frame, SectionRule } from "./frame";
 import { PlanInput } from "./plan-input";
+import { HowItWorks, PAD, PlanForStrip, SamplePlan, WhatYouGet } from "./sections";
 
-const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
 /** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
 const MACHINE_LOADER = "/hm/higgins-how-it-works.js";
 
@@ -71,6 +71,16 @@ function useScrollState() {
   return state;
 }
 
+/** The H tile and the name, as in the app's sidebar. */
+function Brand({ small = false }: { small?: boolean }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className={cn("font-display grid place-items-center rounded-[10px] bg-primary-soft text-primary-ink", small ? "size-8 text-base" : "size-10 text-xl")} aria-hidden="true">H</span>
+      <span className={cn("font-display text-foreground", small ? "text-base" : "text-lg")}>Higgins AI</span>
+    </span>
+  );
+}
+
 export function Landing() {
   const { events, activeId, returnTo, startNewEvent } = usePlanner();
   const { openPage, openEvent } = useNav();
@@ -112,10 +122,9 @@ export function Landing() {
       {/* Sticks from tablet up (80px tall, the sections' scroll margin), frosting once scrolled.
           On phones it scrolls away with the page and the links wrap onto their own row. */}
       <header className={cn("z-30 transition-colors md:sticky md:top-0", scrolled && "md:bg-canvas/85 md:backdrop-blur-md")}>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-4 md:grid md:h-20 md:grid-cols-[1fr_auto_1fr] md:px-10 md:py-0 lg:px-12">
-          <a href="#/welcome" onClick={(e) => e.preventDefault()} className="flex items-center gap-2.5 justify-self-start rounded-lg" aria-label={COPY.nav.home}>
-            <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-            <span className="font-display text-lg">Higgins AI</span>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-4 md:grid md:h-20 md:grid-cols-[1fr_auto_1fr] md:px-6 md:py-0 lg:px-12">
+          <a href="#/welcome" onClick={(e) => e.preventDefault()} className="justify-self-start rounded-lg" aria-label={COPY.nav.home}>
+            <Brand />
           </a>
           <nav aria-label="Page" className="order-last flex w-full flex-wrap justify-center gap-x-6 md:order-none md:w-auto">
             {sectionLink("how", COPY.nav.howItWorks)}
@@ -137,7 +146,7 @@ export function Landing() {
             to live), stacked below. */}
         <section aria-labelledby="hero-title" className="relative grid items-center gap-y-10 pt-10 pb-16 md:pt-16 md:pb-20 min-[720px]:grid-cols-2">
           <CenterLine />
-          <div className="mx-auto w-full max-w-[520px] px-4 text-center min-[720px]:max-w-none min-[720px]:text-left md:px-10 lg:px-12">
+          <div className={cn("mx-auto w-full max-w-[520px] text-center min-[720px]:max-w-none min-[720px]:text-left", PAD)}>
           <h1 id="hero-title" className="headline text-4xl leading-[1.08] md:text-5xl lg:text-[3.5rem]">{COPY.hero.title}</h1>
           <p className="lede mt-5 md:text-lg">{COPY.hero.body}</p>
 
@@ -165,7 +174,7 @@ export function Landing() {
           </p>
           </div>
 
-          <div className="px-4 md:px-10 lg:px-12">
+          <div className={PAD}>
             <higgins-how-it-works ref={machine} src="/hm/machine-b.js" poster="/hm/poster-b.html" ratio="0.8600">
               <noscript><img src="/hm/poster-b-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
             </higgins-how-it-works>
@@ -173,65 +182,62 @@ export function Landing() {
         </section>
 
         <SectionRule />
-        <section id="how" tabIndex={-1} aria-labelledby="how-title" className="scroll-mt-6 outline-none md:scroll-mt-20">
-          <h2 id="how-title" className="headline px-4 py-12 text-center text-3xl md:py-16 lg:text-[2.5rem]">{COPY.values.title}</h2>
-          <CellGrid className="grid-cols-1 border-t border-hairline md:grid-cols-3">
-            {COPY.values.items.map(({ title, body }, index) => {
-              const Icon = VALUE_ICONS[index];
-              return (
-                <Cell key={title} className="p-6 md:p-8">
-                  <Icon className="size-6 text-primary-text" aria-hidden="true" />
-                  <h3 className="mt-4 text-lg">{title}</h3>
-                  <p className="mt-1.5 text-muted-foreground">{body}</p>
-                </Cell>
-              );
-            })}
-          </CellGrid>
-        </section>
-
+        <PlanForStrip />
         <SectionRule />
-        <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="mx-auto max-w-5xl scroll-mt-6 px-4 py-16 outline-none md:scroll-mt-20 md:px-8 md:py-20">
-          <h2 id="sample-title" className="sr-only">{COPY.sample.title}</h2>
-          {/* The preview is a light screenshot; in dark it sits in a soft frame so it doesn't glare. */}
-          <figure className="rounded-[24px] [[data-theme=dark]_&]:bg-surface-soft [[data-theme=dark]_&]:p-2">
-            <img
-              src="/sample-plan.webp" width={1280} height={800} loading="lazy" decoding="async" alt={COPY.sample.alt}
-              className="h-auto w-full rounded-[20px] bg-surface shadow-raised"
-            />
-            <figcaption className="font-display mt-4 text-center text-lg text-muted-foreground">{COPY.sample.caption}</figcaption>
-          </figure>
-        </section>
+        <WhatYouGet />
+        <SectionRule />
+        <HowItWorks />
+        <SectionRule />
+        <SamplePlan />
 
         <SectionRule />
         {/* The heading on the left, the questions on the right as rows divided by hairlines. */}
         <section id="faq" tabIndex={-1} aria-labelledby="faq-title" className="relative grid scroll-mt-6 outline-none md:scroll-mt-20 md:grid-cols-2">
           <CenterLine />
-          <h2 id="faq-title" className="headline px-4 py-12 text-3xl md:px-10 md:py-16 lg:px-12 lg:text-[2.5rem]">{COPY.faq.title}</h2>
+          <h2 id="faq-title" className={cn("headline py-14 text-3xl leading-[1.08] md:text-4xl lg:py-24 lg:text-[2.75rem]", PAD)}>{COPY.faq.title}</h2>
           <div className="divide-y divide-hairline border-t border-hairline md:border-t-0">
             {COPY.faq.items.filter((item) => item.answer).map(({ id, question, answer }) => (
               <details key={id} id={id} tabIndex={-1} className="group scroll-mt-6 outline-none md:scroll-mt-20">
-                <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-5 text-base font-medium md:px-10 lg:px-12 [&::-webkit-details-marker]:hidden">
+                <summary className={cn("flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-medium [&::-webkit-details-marker]:hidden", PAD)}>
                   {question}
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
-                <p className="lede px-4 pb-6 md:px-10 lg:px-12">{answer}</p>
+                <p className={cn("lede pb-6", PAD)}>{answer}</p>
               </details>
             ))}
           </div>
         </section>
+
+        <SectionRule />
+        {/* The same box as the hero, sharing its text. */}
+        <section aria-labelledby="closing-title" className="relative grid items-center md:grid-cols-2">
+          <CenterLine />
+          <div className={cn("pt-14 pb-8 md:py-14 lg:py-24", PAD)}>
+            <p className="eyebrow">{COPY.closing.eyebrow}</p>
+            <h2 id="closing-title" className="headline mt-3 text-3xl leading-[1.08] md:text-4xl lg:text-[2.75rem]">{COPY.closing.title}</h2>
+          </div>
+          <div className={cn("pb-14 md:py-14 lg:py-24", PAD)}>
+            <PlanInput id="closing-text" value={text} onChange={setText} onSubmit={start} />
+          </div>
+        </section>
         <SectionRule />
       </main>
-      </Frame>
 
       <footer>
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-8">
-          <p>{COPY.footer.line}</p>
-          <div className="flex gap-5">
-            <a href="#faq-data" onClick={(e) => { e.preventDefault(); openPrivacy(); }} className={LINK}>{COPY.footer.privacy}</a>
-            {CONTACT_HREF && <a href={CONTACT_HREF} className={LINK}>{COPY.footer.contact}</a>}
-          </div>
-        </div>
+        <CellGrid as="div" className="grid-cols-1 text-[13px] text-muted-foreground md:grid-cols-3">
+          <Cell as="div" className={cn("flex items-center py-6", PAD)}>
+            <Brand small />
+          </Cell>
+          <Cell as="div" className={cn("flex items-center gap-6 py-6", PAD)}>
+            <a href="#faq-data" onClick={(e) => { e.preventDefault(); openPrivacy(); }} className={cn(LINK, TAP, "text-[13px]")}>{COPY.footer.privacy}</a>
+            {CONTACT_HREF && <a href={CONTACT_HREF} className={cn(LINK, TAP, "text-[13px]")}>{COPY.footer.contact}</a>}
+          </Cell>
+          <Cell as="div" className={cn("flex items-center py-6", PAD)}>
+            <p>{COPY.footer.line}</p>
+          </Cell>
+        </CellGrid>
       </footer>
+      </Frame>
 
       <Dialog open={signIn} onOpenChange={setSignIn}>
         <DialogContent>

@@ -444,6 +444,30 @@ html.theme-switching *::after {
   .crosshair-end {
     right: -8px;
   }
+  /* On the corners of a 1px-bordered panel. The border runs under the strokes, so no mask. */
+  .crosshair-tl,
+  .crosshair-tr,
+  .crosshair-bl,
+  .crosshair-br {
+    background: transparent;
+  }
+  .crosshair-tl,
+  .crosshair-tr {
+    top: -8px;
+  }
+  .crosshair-bl,
+  .crosshair-br {
+    top: auto;
+    bottom: -8px;
+  }
+  .crosshair-tl,
+  .crosshair-bl {
+    left: -8px;
+  }
+  .crosshair-tr,
+  .crosshair-br {
+    right: -8px;
+  }
   .center-line {
     display: none;
     position: absolute;

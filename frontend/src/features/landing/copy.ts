@@ -34,12 +34,28 @@ export const COPY = {
     // The machine's own text alternative, for the no-script image.
     machineAlt: "An illustrated machine shows how Higgins turns one sentence into a plan. A paper ticket that reads “Wedding for 300 in Jaipur, about ₹25 lakh” drops into a brass hopper. Coins, standing for the budget, roll down a chute into four tanks labelled Venue, Food, Décor and Other, and how full each tank gets shows the split. A calendar drum turns to the wedding month, and book-by tags move along a rail to show how far ahead to book each part. A plan card slides out toward a phone that shows the plan and a Send to family button. Two levers change the example, +25 guests and Move the date, and a reset button goes back to the start. All numbers are examples.",
   },
+  planFor: {
+    sectionLabel: "Events you can plan",
+    label: "Plan for",
+    items: ["Weddings", "Birthdays", "Community events"],
+  },
   values: {
-    title: "How it works",
+    eyebrow: "What you get",
+    title: "A plan that adds up, and a way to share it",
+    body: "Tell us the event, the date and what you can spend. Higgins works out a realistic budget and book-by dates, then keeps them up to date as quotes come in and plans change.",
     items: [
       { title: "A budget that adds up", body: "See what's typical for each vendor, so you know a fair price." },
       { title: "Book-by dates", body: "Know what to book first, and what can wait." },
       { title: "Share with family", body: "Send the plan on WhatsApp, so everyone's on the same page." },
+    ],
+  },
+  steps: {
+    eyebrow: "How it works",
+    title: "From one sentence to a plan",
+    items: [
+      { title: "Tell us about it", body: "Describe the event in your own words, or fill in three short steps." },
+      { title: "Check the plan", body: "See your budget and book-by dates. Change anything and the plan adjusts." },
+      { title: "Share it", body: "Send it to family on WhatsApp." },
     ],
   },
   sample: {
@@ -75,6 +91,10 @@ export const COPY = {
           "The AI reads what you type, like a sentence about your event or a vendor's quote, and fills in a draft for you to check. It also suggests ideas. The budget split and book-by dates come from fixed rules, not the AI. You can change everything it fills in. What you type in those boxes is sent to an AI service to be read.",
       },
     ] as { id: string; question: string; answer: string | null }[],
+  },
+  closing: {
+    eyebrow: "Ready when you are",
+    title: "Let's plan your celebration",
   },
   footer: {
     privacy: "Privacy",
