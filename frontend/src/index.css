@@ -420,9 +420,10 @@ higgins-how-it-works {
 }
 @media (min-width: 720px) {
   /* Beside the copy, the empty paper at the sides (about 4% each) runs into the gap, so the
-     machine itself fills the column. */
+     machine itself fills the column. No height cap here: it keeps the copy's size at any zoom,
+     even if the base dips below the fold on short screens. */
   higgins-how-it-works {
-    --hm-width: min(100% / 0.92, 40rem, calc(100svh - 11rem));
+    --hm-width: min(100% / 0.92, 40rem);
     justify-self: center;
     margin-inline: calc(var(--hm-width) * -0.04);
   }
