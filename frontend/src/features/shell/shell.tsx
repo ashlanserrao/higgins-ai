@@ -21,6 +21,7 @@ import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { CommandBar } from "./command-bar";
 import { EventSwitcher } from "./event-switcher";
+import { AppearanceControl } from "./theme-control";
 
 const NAV: { id: Section; label: string; icon: LucideIcon }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -186,7 +187,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           compact
             ? "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
             : "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-          active ? "bg-primary-soft font-semibold text-primary" : "text-foreground/80 hover:bg-surface",
+          active ? "bg-primary-soft font-semibold text-primary-text" : "text-foreground/80 hover:bg-surface",
         )}
       >
         <Icon className="size-4.5 shrink-0" aria-hidden="true" />
@@ -211,6 +212,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
             <PencilLine className="size-4" aria-hidden="true" /> Edit event details
           </button>
+          <AppearanceControl />
           <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
         </div>
       </aside>
@@ -218,7 +220,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       <div className="flex min-w-0 flex-col pb-20 lg:pb-0">
         <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:flex-nowrap md:px-8">
-            <EventSwitcher className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
+            <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
             {/* A fresh bar per event, so a half-typed change never applies to another one. */}
             <div className="order-last w-full md:order-none md:w-auto md:flex-1"><CommandBar key={activeId} /></div>
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">

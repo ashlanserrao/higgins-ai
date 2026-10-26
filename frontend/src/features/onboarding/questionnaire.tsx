@@ -79,7 +79,7 @@ function ChoiceCards<T extends string>({ legend, name, value, options, onChange,
             key={v}
             className={cn(
               "flex min-h-12 cursor-pointer items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-              value === v ? "border-primary bg-primary-soft font-semibold text-primary-ink" : "border-input hover:bg-surface-soft",
+              value === v ? "border-primary-text bg-primary-soft font-semibold text-primary-ink" : "border-input hover:bg-surface-soft",
             )}
           >
             <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} className="sr-only" />
@@ -351,7 +351,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
                 aria-current={index === step ? "step" : undefined}
                 className={cn(
                   "w-full border-t-4 pt-2 text-left text-xs font-medium md:text-sm",
-                  index <= step ? "border-primary text-foreground" : "border-surface-soft text-muted-foreground",
+                  index <= step ? "border-primary-text text-foreground" : "border-surface-soft text-muted-foreground",
                 )}
               >
                 <span className="block text-xs text-muted-foreground">Step {index + 1}</span>

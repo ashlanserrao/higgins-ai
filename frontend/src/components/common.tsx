@@ -110,7 +110,7 @@ export function Stat({ label, value, unit, hint, badge, tone, highlight }: {
         <p className="text-sm text-muted-foreground">{label}</p>
         {badge}
       </div>
-      <p className={cn("num font-display mt-2 text-2xl md:text-3xl", highlight && "text-primary")}>
+      <p className={cn("num font-display mt-2 text-2xl md:text-3xl", highlight && "text-primary-text")}>
         {value}
         {unit && <span className="ml-1.5 font-sans text-sm text-muted-foreground">{unit}</span>}
       </p>

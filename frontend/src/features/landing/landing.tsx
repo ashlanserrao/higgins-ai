@@ -112,7 +112,7 @@ export function Landing() {
               const Icon = VALUE_ICONS[index];
               return (
                 <li key={title} className="rounded-[16px] bg-surface p-6 shadow-card">
-                  <Icon className="size-6 text-primary" aria-hidden="true" />
+                  <Icon className="size-6 text-primary-text" aria-hidden="true" />
                   <h3 className="mt-4 text-lg">{title}</h3>
                   <p className="mt-1.5 text-muted-foreground">{body}</p>
                 </li>
@@ -123,7 +123,8 @@ export function Landing() {
 
         <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="mx-auto max-w-5xl scroll-mt-6 px-4 pb-16 outline-none md:px-8 md:pb-20">
           <h2 id="sample-title" className="sr-only">{COPY.sample.title}</h2>
-          <figure>
+          {/* The preview is a light screenshot; in dark it sits in a soft frame so it doesn't glare. */}
+          <figure className="rounded-[24px] [[data-theme=dark]_&]:bg-surface-soft [[data-theme=dark]_&]:p-2">
             <img
               src="/sample-plan.webp" width={1280} height={800} loading="lazy" decoding="async" alt={COPY.sample.alt}
               className="h-auto w-full rounded-[20px] bg-surface shadow-raised"

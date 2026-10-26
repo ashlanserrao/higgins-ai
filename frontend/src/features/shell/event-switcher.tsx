@@ -4,7 +4,7 @@
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronsUpDown, Ellipsis, PencilLine, Plus, Trash2 } from "lucide-react";
+import { Check, ChevronsUpDown, Ellipsis, PencilLine, Plus, SunMoon, Trash2 } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,7 +19,9 @@ import type { SavedEvent } from "@/lib/storage";
 import { dueToday } from "@/lib/tasks";
 import type { EventType } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/lib/theme";
 import { orderEvents, usePlan } from "@/state/planner";
+import { AppearanceSheet, THEME_OPTIONS } from "./theme-control";
 
 /** Each dot carries its own event's accent, whichever event the page is showing. */
 function EventDot({ type }: { type: EventType }) {
@@ -59,7 +61,7 @@ function EventRow({ event, onRename, onDelete }: { event: SavedEvent; onRename: 
         </span>
         {due > 0 && <span className="num shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">{due} to do</span>}
         <span className="grid size-4 shrink-0 place-items-center">
-          <DropdownMenuPrimitive.ItemIndicator><Check className="size-4 text-primary" aria-hidden="true" /></DropdownMenuPrimitive.ItemIndicator>
+          <DropdownMenuPrimitive.ItemIndicator><Check className="size-4 text-primary-text" aria-hidden="true" /></DropdownMenuPrimitive.ItemIndicator>
         </span>
       </DropdownMenuPrimitive.RadioItem>
       <DropdownMenuSub>
@@ -75,11 +77,14 @@ function EventRow({ event, onRename, onDelete }: { event: SavedEvent; onRename: 
   );
 }
 
-export function EventSwitcher({ className }: { className?: string }) {
+/** `withAppearance`: phones have no sidebar, so the theme choice lives in this menu there. */
+export function EventSwitcher({ className, withAppearance = false }: { className?: string; withAppearance?: boolean }) {
   const { events, activeId, shared, inputs, switchEvent, startNewEvent, renameEvent, deleteEvent } = usePlan();
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState<SavedEvent | null>(null);
   const [deleting, setDeleting] = useState<SavedEvent | null>(null);
+  const [appearance, setAppearance] = useState(false);
+  const { preference } = useTheme();
   const trigger = useRef<HTMLButtonElement>(null);
   const nameField = useId();
   const current = events.find((e) => e.id === activeId);
@@ -134,9 +139,19 @@ export function EventSwitcher({ className }: { className?: string }) {
           <DropdownMenuItem onSelect={startNewEvent} className="gap-3 px-2.5 py-2">
             <Plus aria-hidden="true" /> Plan a new event
           </DropdownMenuItem>
+          {withAppearance && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={() => setAppearance(true)} className="gap-3 px-2.5 py-2">
+                <SunMoon aria-hidden="true" /> Appearance: {THEME_OPTIONS.find((o) => o.value === preference)?.label}
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
       {open && createPortal(<div className="fixed inset-0 z-40 bg-black/30 md:hidden" aria-hidden="true" />, document.body)}
+
+      {withAppearance && <AppearanceSheet open={appearance} onOpenChange={setAppearance} onCloseAutoFocus={backToTrigger} />}
 
       <Dialog open={Boolean(renaming)} onOpenChange={(o) => !o && setRenaming(null)}>
         <DialogContent onCloseAutoFocus={backToTrigger}>

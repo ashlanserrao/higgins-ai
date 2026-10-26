@@ -91,7 +91,7 @@ function Onboarding() {
         </p>
         <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground" aria-label="What you'll get">
           {YOU_GET.map(({ icon: Icon, label }) => (
-            <li key={label} className="flex items-center gap-1.5"><Icon className="size-4 text-primary" aria-hidden="true" /> {label}</li>
+            <li key={label} className="flex items-center gap-1.5"><Icon className="size-4 text-primary-text" aria-hidden="true" /> {label}</li>
           ))}
         </ul>
       </header>
