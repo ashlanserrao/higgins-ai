@@ -43,6 +43,7 @@ const PAIRS = [
   ["--accent-text", "--bg-canvas", 4.5, "accent as text"],
   ["--accent-text", "--bg-surface-soft", 4.5, "active nav, links"],
   ["--accent-ink", "--accent-soft", 4.5, "ink on accent tint"],
+  ["--accent-ink", "--bg-canvas", 4.5, "landing: active nav link"],
   ["--primary-foreground", "--accent", 4.5, "filled button"],
   ["--primary-foreground", "--accent-hover", 4.5, "filled button, hover"],
   ["--accent-text", "--bg-surface", 3, "accent edge (selected card, step bar)"],

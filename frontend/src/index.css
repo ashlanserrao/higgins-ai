@@ -5,6 +5,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Georgia sized to Fraunces' width, so headlines wrap the same while the display font loads
+   and nothing jumps when it swaps in. Measured: Fraunces sets 76.4% of Georgia Bold's width at
+   headline weight, and 86.6% of Georgia's at regular weight. */
+@font-face {
+  font-family: "Fraunces Fallback";
+  src: local("Georgia Bold"), local("Georgia-Bold");
+  font-weight: 500 900;
+  size-adjust: 76.4%;
+}
+@font-face {
+  font-family: "Fraunces Fallback";
+  src: local("Georgia"), local("Georgia-Regular");
+  font-weight: 100 499;
+  size-adjust: 86.6%;
+}
+
 /*
   Design tokens: the single source of truth for colour, type, shape and depth.
   "Warm editorial": ivory surfaces, a soft serif for display, shadows over borders.
@@ -242,7 +258,7 @@ html.theme-switching *::after {
 
 @theme inline {
   --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Fraunces Variable", "Instrument Serif", Georgia, serif;
+  --font-display: "Fraunces Variable", "Fraunces Fallback", "Instrument Serif", Georgia, serif;
 
   /* Type scale 12 / 15 / 16 / 18 / 22 / 28 / 36. Body copy (text-sm) is 15px. */
   --text-xs: 0.75rem;
@@ -483,6 +499,29 @@ html.theme-switching *::after {
     .crosshair,
     .center-line {
       display: block;
+    }
+  }
+  /* The landing's sticky header, once scrolled: a frosted band across the whole width (so rules
+     passing under it are covered too), with the frame's side lines drawn back on top. */
+  @media (min-width: 768px) {
+    .landing-header[data-scrolled]::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset-block: 0;
+      left: calc(50% - 50vw);
+      width: 100vw;
+      background: color-mix(in srgb, var(--bg-canvas) 85%, transparent);
+      backdrop-filter: blur(12px);
+    }
+    .landing-header[data-scrolled]::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      left: -1px;
+      right: -1px;
+      border-inline: 1px solid var(--hairline);
+      pointer-events: none;
     }
   }
   .cell-grid {

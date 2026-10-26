@@ -69,7 +69,7 @@ export function WhatYouGet() {
 
 export function HowItWorks() {
   return (
-    <section id="how" tabIndex={-1} aria-labelledby="how-title" className="scroll-mt-6 outline-none md:scroll-mt-20">
+    <section id="how" tabIndex={-1} aria-labelledby="how-title" className="scroll-mt-6 outline-none focus-visible:shadow-none md:scroll-mt-20">
       <SectionIntro id="how-title" eyebrow={COPY.steps.eyebrow} title={COPY.steps.title} />
       {/* An ordered list already says "1 of 3", so the printed index is for sighted readers only. */}
       <CellGrid as="ol" className="grid-cols-1 border-t border-hairline md:grid-cols-3">
@@ -87,7 +87,7 @@ export function HowItWorks() {
 
 export function SamplePlan() {
   return (
-    <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="scroll-mt-6 pb-14 outline-none md:scroll-mt-20 lg:pb-24">
+    <section id="sample" tabIndex={-1} aria-labelledby="sample-title" className="scroll-mt-6 pb-14 outline-none focus-visible:shadow-none md:scroll-mt-20 lg:pb-24">
       <SectionIntro id="sample-title" eyebrow={COPY.sample.title} title={COPY.sample.caption} />
       <div className={PAD}>
         {/* A hairline panel with a "+" on each corner. The preview is a light screenshot, so in

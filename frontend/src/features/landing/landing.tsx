@@ -31,8 +31,8 @@ function trimMachine(host: HTMLElement | null) {
   if (!root.adoptedStyleSheets.includes(machineTrim)) root.adoptedStyleSheets = [...root.adoptedStyleSheets, machineTrim];
 }
 const LINK = "rounded-md text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
-/** 44px tall on phones, where the header doesn't stick and links are tapped. */
-const TAP = "inline-flex min-h-11 items-center md:min-h-0";
+/** 44px tall wherever links are tapped: phones, and touch screens at any width. */
+const TAP = "inline-flex min-h-11 items-center md:min-h-0 md:pointer-coarse:min-h-11";
 /** The sections the header links to, in page order. */
 const NAV_SECTIONS = ["how", "sample", "faq"];
 
@@ -106,10 +106,13 @@ export function Landing() {
     openPage("new", text.trim());
   };
 
+  // The footer's Privacy link opens the data question and moves focus to it.
   const openPrivacy = () => {
     const item = document.getElementById("faq-data") as HTMLDetailsElement | null;
-    if (item) item.open = true;
+    if (!item) return;
+    item.open = true;
     scrollToSection("faq-data");
+    item.querySelector("summary")?.focus({ preventScroll: true });
   };
 
   const sectionLink = (id: string, label: string) => (
@@ -126,9 +129,9 @@ export function Landing() {
       <Frame>
       {/* Sticks from tablet up (80px tall, the sections' scroll margin), frosting once scrolled.
           On phones it scrolls away with the page and the links wrap onto their own row. */}
-      <header className={cn("z-30 transition-colors md:sticky md:top-0", scrolled && "md:bg-canvas/85 md:backdrop-blur-md")}>
+      <header data-scrolled={scrolled || undefined} className="landing-header z-30 md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-4 md:grid md:h-20 md:grid-cols-[1fr_auto_1fr] md:px-6 md:py-0 lg:px-12">
-          <a href="#/welcome" onClick={(e) => e.preventDefault()} className="justify-self-start rounded-lg" aria-label={COPY.nav.home}>
+          <a href="#/welcome" onClick={(e) => e.preventDefault()} className={cn("justify-self-start rounded-lg", TAP)} aria-label={COPY.nav.home}>
             <Brand />
           </a>
           <nav aria-label="Page" className="order-last flex w-full flex-wrap justify-center gap-x-6 md:order-none md:w-auto">
@@ -137,7 +140,7 @@ export function Landing() {
             {sectionLink("faq", COPY.nav.questions)}
           </nav>
           <Button
-            variant="outline" size="sm" className="ml-auto h-11 rounded-full px-4 md:ml-0 md:h-9 md:justify-self-end"
+            variant="outline" size="sm" className="ml-auto h-11 rounded-full px-4 md:ml-0 md:h-9 md:justify-self-end md:pointer-coarse:h-11"
             onClick={() => (SIGN_IN_ROUTE ? location.assign(SIGN_IN_ROUTE) : setSignIn(true))}
           >
             {COPY.nav.signIn}
@@ -161,7 +164,7 @@ export function Landing() {
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 min-[720px]:justify-start" role="group" aria-label={COPY.hero.examplesLabel}>
             {COPY.hero.examples.map((example) => (
-              <Button key={example} type="button" variant="outline" size="sm" className="h-11 rounded-full sm:h-9"
+              <Button key={example} type="button" variant="outline" size="sm" className="h-11 rounded-full md:h-9 md:pointer-coarse:h-11"
                 onClick={() => { setText(example); document.getElementById("hero-text")?.focus(); }}>
                 {example}
               </Button>
@@ -197,12 +200,12 @@ export function Landing() {
 
         <SectionRule />
         {/* The heading on the left, the questions on the right as rows divided by hairlines. */}
-        <section id="faq" tabIndex={-1} aria-labelledby="faq-title" className="relative grid scroll-mt-6 outline-none md:scroll-mt-20 md:grid-cols-2">
+        <section id="faq" tabIndex={-1} aria-labelledby="faq-title" className="relative grid scroll-mt-6 outline-none focus-visible:shadow-none md:scroll-mt-20 md:grid-cols-2">
           <CenterLine />
           <h2 id="faq-title" data-reveal className={cn("headline py-14 text-3xl leading-[1.08] md:text-4xl lg:py-24 lg:text-[2.75rem]", PAD)}>{COPY.faq.title}</h2>
           <div className="divide-y divide-hairline border-t border-hairline md:border-t-0">
             {COPY.faq.items.filter((item) => item.answer).map(({ id, question, answer }) => (
-              <details key={id} id={id} tabIndex={-1} data-reveal className="group scroll-mt-6 outline-none md:scroll-mt-20">
+              <details key={id} id={id} data-reveal className="group scroll-mt-6 md:scroll-mt-20">
                 <summary className={cn("flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-medium [&::-webkit-details-marker]:hidden", PAD)}>
                   {question}
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
