@@ -1,16 +1,15 @@
-// Landing page for first-time visitors (and #/welcome). The hero box is the way in: what's
-// typed there goes to the new-event page, which reads it and fills the form.
+// Landing page for first-time visitors (and #/welcome). The hero box (PlanInput) is the way in.
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { CalendarCheck, ChevronDown, IndianRupee, Share2, Sparkles, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarCheck, ChevronDown, IndianRupee, Share2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlanner } from "@/state/planner";
 import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
 import { Cell, CellGrid, CenterLine, Frame, SectionRule } from "./frame";
+import { PlanInput } from "./plan-input";
 
 const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
 /** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
@@ -87,17 +86,9 @@ export function Landing() {
       .catch(() => {}); // without it the hero is just the copy
   }, []);
 
-  const start = (event: FormEvent) => {
-    event.preventDefault();
+  const start = () => {
     if (events.length) startNewEvent();
     openPage("new", text.trim());
-  };
-
-  // Enter plans, Shift+Enter starts a new line.
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    event.currentTarget.form?.requestSubmit();
   };
 
   const openPrivacy = () => {
@@ -147,22 +138,12 @@ export function Landing() {
         <section aria-labelledby="hero-title" className="relative grid items-center gap-y-10 pt-10 pb-16 md:pt-16 md:pb-20 min-[720px]:grid-cols-2">
           <CenterLine />
           <div className="mx-auto w-full max-w-[520px] px-4 text-center min-[720px]:max-w-none min-[720px]:text-left md:px-10 lg:px-12">
-          <h1 id="hero-title" className="text-3xl md:text-[2.75rem] md:leading-tight">{COPY.hero.title}</h1>
-          <p className="mt-4 text-base text-muted-foreground md:text-lg">{COPY.hero.body}</p>
+          <h1 id="hero-title" className="headline text-4xl leading-[1.08] md:text-5xl lg:text-[3.5rem]">{COPY.hero.title}</h1>
+          <p className="lede mt-5 md:text-lg">{COPY.hero.body}</p>
 
-          <form onSubmit={start} className="mt-8 rounded-[20px] bg-surface p-4 text-left shadow-raised md:p-5">
-            <label htmlFor="hero-text" className="sr-only">{COPY.hero.label}</label>
-            <Textarea
-              id="hero-text" rows={3} maxLength={500} value={text} onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown}
-              placeholder={COPY.hero.placeholder} className="min-h-24 resize-none text-base"
-            />
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Sparkles className="size-4 text-ai" aria-hidden="true" /> {COPY.hero.helper}
-              </span>
-              <Button type="submit" size="lg" className="w-full sm:w-auto">{COPY.hero.submit}</Button>
-            </div>
-          </form>
+          <div className="mt-8">
+            <PlanInput id="hero-text" value={text} onChange={setText} onSubmit={start} />
+          </div>
 
           <div className="mt-4 flex flex-wrap justify-center gap-2 min-[720px]:justify-start" role="group" aria-label={COPY.hero.examplesLabel}>
             {COPY.hero.examples.map((example) => (
@@ -172,13 +153,16 @@ export function Landing() {
               </Button>
             ))}
           </div>
-          {lastEvent && (
-            <p className="mt-4">
+          <p className="mt-4 flex flex-wrap justify-center gap-x-6 min-[720px]:justify-start">
+            <a href="#sample" onClick={(e) => { e.preventDefault(); scrollToSection("sample"); }} className={cn(LINK, TAP, "text-foreground underline")}>
+              {COPY.hero.seeSample}
+            </a>
+            {lastEvent && (
               <a href={`#/event/${lastEvent}/overview`} onClick={(e) => { e.preventDefault(); openEvent(lastEvent); }} className={cn(LINK, TAP)}>
                 {COPY.nav.continuePlanning}
               </a>
-            </p>
-          )}
+            )}
+          </p>
           </div>
 
           <div className="px-4 md:px-10 lg:px-12">
