@@ -64,7 +64,7 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Message a vendor</DialogTitle>
           <DialogDescription>Written from your plan, ready to send. Copy it, or send it straight from WhatsApp.</DialogDescription>

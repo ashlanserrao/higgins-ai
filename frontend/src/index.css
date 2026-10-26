@@ -22,6 +22,8 @@
   --bg-surface-soft: #f6efe7;
   --border-subtle: #ede4da;
   --border-strong: #998578; /* form-field edges: 3.5:1 on white (#ddd0c3 was 1.5:1) */
+  --scroll-thumb: #cabab0; /* neutral for every event; #d3c5bb was 1.5:1 on the sidebar */
+  --scroll-thumb-hover: #b9a79d;
   --text-primary: #2b1b20;
   --text-secondary: #6b5a5f;
   --text-tertiary: #76656a; /* #9a8a8f was 3.1:1 on ivory */
@@ -133,6 +135,8 @@
     --bg-surface-soft: #2f2328;
     --border-subtle: #3a2c31;
     --border-strong: #8a767c;
+    --scroll-thumb: #53434a; /* #4a3a40 was 1.4:1 on the sidebar */
+    --scroll-thumb-hover: #6a565d;
     --text-primary: #f3e9e4;
     --text-secondary: #bba9ae;
     --text-tertiary: #9a898e;
@@ -177,7 +181,6 @@
     --chart-8: #e0708f;
     --chart-9: #a89a8f;
 
-    scrollbar-color: var(--border-strong) var(--bg-canvas);
   }
 
   :root[data-theme="dark"],
@@ -376,6 +379,19 @@ html.theme-switching *::after {
     inset: auto 0 0 0 !important;
     transform: none !important;
     min-width: 0 !important;
+  }
+}
+
+/* Thin, quiet scrollbars: a slim warm thumb, no track. Standard properties only (no
+   ::-webkit-scrollbar). Mouse and trackpad only: touch screens keep their native overlay. */
+@media (hover: hover) and (pointer: fine) {
+  html,
+  .scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+  .scroll-area:hover {
+    scrollbar-color: var(--scroll-thumb-hover) transparent;
   }
 }
 

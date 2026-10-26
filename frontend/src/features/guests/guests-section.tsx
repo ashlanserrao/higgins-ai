@@ -112,7 +112,7 @@ export function GuestsSection() {
               <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input aria-label="Search guests" placeholder="Search name or group" className="pl-8" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
-            <div className="overflow-x-auto rounded-lg border border-border">
+            <div className="scroll-area overflow-x-auto rounded-lg border border-border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-surface-soft">

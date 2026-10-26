@@ -203,7 +203,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         Skip to content
       </a>
 
-      <aside className="no-print sticky top-0 hidden h-screen flex-col gap-5 overflow-y-auto bg-surface-soft p-5 lg:flex">
+      <aside className="no-print sticky top-0 hidden h-screen flex-col gap-5 scroll-area overflow-y-auto bg-surface-soft p-5 lg:flex">
         <Logo />
         <EventCard />
         <AddMenu className="w-full" />

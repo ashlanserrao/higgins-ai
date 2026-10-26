@@ -129,7 +129,7 @@ export function EventSwitcher({ className, withAppearance = false }: { className
         >
           <DropdownMenuLabel className="px-2.5 text-xs font-medium text-muted-foreground">Your events</DropdownMenuLabel>
           <DropdownMenuPrimitive.RadioGroup value={activeId ?? ""} onValueChange={switchEvent}>
-            <div className="max-h-[min(24rem,55vh)] overflow-y-auto">
+            <div className="max-h-[min(24rem,55vh)] scroll-area overflow-y-auto">
               {orderEvents(events).map((event) => (
                 <EventRow key={event.id} event={event} onRename={() => setRenaming(event)} onDelete={() => setDeleting(event)} />
               ))}

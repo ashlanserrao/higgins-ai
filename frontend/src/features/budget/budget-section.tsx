@@ -36,7 +36,7 @@ export function BudgetTable({ detailed = false }: { detailed?: boolean }) {
   const { plan, inputs } = usePlan();
   const total = plan.budget_lines.reduce((sum, line) => sum + line.amount_inr, 0);
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="scroll-area overflow-x-auto rounded-lg border border-border">
       <Table>
         <TableHeader>
           <TableRow className="bg-surface-soft">

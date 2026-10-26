@@ -87,7 +87,7 @@ export function QuoteEditor({ quote, onClose }: { quote: Quote | null; onClose: 
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-2xl">
         <form onSubmit={submit} className="grid gap-4" noValidate>
           <DialogHeader>
             <DialogTitle className="flex flex-wrap items-center gap-2">
