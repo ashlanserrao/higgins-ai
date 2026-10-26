@@ -44,6 +44,13 @@ export function CellGrid({ as: Tag = "ul", className, children }: { as?: "ul" | 
   return <Tag role={Tag === "div" ? undefined : "list"} className={cn("cell-grid grid", className)}>{children}</Tag>;
 }
 
-export function Cell({ as: Tag = "li", className, children }: { as?: "li" | "div"; className?: string; children: ReactNode }) {
-  return <Tag className={cn("bg-canvas", className)}>{children}</Tag>;
+/** `reveal` fades the cell's contents in on first scroll (see reveal.ts); the cell's own
+ *  background stays put so the hairline grid behind it never shows through. */
+export function Cell({ as: Tag = "li", reveal = false, className, children }: {
+  as?: "li" | "div";
+  reveal?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return <Tag data-reveal={reveal ? "children" : undefined} className={cn("bg-canvas", className)}>{children}</Tag>;
 }

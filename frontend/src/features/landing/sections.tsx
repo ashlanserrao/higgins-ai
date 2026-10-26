@@ -17,11 +17,11 @@ const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
 export function SectionIntro({ id, eyebrow, title, body }: { id: string; eyebrow: string; title: string; body?: string }) {
   return (
     <div className={cn("grid gap-y-4 py-14 lg:grid-cols-12 lg:items-end lg:py-24", PAD)}>
-      <div className="lg:col-span-7">
+      <div data-reveal className="lg:col-span-7">
         <p className="eyebrow">{eyebrow}</p>
         <h2 id={id} className="headline mt-3 text-3xl leading-[1.08] md:text-4xl lg:text-[2.75rem]">{title}</h2>
       </div>
-      {body && <p className="lede lg:col-span-4 lg:col-start-9">{body}</p>}
+      {body && <p data-reveal className="lede lg:col-span-4 lg:col-start-9">{body}</p>}
     </div>
   );
 }
@@ -30,13 +30,13 @@ export function PlanForStrip() {
   return (
     <section aria-label={COPY.planFor.sectionLabel}>
       <CellGrid className="grid-cols-2 lg:grid-cols-4">
-        <Cell className={cn("flex items-center py-6 lg:py-8", PAD)}>
+        <Cell reveal className={cn("flex items-center py-6 lg:py-8", PAD)}>
           <span className="text-sm text-muted-foreground">{COPY.planFor.label}</span>
         </Cell>
         {COPY.planFor.items.map((name, index) => {
           const Icon = EVENT_ICONS[index];
           return (
-            <Cell key={name} className={cn("flex items-center gap-3 py-6 lg:py-8", PAD)}>
+            <Cell key={name} reveal className={cn("flex items-center gap-3 py-6 lg:py-8", PAD)}>
               <Icon className="size-5 shrink-0 text-primary-ink" aria-hidden="true" />
               <span className="font-display text-lg">{name}</span>
             </Cell>
@@ -55,7 +55,7 @@ export function WhatYouGet() {
         {COPY.values.items.map(({ title, body }, index) => {
           const Icon = VALUE_ICONS[index];
           return (
-            <Cell key={title} className={cn("py-8 lg:py-10", PAD)}>
+            <Cell key={title} reveal className={cn("py-8 lg:py-10", PAD)}>
               <Icon className="size-6 text-primary-ink" aria-hidden="true" />
               <h3 className="mt-4 text-lg">{title}</h3>
               <p className="lede mt-1.5">{body}</p>
@@ -74,7 +74,7 @@ export function HowItWorks() {
       {/* An ordered list already says "1 of 3", so the printed index is for sighted readers only. */}
       <CellGrid as="ol" className="grid-cols-1 border-t border-hairline md:grid-cols-3">
         {COPY.steps.items.map(({ title, body }, index) => (
-          <Cell key={title} className={cn("py-8 lg:py-10", PAD)}>
+          <Cell key={title} reveal className={cn("py-8 lg:py-10", PAD)}>
             <span className="num text-sm text-tertiary" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
             <h3 className="mt-4 text-lg">{title}</h3>
             <p className="lede mt-1.5">{body}</p>
@@ -92,7 +92,7 @@ export function SamplePlan() {
       <div className={PAD}>
         {/* A hairline panel with a "+" on each corner. The preview is a light screenshot, so in
             dark it sits on a soft frame and doesn't glare. */}
-        <div className="relative border border-hairline p-2 md:p-3 [[data-theme=dark]_&]:bg-surface-soft">
+        <div data-reveal className="relative border border-hairline p-2 md:p-3 [[data-theme=dark]_&]:bg-surface-soft">
           <Crosshair className="crosshair-tl" />
           <Crosshair className="crosshair-tr" />
           <Crosshair className="crosshair-bl" />

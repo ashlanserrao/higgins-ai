@@ -10,13 +10,15 @@ import { usePlanner } from "@/state/planner";
 import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
 import { Cell, CellGrid, CenterLine, Frame, SectionRule } from "./frame";
 import { PlanInput } from "./plan-input";
+import { useReveal } from "./reveal";
 import { HowItWorks, PAD, PlanForStrip, SamplePlan, WhatYouGet } from "./sections";
 
 /** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
 const MACHINE_LOADER = "/hm/higgins-how-it-works.js";
 
 /** Just the drawing: hides the component's corner captions, legend and frame, and drops its
- *  78vh height cap (index.css sizes it). Added to its shadow root, so it covers both the live
+ *  78vh height cap (index.css sizes it). The top gap, room for a hover label, scales with the
+ *  width so the card keeps the exact shape index.css reserves for it. Added to its shadow root, so it covers both the live
  *  machine and the phone poster. */
 let machineTrim: CSSStyleSheet | null = null;
 function trimMachine(host: HTMLElement | null) {
@@ -24,7 +26,7 @@ function trimMachine(host: HTMLElement | null) {
   if (!root) return;
   if (!machineTrim) {
     machineTrim = new CSSStyleSheet();
-    machineTrim.replaceSync(".hm-corner, .hm-legend { display: none } .hm-card { padding: 12px 0 0; box-shadow: none } .hm-stage svg { max-height: none }");
+    machineTrim.replaceSync(".hm-corner, .hm-legend { display: none } .hm-card { padding: 2% 0 0; box-shadow: none } .hm-stage svg { max-height: none }");
   }
   if (!root.adoptedStyleSheets.includes(machineTrim)) root.adoptedStyleSheets = [...root.adoptedStyleSheets, machineTrim];
 }
@@ -89,6 +91,9 @@ export function Landing() {
   const lastEvent = activeId ?? returnTo ?? events.at(-1)?.id ?? null;
   const { scrolled, active } = useScrollState();
 
+  const page = useRef<HTMLDivElement>(null);
+  useReveal(page);
+
   const machine = useRef<HTMLElement>(null);
   useEffect(() => {
     import(/* @vite-ignore */ MACHINE_LOADER)
@@ -117,7 +122,7 @@ export function Landing() {
   );
 
   return (
-    <div className="min-h-screen overflow-x-clip">
+    <div ref={page} className="min-h-screen overflow-x-clip">
       <Frame>
       {/* Sticks from tablet up (80px tall, the sections' scroll margin), frosting once scrolled.
           On phones it scrolls away with the page and the links wrap onto their own row. */}
@@ -194,10 +199,10 @@ export function Landing() {
         {/* The heading on the left, the questions on the right as rows divided by hairlines. */}
         <section id="faq" tabIndex={-1} aria-labelledby="faq-title" className="relative grid scroll-mt-6 outline-none md:scroll-mt-20 md:grid-cols-2">
           <CenterLine />
-          <h2 id="faq-title" className={cn("headline py-14 text-3xl leading-[1.08] md:text-4xl lg:py-24 lg:text-[2.75rem]", PAD)}>{COPY.faq.title}</h2>
+          <h2 id="faq-title" data-reveal className={cn("headline py-14 text-3xl leading-[1.08] md:text-4xl lg:py-24 lg:text-[2.75rem]", PAD)}>{COPY.faq.title}</h2>
           <div className="divide-y divide-hairline border-t border-hairline md:border-t-0">
             {COPY.faq.items.filter((item) => item.answer).map(({ id, question, answer }) => (
-              <details key={id} id={id} tabIndex={-1} className="group scroll-mt-6 outline-none md:scroll-mt-20">
+              <details key={id} id={id} tabIndex={-1} data-reveal className="group scroll-mt-6 outline-none md:scroll-mt-20">
                 <summary className={cn("flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-medium [&::-webkit-details-marker]:hidden", PAD)}>
                   {question}
                   <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
@@ -212,11 +217,11 @@ export function Landing() {
         {/* The same box as the hero, sharing its text. */}
         <section aria-labelledby="closing-title" className="relative grid items-center md:grid-cols-2">
           <CenterLine />
-          <div className={cn("pt-14 pb-8 md:py-14 lg:py-24", PAD)}>
+          <div data-reveal className={cn("pt-14 pb-8 md:py-14 lg:py-24", PAD)}>
             <p className="eyebrow">{COPY.closing.eyebrow}</p>
             <h2 id="closing-title" className="headline mt-3 text-3xl leading-[1.08] md:text-4xl lg:text-[2.75rem]">{COPY.closing.title}</h2>
           </div>
-          <div className={cn("pb-14 md:py-14 lg:py-24", PAD)}>
+          <div data-reveal className={cn("pb-14 md:py-14 lg:py-24", PAD)}>
             <PlanInput id="closing-text" value={text} onChange={setText} onSubmit={start} />
           </div>
         </section>

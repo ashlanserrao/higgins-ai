@@ -509,6 +509,36 @@ html.theme-switching *::after {
   }
 }
 
+/* Landing scroll reveals (features/landing/reveal.ts): once, as each part first enters the
+   viewport, by opacity and transform only, so nothing moves the layout. Screens only, and only
+   for visitors who don't prefer reduced motion; everyone else gets the final state. */
+@media screen and (prefers-reduced-motion: no-preference) {
+  [data-reveal]:not([data-reveal="children"]),
+  [data-reveal="children"] > * {
+    transition: opacity 400ms ease-out, transform 400ms ease-out;
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  [data-reveal]:not([data-reveal="children"]):not([data-revealed]),
+  [data-reveal="children"]:not([data-revealed]) > * {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  .section-rule:not(.section-rule-solid) .section-rule-line {
+    transform-origin: left;
+    transition: transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .section-rule:not(.section-rule-solid):not([data-revealed]) .section-rule-line {
+    transform: scaleX(0);
+  }
+  /* The crosshairs appear as the line finishes reaching them. */
+  .section-rule:not(.section-rule-solid) .crosshair {
+    transition: opacity 200ms ease-out 550ms;
+  }
+  .section-rule:not(.section-rule-solid):not([data-revealed]) .crosshair {
+    opacity: 0;
+  }
+}
+
 /* The landing hero's "how it works" machine (public/hm/, a web component). It reads only
    these inputs, declared on the element so --accent follows [data-event] and the theme. */
 higgins-how-it-works {
@@ -526,6 +556,9 @@ higgins-how-it-works {
   --hm-width: min(100%, 38rem, calc(100svh - 11rem));
   display: block;
   width: var(--hm-width);
+  /* The card's shape (an 860 x 1000 drawing under a 2% top gap), reserved before the component
+     loads so the hero doesn't jump when it arrives. */
+  aspect-ratio: 860 / 1017.2;
   /* The drawing has empty paper above (about 8%) and below (about 9%) it: trim those bands so
      the machine itself lines up with the copy beside it. */
   margin: calc(var(--hm-width) * -0.08) auto calc(var(--hm-width) * -0.09);
