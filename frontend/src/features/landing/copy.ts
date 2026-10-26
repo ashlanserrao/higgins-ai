@@ -12,6 +12,7 @@ export const COPY = {
     home: "Higgins AI home",
     howItWorks: "How it works",
     samplePlan: "Sample plan",
+    questions: "Questions",
     signIn: "Sign in",
     continuePlanning: "Continue planning",
   },
