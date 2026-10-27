@@ -18,6 +18,7 @@ import { RebalanceNote } from "@/features/budget/budget-section";
 import { IdeasStatusLine } from "@/features/ideas/ideas-section";
 import { BookingDialog, type BookingTarget } from "@/features/tasks/booking-dialog";
 import { OverviewBand } from "./band";
+import { BudgetBlock } from "./budget-block";
 import { OverviewCard } from "./card";
 import { NextStepBadge, NextStepPanel, useNextStep } from "./next-step-panel";
 import { QuickActions } from "./quick-actions";
@@ -275,7 +276,7 @@ export function OverviewSection() {
   return (
     <div>
       <OverviewBand />
-      <OverviewCard next={<NextStepPanel lead={lead} attention={attention} />} nextBadge={<NextStepBadge attention={attention} />} />
+      <OverviewCard next={<NextStepPanel lead={lead} attention={attention} />} nextBadge={<NextStepBadge attention={attention} />} footer={<BudgetBlock />} />
     </div>
   );
 }

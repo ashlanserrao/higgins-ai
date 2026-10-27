@@ -62,7 +62,7 @@ const PAIRS = [
   ["--primary-foreground", "--accent-hover", 4.5, "filled button, hover"],
   // White on the Overview band, checked at the band's lightest point.
   ["--primary-foreground", "--band-to", 4.5, "band: white text"],
-  ["--primary-foreground/0.78", "--band-to", 4.5, "band: eyebrow and stat labels"],
+  ["--primary-foreground/0.8", "--band-to", 4.5, "band: eyebrow and stat labels"],
   ["--accent-text", "--bg-surface", 3, "accent edge (selected card, step bar)"],
   ["--ring", "--bg-surface", 3, "focus ring"],
   ["--ring", "--bg-surface-soft", 3, "focus ring"],
