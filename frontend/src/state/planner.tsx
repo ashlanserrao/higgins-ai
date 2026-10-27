@@ -20,6 +20,13 @@ export interface LastChange {
   previous: PlanRequest;
 }
 
+/** One line in "Recent changes": what the organiser changed during this visit. */
+export interface RecentChange {
+  label: string;
+  summary: string[];
+}
+const MAX_RECENT = 20;
+
 /** A deleted event, kept in memory so it can be undone. */
 export interface DeletedEvent {
   event: SavedEvent;
@@ -45,13 +52,14 @@ interface State {
   guests: Guest[];
   shared: boolean; // viewing someone's link: saved only if the viewer keeps it
   lastChange: LastChange | null;
+  recent: RecentChange[]; // newest first, this visit only: never saved
   lastDeleted: DeletedEvent | null;
 }
 
 const initialState: State = {
   booting: true, bootError: "", options: null, events: [], activeId: null, returnTo: null, inputs: null, plan: null,
   aiAvailable: false, ideas: null, ideasFor: null, ideasLoadingFor: null, ideasFailed: false, plannedOn: todayInIndia(),
-  guests: [], shared: false, lastChange: null, lastDeleted: null,
+  guests: [], shared: false, lastChange: null, recent: [], lastDeleted: null,
 };
 
 /** Ideas depend on the plan inputs, not on bookings or quotes made since. */
@@ -66,7 +74,7 @@ const opened = (event: SavedEvent | null): Partial<State> => ({
   ideasFor: event?.ideasFor ?? null,
   plannedOn: event?.plannedOn ?? todayInIndia(),
   guests: event?.guests ?? [],
-  ideasFailed: false, shared: false, lastChange: null, returnTo: null,
+  ideasFailed: false, shared: false, lastChange: null, recent: [], returnTo: null,
 });
 
 /** Every saved event, with the open one as it is now. */
@@ -175,6 +183,7 @@ function usePlannerState() {
       shared: false,
       returnTo: null,
       lastChange: null,
+      recent: [],
       ...(options.fresh ? { plannedOn: todayInIndia(), ideas: null, ideasFor: null, ideasFailed: false } : {}),
       ...(options.guests ? { guests: options.guests } : {}),
     });
@@ -186,11 +195,14 @@ function usePlannerState() {
     if (options.fresh && response.ai_available) void fetchIdeas(inputs);
   }, [announce, fetchIdeas, recalculate]);
 
+  /** The recent-changes list with one more at the top. */
+  const noted = (label: string, summary: string[] = []) => [{ label, summary }, ...stateRef.current.recent].slice(0, MAX_RECENT);
+
   /** Keep a change the organiser confirmed in a before/after preview (plan already computed). */
   const applyChange = useCallback((inputs: PlanRequest, plan: Plan, label: string, summary: string[]) => {
     const previous = stateRef.current.inputs;
     takeTicket("plan", stateRef.current.activeId);
-    patch({ inputs, plan, lastChange: previous ? { label, summary, previous } : null });
+    patch({ inputs, plan, lastChange: previous ? { label, summary, previous } : null, recent: noted(label, summary) });
     announce(`${label}. ${summary.join(" ")}`);
   }, [announce, patch, takeTicket]);
 
@@ -199,14 +211,14 @@ function usePlannerState() {
     const previous = stateRef.current.inputs;
     if (!previous) return;
     const inputs = { ...previous, progress: change(structuredClone(previous.progress)) };
-    const plan = (await recalculate(inputs, { lastChange: { label, summary: [], previous } }))?.plan;
+    const plan = (await recalculate(inputs, { lastChange: { label, summary: [], previous }, recent: noted(label) }))?.plan;
     if (plan) announce(`${label}. ${plan.warnings.length ? plan.warnings[plan.warnings.length - 1] : ""}`);
   }, [announce, recalculate]);
 
   const undo = useCallback(async () => {
     const last = stateRef.current.lastChange;
     if (!last) return;
-    await recalculate(last.previous, { lastChange: null });
+    await recalculate(last.previous, { lastChange: null, recent: noted(`Undid: ${last.label}`) });
     announce(`Undone: ${last.label}.`);
   }, [announce, recalculate]);
 

@@ -19,6 +19,7 @@ import { IdeasStatusLine } from "@/features/ideas/ideas-section";
 import { BookingDialog, type BookingTarget } from "@/features/tasks/booking-dialog";
 import { OverviewBand } from "./band";
 import { OverviewCard } from "./card";
+import { NextStepBadge, NextStepPanel, useNextStep } from "./next-step-panel";
 import { QuickActions } from "./quick-actions";
 
 const list = (names: string[]) =>
@@ -42,7 +43,8 @@ function ActionCard({ tone, badge, title, detail, children, footer }: {
   );
 }
 
-function NextSteps() {
+/** The Overview's next steps before the band-and-card redesign; kept for reuse. */
+export function NextSteps() {
   const { plan, inputs, ideas, ideasStatus } = usePlan();
   const { go } = useNav();
   const [booking, setBooking] = useState<BookingTarget | null>(null);
@@ -269,10 +271,11 @@ export function VitalSigns() {
 }
 
 export function OverviewSection() {
+  const { lead, attention } = useNextStep();
   return (
     <div>
       <OverviewBand />
-      <OverviewCard next={<NextSteps />} />
+      <OverviewCard next={<NextStepPanel lead={lead} attention={attention} />} nextBadge={<NextStepBadge attention={attention} />} />
     </div>
   );
 }

@@ -22,9 +22,10 @@ function countdownStat(days: number): [value: string, label: string] {
 function BandStat({ value, label }: { value: ReactNode; label: ReactNode }) {
   // Label first for screen readers, value first on screen.
   return (
-    <div className="flex min-w-0 flex-col-reverse gap-0.5">
-      <dt className="flex items-center gap-1 text-xs text-primary-foreground/80">{label}</dt>
-      <dd className="num text-xl font-semibold">{value}</dd>
+    <div className="flex min-w-0 flex-col-reverse justify-end gap-1">
+      <dt className="flex flex-wrap items-center gap-1.5 text-sm text-primary-foreground/80">{label}</dt>
+      {/* Sized by the content column, not the window, since the sidebar takes part of it. */}
+      <dd className="num text-[clamp(28px,2.4cqw+10px,44px)] leading-tight font-semibold tracking-[-0.02em] whitespace-nowrap">{value}</dd>
     </div>
   );
 }
@@ -40,7 +41,7 @@ export function OverviewBand() {
   const buffer = plan.budget_lines.find((line) => line.key === "contingency")?.amount_inr ?? 0;
 
   return (
-    <section aria-labelledby="overview-title" className="overview-band -mx-4 px-4 pt-5 pb-[52px] text-primary-foreground md:-mx-10 md:px-10 md:pt-6">
+    <section aria-labelledby="overview-title" className="overview-band pt-5 pb-[52px] text-primary-foreground md:pt-6">
       {desktop && (
         <div className="no-print mb-6 flex items-center gap-2">
           {/* A fresh bar per event, so a half-typed change never applies to another one. */}
@@ -57,23 +58,28 @@ export function OverviewBand() {
       <p className="text-xs text-primary-foreground/80">
         {eventName(current ?? { name: "", inputs })} · {weekday(inputs.event_date)}, {formatDate(inputs.event_date)}
       </p>
-      <h1 id="overview-title" tabIndex={-1} data-section-title className="mt-1.5 text-[1.625rem] tracking-[-0.02em] outline-none md:text-[1.75rem]">
+      <h1 id="overview-title" tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(26px,1.8cqw+10px,36px)] leading-tight tracking-[-0.02em] outline-none">
         {greeting()}.
       </h1>
       <p className="mt-1 text-[13px] text-primary-foreground/85">Your plan, worked out from your numbers.</p>
-      <dl className="mt-5 grid grid-cols-2 gap-x-2.5 gap-y-4 min-[900px]:grid-cols-4">
+      {/* Four across once the column has room for the longest figures (₹80,00,000), two by two before. */}
+      <dl className="mt-5 grid grid-cols-2 gap-x-2.5 gap-y-4 @min-[900px]:grid-cols-4">
         <BandStat value={days} label={daysLabel} />
         <BandStat value={inr(inputs.budget_inr)} label="Total budget" />
         <BandStat
           value={inr(plan.per_guest_inr)}
           label={tight ? <><AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Per guest, tight</> : "Per guest"}
         />
-        <BandStat
-          value={over
-            ? <span className="inline-flex rounded-full bg-warning-soft px-2.5 py-0.5 text-base text-warning">Over by {inr(over)}</span>
-            : inr(buffer)}
-          label="Buffer"
-        />
+        {/* Over budget, the buffer is gone: the overspend takes its place, flagged in a warning chip
+            (warning text on the band itself wouldn't be readable). */}
+        {over ? (
+          <BandStat
+            value={inr(over)}
+            label={<span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning"><AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Over budget by</span>}
+          />
+        ) : (
+          <BandStat value={inr(buffer)} label="Buffer" />
+        )}
       </dl>
     </section>
   );

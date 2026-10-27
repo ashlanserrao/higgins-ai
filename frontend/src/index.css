@@ -73,6 +73,14 @@
   --ai-solid: var(--ai); /* filled AI button, white text */
   --ai-solid-hover: var(--ai-hover);
 
+  /* The content area's side spacing on every page: a gutter that grows with the window, and a
+     cap past which the content centres. --page-pad is measured against the content column (a
+     size container), so anything inside it, like the Overview band, can bleed to its edges by
+     the same amount. */
+  --page-gutter: clamp(16px, 1.6vw, 28px);
+  --page-max: 1440px;
+  --page-pad: max(var(--page-gutter), (100cqw - var(--page-max)) / 2);
+
   /* The Overview's header band: the event accent, deepening toward one corner. White text sits
      on it, so its lightest point (--band-to) must clear AA with white: `npm run contrast`. */
   --band-from: color-mix(in srgb, var(--accent) 70%, black);
@@ -627,7 +635,12 @@ higgins-how-it-works {
 }
 
 /* The Overview's header band (features/overview/band.tsx). */
+.page-pad {
+  padding-inline: var(--page-pad);
+}
 .overview-band {
+  margin-inline: calc(var(--page-pad) * -1);
+  padding-inline: var(--page-pad);
   background: linear-gradient(135deg, var(--band-from), var(--band-to));
 }
 @media print {

@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, type ReactNode } from "react";
 import {
-  CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
+  AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
   Share2, Store, Undo2, UserPlus, Users, Wallet, X, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/common";
-import { formatDate, inr, plural, shortInr } from "@/lib/format";
+import { inr, shortInr } from "@/lib/format";
 import { buildShareUrl } from "@/lib/share";
 import { needsAction } from "@/lib/tasks";
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
@@ -100,20 +100,28 @@ function Logo() {
   );
 }
 
+/** The open event, and a link to the budget only when it needs a look (tight or over). The
+ *  numbers themselves live on the Overview band and the Budget page. */
 function EventCard() {
-  const { inputs, plan } = usePlan();
+  const { plan } = usePlan();
+  const { eventId, go } = useNav();
+  const over = plan.rebalance?.over_budget_inr ?? 0;
   return (
     <div className="rounded-xl bg-surface p-1.5 text-sm shadow-card">
-      <EventSwitcher className="w-full p-2.5 hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
-      <div className="num mx-2.5 mt-1 mb-2.5 grid grid-cols-2 gap-y-1.5 border-t pt-3 text-xs text-muted-foreground">
-        <span className="col-span-2">{formatDate(inputs.event_date)}</span>
-        <span>{plural(inputs.guests, "guest")}</span>
-        <span className="text-right font-semibold text-foreground">{inr(inputs.budget_inr)}</span>
-        <span>{inr(plan.per_guest_inr)} / guest</span>
-        <span className="text-right">
-          <StatusBadge tone={plan.budget_status === "ok" ? "success" : "danger"}>{plan.budget_status === "ok" ? "Budget fine" : "Budget tight"}</StatusBadge>
-        </span>
-      </div>
+      <EventSwitcher variant="card" className="w-full p-2.5 hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
+      {plan.budget_status !== "ok" && (
+        <a
+          href={routeHash({ eventId, section: "budget" })}
+          onClick={(e) => {
+            e.preventDefault();
+            go("budget");
+          }}
+          className="mx-2.5 mb-2.5 inline-flex items-start gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning hover:underline"
+        >
+          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+          {over ? `Over budget by ${inr(over)}` : "Budget tight"}
+        </a>
+      )}
     </div>
   );
 }
@@ -237,9 +245,9 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-col pb-20 lg:pb-0">
+      <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
         {!(banded && desktop) && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:flex-nowrap md:px-8">
+          <div className="page-pad flex flex-wrap items-center gap-2 py-3 md:flex-nowrap">
             <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
             {/* A fresh bar per event, so a half-typed change never applies to another one. */}
             <div className="order-last w-full md:order-none md:w-auto md:flex-1"><CommandBar key={activeId} /></div>
@@ -252,7 +260,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           </div>
         </header>}
 
-        <main id="main" className={cn("mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-4 py-6 md:px-10 md:py-8", banded && "pt-0 md:pt-0")}>
+        <main id="main" className={cn("page-pad w-full flex-1 space-y-6 py-6 md:py-8", banded && "pt-0 md:pt-0")}>
           {shared && (
             <div className={cn("no-print flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm", firstGap)}>
               <Download className="size-4 text-info" aria-hidden="true" />

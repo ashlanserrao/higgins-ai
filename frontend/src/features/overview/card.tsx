@@ -1,5 +1,5 @@
 // The Overview's card, overlapping the band: three tabs (the next step, what's coming up, ideas)
-// over panels of one fixed height, so switching never moves what sits below.
+// over panels that size to their own content.
 
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Flag, Sparkles } from "lucide-react";
@@ -75,23 +75,20 @@ export function OverviewCard({ next, nextBadge, footer }: { next: ReactNode; nex
             </TabsPrimitive.Trigger>
           ))}
         </TabsPrimitive.List>
-        {/* All three panels share one grid cell, so the card is always as tall as the tallest and
-            nothing below moves on switching. Inactive ones stay mounted but invisible (out of the
-            accessibility tree too); a print shows all three, one after another. */}
-        <div className="grid min-h-[178px] print:block">
-          {TABS.map(({ id, label }) => (
-            <TabsPrimitive.Content
-              key={id} value={id} forceMount
-              className={cn(
-                "col-start-1 row-start-1 pt-4 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150",
-                "data-[state=inactive]:invisible data-[state=inactive]:!block print:data-[state=inactive]:visible",
-              )}
-            >
-              <h2 className="sr-only print:not-sr-only print:mb-2 print:text-lg">{label}</h2>
-              {id === "next" ? next : id === "soon" ? <ComingUp /> : <IdeasPanel />}
-            </TabsPrimitive.Content>
-          ))}
-        </div>
+        {/* Each panel is as tall as its own content, so the card shrinks to fit the tab. Inactive
+            panels stay mounted but hidden, so a print shows all three, one after another. */}
+        {TABS.map(({ id, label }) => (
+          <TabsPrimitive.Content
+            key={id} value={id} forceMount
+            className={cn(
+              "pt-4 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150",
+              "data-[state=inactive]:hidden print:data-[state=inactive]:!block",
+            )}
+          >
+            <h2 className="sr-only print:not-sr-only print:mb-2 print:text-lg">{label}</h2>
+            {id === "next" ? next : id === "soon" ? <ComingUp /> : <IdeasPanel />}
+          </TabsPrimitive.Content>
+        ))}
       </TabsPrimitive.Root>
       {footer}
     </section>
@@ -118,7 +115,7 @@ function ComingUp() {
   const restOnTrack = open.slice(3).every((entry) => !needsHeadsUp(entry) && !dueChip(entry, plan.today));
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <ol className="space-y-2.5">
         {shown.map((entry) => {
           const chip = dueChip(entry, plan.today);
@@ -139,7 +136,7 @@ function ComingUp() {
           </li>
         )}
       </ol>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         {restOnTrack ? <p className="text-success">Everything else is on track</p> : <span />}
         <Button size="sm" variant="link" className="no-print h-auto px-0" onClick={() => go("tasks")}>
           Full timeline <ArrowRight aria-hidden="true" />
@@ -181,7 +178,7 @@ function IdeasPanel() {
 
   const picks = [ideas.themes[0], ideas.decor[0], ideas.food[0]].filter(Boolean);
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <IdeasStatusLine />
       <ul className="space-y-2.5">
         {picks.map((idea, index) => (
@@ -194,7 +191,7 @@ function IdeasPanel() {
           </li>
         ))}
       </ul>
-      <div className="mt-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <p className="text-tertiary">Suggested by AI. Give it a quick check.</p>
         <Button size="sm" variant="link" className="no-print h-auto px-0" onClick={() => go("ideas")}>
           All ideas <ArrowRight aria-hidden="true" />

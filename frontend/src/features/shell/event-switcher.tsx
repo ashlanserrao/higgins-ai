@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { countdown, daysUntil, eventName, plural } from "@/lib/format";
+import { countdown, daysUntil, eventName, formatShortDate, plural, titleCase } from "@/lib/format";
 import type { SavedEvent } from "@/lib/storage";
 import { dueToday } from "@/lib/tasks";
 import type { EventType } from "@/lib/types";
@@ -57,7 +57,7 @@ function EventRow({ event, onRename, onDelete }: { event: SavedEvent; onRename: 
         <EventDot type={event.inputs.event_type} />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{name}</span>
-          <span className="block truncate text-xs text-muted-foreground">{event.inputs.city} · {countdown(event.inputs.event_date)}</span>
+          <span className="block truncate text-xs text-muted-foreground">{titleCase(event.inputs.city)} · {countdown(event.inputs.event_date)}</span>
         </span>
         {due > 0 && <span className="num shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning">{due} to do</span>}
         <span className="grid size-4 shrink-0 place-items-center">
@@ -77,8 +77,9 @@ function EventRow({ event, onRename, onDelete }: { event: SavedEvent; onRename: 
   );
 }
 
-/** `withAppearance`: phones have no sidebar, so the theme choice lives in this menu there. */
-export function EventSwitcher({ className, withAppearance = false }: { className?: string; withAppearance?: boolean }) {
+/** `withAppearance`: phones have no sidebar, so the theme choice lives in this menu there.
+ *  `variant="card"`: the sidebar's, with room for the whole name and the date and guests. */
+export function EventSwitcher({ className, withAppearance = false, variant }: { className?: string; withAppearance?: boolean; variant?: "card" }) {
   const { events, activeId, shared, inputs, switchEvent, startNewEvent, renameEvent, deleteEvent } = usePlan();
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState<SavedEvent | null>(null);
@@ -110,9 +111,13 @@ export function EventSwitcher({ className, withAppearance = false }: { className
         >
           <EventDot type={inputs.event_type} />
           <span className="min-w-0 flex-1">
-            <span className="font-display block truncate text-base leading-snug">{current ? eventName(current) : "Shared plan"}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              {inputs.city} · {shared ? "Not saved yet" : countdown(inputs.event_date)}
+            <span className={cn("font-display block text-base leading-snug", variant === "card" ? "break-words" : "truncate")}>
+              {current ? eventName(current) : "Shared plan"}
+            </span>
+            <span className="num block truncate text-xs text-muted-foreground">
+              {variant === "card"
+                ? `${formatShortDate(inputs.event_date)} · ${plural(inputs.guests, "guest")}${shared ? " · Not saved yet" : ""}`
+                : `${titleCase(inputs.city)} · ${shared ? "Not saved yet" : countdown(inputs.event_date)}`}
             </span>
           </span>
           <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
