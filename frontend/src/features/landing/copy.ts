@@ -41,12 +41,22 @@ export const COPY = {
   },
   values: {
     eyebrow: "What you get",
+    replay: "Play the drawing again",
     title: "A plan that adds up, and a way to share it",
     body: "Tell us the event, the date and what you can spend. Higgins works out a realistic budget and book-by dates, then keeps them up to date as quotes come in and plans change.",
     items: [
-      { title: "A budget that adds up", body: "See what's typical for each vendor, so you know a fair price." },
-      { title: "Book-by dates", body: "Know what to book first, and what can wait." },
-      { title: "Share with family", body: "Send the plan on WhatsApp, so everyone's on the same page." },
+      {
+        title: "A budget that adds up", body: "See what's typical for each vendor, so you know a fair price.",
+        art: "Four vendor quotes as blocks of different heights; the two inside a fair-price band light up.",
+      },
+      {
+        title: "Book-by dates", body: "Know what to book first, and what can wait.",
+        art: "A calendar with the event marked; book-by dates appear working back from it, and the earliest is highlighted.",
+      },
+      {
+        title: "Share with family", body: "Send the plan on WhatsApp, so everyone's on the same page.",
+        art: "A plan in the middle is sent to four phones, and each lights up as it arrives.",
+      },
     ],
   },
   steps: {

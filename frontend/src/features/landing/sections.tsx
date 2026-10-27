@@ -1,7 +1,8 @@
 // The landing page's static sections: the event-type strip, what you get, how it works and the
 // sample plan. Each sits between SectionRules inside the Frame (see landing.tsx).
 
-import { Cake, CalendarCheck, Heart, IndianRupee, Share2, Users, type LucideIcon } from "lucide-react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Cake, Heart, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COPY } from "./copy";
 import { Cell, CellGrid, Crosshair } from "./frame";
@@ -10,7 +11,11 @@ import { Cell, CellGrid, Crosshair } from "./frame";
 export const PAD = "px-4 md:px-6 lg:px-12";
 
 const EVENT_ICONS: LucideIcon[] = [Heart, Cake, Users];
-const VALUE_ICONS: LucideIcon[] = [IndianRupee, CalendarCheck, Share2];
+
+// The value cards' drawings (and the animation library they use) load apart from the page, so
+// they never hold up the hero.
+const loadScenes = () => import("./iso-scenes");
+const IsoScene = lazy(loadScenes);
 
 /** Eyebrow and headline on the left (7/12), a supporting paragraph on the right (4/12), sharing a
  *  bottom edge. Stacked below 1024px. */
@@ -52,18 +57,53 @@ export function WhatYouGet() {
     <section aria-labelledby="what-title">
       <SectionIntro id="what-title" eyebrow={COPY.values.eyebrow} title={COPY.values.title} body={COPY.values.body} />
       <CellGrid className="grid-cols-1 border-t border-hairline md:grid-cols-3">
-        {COPY.values.items.map(({ title, body }, index) => {
-          const Icon = VALUE_ICONS[index];
-          return (
-            <Cell key={title} reveal className={cn("py-8 lg:py-10", PAD)}>
-              <Icon className="size-6 text-primary-ink" aria-hidden="true" />
-              <h3 className="mt-4 text-lg">{title}</h3>
-              <p className="lede mt-1.5">{body}</p>
-            </Cell>
-          );
-        })}
+        {COPY.values.items.map(({ title, body, art }, index) => (
+          <Cell key={title} reveal className={cn("py-8 lg:py-10", PAD)}>
+            <ValueArt scene={index} label={art} replay={`${COPY.values.replay}: ${title}`} />
+            <h3 className="mt-4 text-lg">{title}</h3>
+            <p className="lede mt-1.5">{body}</p>
+          </Cell>
+        ))}
       </CellGrid>
     </section>
+  );
+}
+
+/** A value card's drawing. Its 4:3 box is held from the start so nothing moves when it arrives;
+ *  the code is fetched once the card is on screen, and the drawing plays when half of it is in
+ *  view. Clicking it plays it again. Off screen, its looping motion holds still. */
+function ValueArt({ scene, label, replay }: { scene: number; label: string; replay: string }) {
+  const box = useRef<HTMLButtonElement>(null);
+  const [started, setStarted] = useState(false);
+  const [run, setRun] = useState(0); // a new run remounts the scene, which plays it from the top
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    if (!("IntersectionObserver" in window)) {
+      setStarted(true);
+      setLive(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      setLive(entry.isIntersecting);
+      if (entry.isIntersecting) void loadScenes();
+      if (entry.intersectionRatio >= 0.5) setStarted(true);
+    }, { threshold: [0, 0.5] });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <button
+      ref={box} type="button" aria-label={replay} className="block aspect-[4/3] w-full cursor-pointer rounded-[14px]"
+      onClick={() => { setStarted(true); setRun((n) => n + 1); }}
+    >
+      {started && (
+        <Suspense fallback={null}>
+          <IsoScene key={run} scene={scene} label={label} live={live} />
+        </Suspense>
+      )}
+    </button>
   );
 }
 

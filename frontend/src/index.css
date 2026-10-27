@@ -617,6 +617,26 @@ higgins-how-it-works {
   }
 }
 
+/* The "what you get" drawings (iso-scenes.tsx), coloured from the page's own tokens: faces lit
+   from above, lines in ink, the accent only on what's being shown. In dark the surfaces lighten
+   upward, so the lightest token is the top face. */
+.iso-stage {
+  --iso-ink: var(--text-primary);
+  --iso-top: var(--bg-surface);
+  --iso-left: var(--bg-surface-soft);
+  --iso-right: var(--border-subtle);
+  --iso-grid: var(--hairline-strong);
+  --iso-accent: var(--accent);
+  --iso-accent-left: color-mix(in srgb, var(--accent) 78%, black);
+  --iso-accent-right: color-mix(in srgb, var(--accent) 62%, black);
+}
+@media screen {
+  :root[data-theme="dark"] .iso-stage {
+    --iso-top: var(--border-subtle);
+    --iso-right: var(--bg-surface);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 1ms !important;
