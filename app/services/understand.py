@@ -8,9 +8,9 @@ from app.ai.understand import REQUIRED_FIELDS, PlanInterpreter
 from app.engine.diff import diff_plans
 from app.engine.errors import PlanInputError
 from app.engine.planner import build_plan
-from app.errors import FIELD_LABELS, field_errors
 from app.models import PlanRequest, UnderstandRequest
 from app.responses import FieldChange, FieldError, UnderstandResponse
+from app.validation_messages import FIELD_LABELS, field_errors
 
 
 def understand_message(body: UnderstandRequest, interpreter: PlanInterpreter, today: date) -> UnderstandResponse:

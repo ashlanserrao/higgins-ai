@@ -20,13 +20,13 @@ from app.engine.diff import diff_plans
 from app.engine.errors import PlanInputError
 from app.engine.messages import vendor_message
 from app.engine.planner import build_plan
-from app.errors import field_errors
 from app.models import CompareRequest, MessageRequest, PlanRequest, QuoteExtractRequest, UnderstandRequest
 from app.responses import (
     CompareResponse, IdeasResponse, MessageResponse, PlanResponse, QuoteExtractResponse, UnderstandResponse,
 )
 from app.security import SECURITY_HEADERS, RateLimiter
 from app.services.understand import understand_message
+from app.validation_messages import field_errors
 
 logger = logging.getLogger(__name__)
 

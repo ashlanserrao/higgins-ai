@@ -242,7 +242,7 @@ app/                       FastAPI + Pydantic v2
   models.py                Request and plan schemas, input validation (ApiModel base)
   responses.py             Response bodies for the routes
   services/understand.py   /api/understand: typed request → form values or a revision with its before/after
-  errors.py                Validation errors in plain language
+  validation_messages.py   Pydantic validation errors in plain language
   config.py, security.py   Settings from .env; rate limiter and security headers
   engine/                  Deterministic rules, no AI
     rules.py               All planning heuristics as named, commented constants
