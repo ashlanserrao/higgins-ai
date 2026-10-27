@@ -144,14 +144,33 @@ Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through th
 
 ```bash
 pip install -r requirements-dev.txt
-pytest
+pytest                      # backend: 139 tests
+
+cd frontend
+npm test                    # frontend: 20 tests (Vitest)
+npm run typecheck && npm run contrast
 ```
 
-47 tests, offline and free (the OpenAI client is faked):
+Everything runs offline and free: the OpenAI client is faked, and golden tests pin today to 21 Oct 2026.
 
-- **`test_engine.py`:** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor with 3 priorities, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
-- **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options
-- **`test_ai.py`:** `/api/ideas` returns valid ideas and the plan stays rules-only. Bad JSON, extra fields, over-long text, empty lists and timeouts all return no ideas, never an error. Also: no API key (the plan still works and ideas are reported unavailable), caching, triage advice dropped outside triage, preference fencing
+**Backend (pytest, 139):**
+
+- **`test_engine.py` (17):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
+- **`test_api.py` (25):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options, and `openapi.json` matching the API (with docs not served)
+- **`test_understand.py` (28):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates and cities only when named, missing fields, invalid revisions, no event-type changes
+- **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
+- **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
+- **`test_compare.py` (12):** money moves between budget lines and the before/after of two plans
+- **`test_ai.py` (10):** ideas stay advisory. Bad JSON, extra fields, over-long text and timeouts give no ideas, never an error. Also: no API key, caching, preference fencing
+- **`test_quote_extraction.py` (8):** a pasted quote becomes a checked draft or nothing, never an error; the quote text is fenced
+- **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
+
+**Frontend (Vitest, 20):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
+
+- **`features/overview/next-step.test.ts` (7):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear
+- **`lib/share.test.ts` (5):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas are dropped
+- **`lib/storage.test.ts` (4):** save/load round trip, blocked or corrupt `localStorage` starts empty without crashing, v2 → v4 migration
+- **`lib/format.test.ts` (4):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months
 
 ## API types
 
@@ -218,22 +237,41 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 ## Project structure
 
 ```
-app/
-  main.py            FastAPI app, routes, error handling, security middleware
-  models.py          Request/response schemas and input validation
-  config.py          Settings from environment / .env
-  security.py        Rate limiter and security headers
-  engine/
-    rules.py         All planning heuristics as named, commented constants
-    planner.py       Pure planning engine: build_plan(request, today)
-    money.py         Indian rupee formatting
-  ai/
-    ideas.py         OpenAI wrapper with timeout, cache and fallback
-    prompt.py        Prompt building and preference sanitising
-    schema.py        Strict JSON schema + Pydantic validation of AI output
-    cache.py         Small thread-safe TTL/LRU cache
-static/
-  index.html, styles.css
-  js/                app (controller), form, render, share, api, format
-tests/               pytest suite (engine, API, AI layer)
+app/                       FastAPI + Pydantic v2
+  main.py                  App, routes, error handlers, security middleware
+  models.py                Request and plan schemas, input validation (ApiModel base)
+  responses.py             Response bodies for the routes
+  services/understand.py   /api/understand: typed request → form values or a revision with its before/after
+  errors.py                Validation errors in plain language
+  config.py, security.py   Settings from .env; rate limiter and security headers
+  engine/                  Deterministic rules, no AI
+    rules.py               All planning heuristics as named, commented constants
+    planner.py             build_plan(request, today): same inputs, same plan
+    progress.py, moves.py, quotes.py   Bookings and delays, money moves, vendor quotes
+    diff.py, messages.py   Before/after of two plans; ready-to-send vendor messages
+  ai/                      Every OpenAI call, all optional
+    client.py              The one place that talks to the provider
+    ideas.py, quotes.py, understand.py   Ideas, quote extraction, plain-language intake
+    prompt.py, untrusted.py, schema.py   Prompts, fencing of typed text, strict output schemas
+scripts/export_openapi.py  Writes frontend/openapi.json for the generated types
+tests/                     pytest suite (offline, AI faked)
+
+frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
+  openapi.json             The API schema, exported from FastAPI
+  src/
+    main.tsx, App.tsx      Entry and page routing
+    state/
+      nav.tsx              Open event and section, kept in the URL hash
+      planner/             App state: store (state, request tickets), events, ideas,
+                           plan-actions, persistence; index.tsx composes them
+    features/<domain>/     overview, budget, tasks, vendors, guests, ideas, shell, landing,
+                           onboarding (questionnaire container, steps/, pure form.ts)
+    components/            Shared dialogs and toasts; ui/ holds the shadcn primitives
+    lib/
+      api.ts               Typed fetch wrappers
+      api-types.ts         Generated by npm run gen:types (don't edit)
+      types.ts             Friendly names for the generated types, plus browser-only ones
+      format.ts, share.ts, storage.ts, tasks.ts   Formatting, share links, localStorage, task badges
+    **/*.test.ts           Vitest, next to the code it covers
+  scripts/contrast.mjs     WCAG AA contrast check for every colour pair
 ```
