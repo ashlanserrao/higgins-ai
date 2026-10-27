@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # The React build (cd frontend && npm run build). The API works without it, e.g. in tests.
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
-app = FastAPI(title="Event Planning Assistant", docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(title="Higgins AI", docs_url=None, redoc_url=None, openapi_url=None)
 # The rules-only plan is cheap and called on every "what if" change; AI calls are not.
 plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
 ai_limiter = RateLimiter(settings.rate_limit_per_minute)
