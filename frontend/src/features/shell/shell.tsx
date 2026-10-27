@@ -215,7 +215,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         aria-current={active ? "page" : undefined}
         className={cn(
           compact
-            ? "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+            ? "flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium"
             : "flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm font-medium pointer-coarse:min-h-11",
           compact
             ? active ? "bg-primary-soft font-semibold text-primary-text" : "text-foreground/80 hover:bg-surface"
@@ -257,10 +257,10 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
 
       <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
         {!(banded && desktop) && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
-          <div className="page-pad flex flex-wrap items-center gap-2 py-3 md:flex-nowrap">
-            <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
+          <div className="page-pad flex flex-wrap items-center gap-2 py-3 lg:flex-nowrap">
+            <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface lg:hidden" />
             {/* A fresh bar per event, so a half-typed change never applies to another one. */}
-            <div className="order-last w-full md:order-none md:w-auto md:flex-1"><CommandBar key={activeId} /></div>
+            <div className="order-last w-full lg:order-none lg:w-auto lg:flex-1"><CommandBar key={activeId} /></div>
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
               <AddMenu className="max-sm:w-9 max-sm:px-0 lg:hidden" />
               <Button variant="ghost" size="icon" onClick={onEdit} className="lg:hidden" aria-label="Edit event details" title="Edit event details"><PencilLine aria-hidden="true" /></Button>

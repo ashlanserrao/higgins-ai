@@ -138,7 +138,7 @@ function ComingUp() {
       </ol>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         {restOnTrack ? <p className="text-success">Everything else is on track</p> : <span />}
-        <Button size="sm" variant="link" className="no-print h-auto px-0" onClick={() => go("tasks")}>
+        <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("tasks")}>
           Full timeline <ArrowRight aria-hidden="true" />
         </Button>
       </div>
@@ -193,7 +193,7 @@ function IdeasPanel() {
       </ul>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <p className="text-tertiary">Suggested by AI. Give it a quick check.</p>
-        <Button size="sm" variant="link" className="no-print h-auto px-0" onClick={() => go("ideas")}>
+        <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("ideas")}>
           All ideas <ArrowRight aria-hidden="true" />
         </Button>
       </div>

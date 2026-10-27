@@ -158,7 +158,7 @@ function Money() {
   const buffer = plan.budget_lines.find((line) => line.key === "contingency")?.amount_inr ?? 0;
   const raiseTo = (budget: number) =>
     preview({ title: `Budget ${inr(budget)}`, label: `Budget raised to ${inr(budget)}`, changes: { budget_inr: budget } });
-  const chip = "rounded-full";
+  const chip = "rounded-full max-md:min-h-11 pointer-coarse:min-h-11";
 
   let body: ReactNode;
   if (over > 0) {
