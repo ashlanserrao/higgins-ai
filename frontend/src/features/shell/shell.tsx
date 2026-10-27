@@ -24,19 +24,21 @@ import { CommandBar } from "./command-bar";
 import { EventSwitcher } from "./event-switcher";
 import { AppearanceControl } from "./theme-control";
 
-const NAV: { id: Section; label: string; icon: LucideIcon }[] = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "budget", label: "Budget", icon: Wallet },
-  { id: "tasks", label: "Tasks", icon: ClipboardList },
-  { id: "vendors", label: "Vendors", icon: Store },
-  { id: "guests", label: "Guests", icon: Users },
-  { id: "ideas", label: "Ideas", icon: Lightbulb },
+// Each section's icon sits on its own soft chip in the sidebar, tinted from the semantic tokens
+// (each has a dark-theme value); the open section's chip fills with the event accent.
+const NAV: { id: Section; label: string; icon: LucideIcon; chip: string }[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard, chip: "bg-surface text-muted-foreground" },
+  { id: "budget", label: "Budget", icon: Wallet, chip: "bg-danger-soft text-danger" },
+  { id: "tasks", label: "Tasks", icon: ClipboardList, chip: "bg-success-soft text-success" },
+  { id: "vendors", label: "Vendors", icon: Store, chip: "bg-warning-soft text-warning" },
+  { id: "guests", label: "Guests", icon: Users, chip: "bg-info-soft text-info" },
+  { id: "ideas", label: "Ideas", icon: Lightbulb, chip: "bg-ai-tint text-ai" },
 ];
 
 export const expectedGuests = (guests: { party: number; rsvp: string }[]) =>
   guests.filter((g) => g.rsvp === "yes" || g.rsvp === "maybe").reduce((sum, g) => sum + g.party, 0);
 
-const PILL = "num rounded-full bg-surface px-2 py-0.5 text-xs font-medium text-muted-foreground";
+const PILL = "num rounded-full bg-surface px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground";
 
 function useCounts(): Record<Section, ReactNode> {
   const { plan, guests, inputs } = usePlan();
@@ -214,12 +216,20 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         className={cn(
           compact
             ? "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
-            : "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
-          active ? "bg-primary-soft font-semibold text-primary-text" : "text-foreground/80 hover:bg-surface",
+            : "flex items-center gap-3 rounded-lg px-2 py-1.5 text-sm font-medium pointer-coarse:min-h-11",
+          compact
+            ? active ? "bg-primary-soft font-semibold text-primary-text" : "text-foreground/80 hover:bg-surface"
+            : active ? "bg-primary-soft font-semibold text-primary-ink" : "text-foreground/80 hover:bg-surface",
         )}
       >
-        <Icon className="size-4.5 shrink-0" aria-hidden="true" />
-        <span className={compact ? "" : "flex-1"}>{item.label}</span>
+        {compact ? (
+          <Icon className="size-4.5 shrink-0" aria-hidden="true" />
+        ) : (
+          <span className={cn("grid size-[26px] shrink-0 place-items-center rounded-lg", active ? "bg-primary text-primary-foreground" : item.chip)} aria-hidden="true">
+            <Icon className="size-3.5" />
+          </span>
+        )}
+        <span className={compact ? "" : "min-w-0 flex-1"}>{item.label}</span>
         {!compact && counts[item.id]}
       </a>
     );
