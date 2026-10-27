@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom";
 import { Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/common";
+import { StatusBadge } from "@/components/badges";
 import { eventName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePlanner, type LastChange } from "@/state/planner";

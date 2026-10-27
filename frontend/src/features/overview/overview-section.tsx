@@ -6,17 +6,18 @@ import {
   AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Compass, GitBranch, Info, Lightbulb, MessageSquareText, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AiBadge, AiNote, EngineBadge, Panel, Stat, StatusBadge } from "@/components/common";
-import { MessageDialog } from "@/components/message-dialog";
+import { AiBadge, AiNote, EngineBadge, StatusBadge } from "@/components/badges";
+import { Panel, Stat } from "@/components/layout";
+import { MessageDialog } from "@/components/app/message-dialog";
 import { formatDate, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
 import { canMessage, taskLabel, taskLine, taskShortName } from "@/lib/tasks";
 import type { ChecklistItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { RebalanceNote } from "@/components/rebalance-note";
-import { IdeasStatusLine } from "@/components/ideas-status-line";
-import { BookingDialog, type BookingTarget } from "@/components/booking-dialog";
+import { RebalanceNote } from "@/components/app/rebalance-note";
+import { IdeasStatusLine } from "@/components/app/ideas-status-line";
+import { BookingDialog, type BookingTarget } from "@/components/app/booking-dialog";
 import { OverviewBand } from "./band";
 import { BudgetBlock } from "./budget-block";
 import { OverviewCard } from "./card";

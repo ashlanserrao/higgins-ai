@@ -5,15 +5,15 @@ import { useState, type ReactNode } from "react";
 import { ArrowRight, CalendarClock, CheckCircle2, Clock, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AiBadge, StatusBadge } from "@/components/common";
-import { MessageDialog } from "@/components/message-dialog";
-import { useChangePreview } from "@/components/use-change-preview";
+import { AiBadge, StatusBadge } from "@/components/badges";
+import { MessageDialog } from "@/components/app/message-dialog";
+import { useChangePreview } from "@/components/app/use-change-preview";
 import { EVENT_LABELS, formatShortDate, inr, plural } from "@/lib/format";
 import { canMessage, taskShortName } from "@/lib/tasks";
 import type { ChecklistItem } from "@/lib/types";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { BookingDialog, type BookingTarget } from "@/components/booking-dialog";
+import { BookingDialog, type BookingTarget } from "@/components/app/booking-dialog";
 import { attentionFor, dueLabel, leadFor, shownBy, type Attention, type Lead } from "./next-step";
 
 /** Shared by the panel and the tab: the lead and what else needs the organiser. */

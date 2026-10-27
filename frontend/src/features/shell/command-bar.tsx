@@ -4,8 +4,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { ChangeDialog } from "@/components/change-dialog";
-import { AiBadge, AiNote, FieldError } from "@/components/common";
+import { ChangeDialog } from "@/components/app/change-dialog";
+import { AiBadge, AiNote } from "@/components/badges";
+import { FieldError } from "@/components/field-error";
 import { api } from "@/lib/api";
 import { addDays, formatShortDate } from "@/lib/format";
 import type { PlanRequest, UnderstandResponse } from "@/lib/types";

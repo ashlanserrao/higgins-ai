@@ -4,8 +4,9 @@
 import { Lightbulb, Loader2, Palette, PartyPopper, RefreshCw, Sparkles, Utensils, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AiBadge, AiNote, EmptyState, Panel } from "@/components/common";
-import { IdeasStatusLine } from "@/components/ideas-status-line";
+import { AiBadge, AiNote } from "@/components/badges";
+import { EmptyState, Panel } from "@/components/layout";
+import { IdeasStatusLine } from "@/components/app/ideas-status-line";
 import { PageBand } from "@/components/page-band";
 import type { EventIdeas } from "@/lib/types";
 import { usePlan } from "@/state/planner";

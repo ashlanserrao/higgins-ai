@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/common";
+import { FieldError } from "@/components/field-error";
 import { addDays, formatDate } from "@/lib/format";
 import { taskShortName } from "@/lib/tasks";
 import type { TaskState } from "@/lib/types";

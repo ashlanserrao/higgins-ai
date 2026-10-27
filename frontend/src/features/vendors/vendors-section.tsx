@@ -8,9 +8,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, EmptyState, Panel, StatusBadge } from "@/components/common";
+import { AiBadge, StatusBadge } from "@/components/badges";
+import { EmptyState, Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
-import { MessageDialog } from "@/components/message-dialog";
+import { MessageDialog } from "@/components/app/message-dialog";
 import { api } from "@/lib/api";
 import { formatDate, inr, plural } from "@/lib/format";
 import { canMessage, lineTask, taskShortName } from "@/lib/tasks";
@@ -18,7 +19,7 @@ import type { Quote, QuoteComparison } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { RebalanceNote } from "@/components/rebalance-note";
+import { RebalanceNote } from "@/components/app/rebalance-note";
 import { blankQuote, newQuoteId, QuoteEditor } from "./quote-editor";
 
 const CAPACITY = {

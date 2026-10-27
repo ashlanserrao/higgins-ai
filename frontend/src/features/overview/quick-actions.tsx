@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useChangePreview } from "@/components/use-change-preview";
+import { useChangePreview } from "@/components/app/use-change-preview";
 import { addDays, formatDate, inr } from "@/lib/format";
 import { usePlan } from "@/state/planner";
 

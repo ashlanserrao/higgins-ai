@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FieldError } from "@/components/common";
+import { FieldError } from "@/components/field-error";
 import type { EventType, Options } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Field } from "../fields";

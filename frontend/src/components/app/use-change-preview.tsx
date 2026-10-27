@@ -2,7 +2,7 @@
 // and the guest list's "plan for N guests".
 
 import { useState, type ReactNode } from "react";
-import { ChangeDialog } from "@/components/change-dialog";
+import { ChangeDialog } from "@/components/app/change-dialog";
 import { api } from "@/lib/api";
 import type { PlanEdit } from "@/lib/types";
 import { usePlan } from "@/state/planner";

@@ -6,13 +6,13 @@ import { ArrowRight, Flag, Sparkles } from "lucide-react";
 import { Tabs as TabsPrimitive } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatusBadge } from "@/components/common";
+import { StatusBadge } from "@/components/badges";
 import { daysBetween, formatShortDate } from "@/lib/format";
 import type { TimelineEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { IdeasStatusLine } from "@/components/ideas-status-line";
+import { IdeasStatusLine } from "@/components/app/ideas-status-line";
 
 export type OverviewTab = "next" | "soon" | "ideas";
 

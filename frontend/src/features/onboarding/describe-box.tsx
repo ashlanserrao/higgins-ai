@@ -3,7 +3,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, AiNote } from "@/components/common";
+import { AiBadge, AiNote } from "@/components/badges";
 import { api } from "@/lib/api";
 import type { UnderstandResponse } from "@/lib/types";
 

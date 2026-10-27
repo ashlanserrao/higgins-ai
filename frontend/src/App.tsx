@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CalendarCheck, Loader2, PieChart, Share2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/toaster";
+import { Toaster } from "@/components/app/toaster";
 import { BudgetSection } from "@/features/budget/budget-section";
 import { GuestsSection } from "@/features/guests/guests-section";
 import { IdeasSection } from "@/features/ideas/ideas-section";

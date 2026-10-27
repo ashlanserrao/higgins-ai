@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Check, type LucideIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { FieldError } from "@/components/common";
+import { FieldError } from "@/components/field-error";
 import { cn } from "@/lib/utils";
 
 export function ChoiceCards<T extends string>({ legend, name, value, options, onChange, error, flash }: {

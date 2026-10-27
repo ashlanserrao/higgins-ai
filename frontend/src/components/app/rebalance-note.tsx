@@ -1,5 +1,5 @@
 import { PiggyBank } from "lucide-react";
-import { StatusBadge } from "@/components/common";
+import { StatusBadge } from "@/components/badges";
 import { inr } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";

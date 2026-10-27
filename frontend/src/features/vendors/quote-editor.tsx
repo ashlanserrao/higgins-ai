@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, AiNote, FieldError } from "@/components/common";
+import { AiBadge, AiNote } from "@/components/badges";
+import { FieldError } from "@/components/field-error";
 import type { Quote } from "@/lib/types";
 import { usePlan } from "@/state/planner";
 
