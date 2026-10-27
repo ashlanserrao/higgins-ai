@@ -56,23 +56,6 @@ export const AiNote = ({ children = "Suggested by AI. Give it a quick check befo
   </p>
 );
 
-export function PageHeader({ eyebrow, title, description, actions }: {
-  eyebrow?: ReactNode; title: string; description?: ReactNode; actions?: ReactNode;
-}) {
-  return (
-    <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div className="min-w-0">
-        {eyebrow && <p className="text-sm text-muted-foreground">{eyebrow}</p>}
-        <h1 tabIndex={-1} data-section-title className="mt-1 text-2xl outline-none md:text-3xl">
-          {title}
-        </h1>
-        {description && <p className="mt-2 max-w-3xl text-base text-muted-foreground">{description}</p>}
-      </div>
-      {actions && <div className="no-print flex flex-wrap gap-2">{actions}</div>}
-    </header>
-  );
-}
-
 export function Panel({ title, icon: Icon, description, actions, children, className, tone }: {
   title?: ReactNode; icon?: LucideIcon; description?: ReactNode; actions?: ReactNode;
   children: ReactNode; className?: string; tone?: "ai";

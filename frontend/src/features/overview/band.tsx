@@ -1,15 +1,10 @@
-// The Overview's header band: the event accent behind the greeting and the four numbers that
-// matter. On a desktop it also carries the command bar, Share and Print (the shell's top bar
-// steps aside there). The card below overlaps its bottom edge.
+// The Overview's band: the greeting and the four numbers that matter, on the shared page band.
 
 import type { ReactNode } from "react";
-import { AlertTriangle, Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 import { eventName, formatDate, greeting, inr, plural, weekday } from "@/lib/format";
-import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { usePlan } from "@/state/planner";
-import { CommandBar } from "@/features/shell/command-bar";
-import { ShareButton, usePrint } from "@/features/shell/shell";
+import { PageBand } from "@/features/shell/page-band";
 
 /** "12 days / To go", with the edges said in words. */
 function countdownStat(days: number): [value: string, label: string] {
@@ -32,8 +27,6 @@ function BandStat({ value, label }: { value: ReactNode; label: ReactNode }) {
 
 export function OverviewBand() {
   const { plan, inputs, events, activeId } = usePlan();
-  const desktop = useMediaQuery(DESKTOP);
-  const print = usePrint();
   const current = events.find((event) => event.id === activeId);
   const [days, daysLabel] = countdownStat(plan.days_remaining);
   const tight = plan.per_guest_inr < plan.floor_per_guest_inr;
@@ -41,27 +34,11 @@ export function OverviewBand() {
   const buffer = plan.budget_lines.find((line) => line.key === "contingency")?.amount_inr ?? 0;
 
   return (
-    <section aria-labelledby="overview-title" className="overview-band pt-5 pb-[52px] text-primary-foreground md:pt-6">
-      {desktop && (
-        <div className="no-print mb-6 flex items-center gap-2">
-          {/* A fresh bar per event, so a half-typed change never applies to another one. */}
-          <div className="min-w-0 flex-1"><CommandBar key={activeId} tone="band" /></div>
-          <ShareButton tone="band" />
-          <Button
-            variant="ghost" size="icon" onClick={print} aria-label="Print or save as PDF" title="Print or save as PDF"
-            className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
-          >
-            <Printer aria-hidden="true" />
-          </Button>
-        </div>
-      )}
-      <p className="text-xs text-primary-foreground/80">
-        {eventName(current ?? { name: "", inputs })} · {weekday(inputs.event_date)}, {formatDate(inputs.event_date)}
-      </p>
-      <h1 id="overview-title" tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(26px,1.8cqw+10px,36px)] leading-tight tracking-[-0.02em] outline-none">
-        {greeting()}.
-      </h1>
-      <p className="mt-1 text-[13px] text-primary-foreground/85">Your plan, worked out from your numbers.</p>
+    <PageBand
+      eyebrow={<>{eventName(current ?? { name: "", inputs })} · {weekday(inputs.event_date)}, {formatDate(inputs.event_date)}</>}
+      title={`${greeting()}.`}
+      description="Your plan, worked out from your numbers."
+    >
       {/* Four across once the column has room for the longest figures (₹80,00,000), two by two before. */}
       <dl className="mt-5 grid grid-cols-2 gap-x-2.5 gap-y-4 @min-[900px]:grid-cols-4">
         <BandStat value={days} label={daysLabel} />
@@ -81,6 +58,6 @@ export function OverviewBand() {
           <BandStat value={inr(buffer)} label="Buffer" />
         )}
       </dl>
-    </section>
+    </PageBand>
   );
 }

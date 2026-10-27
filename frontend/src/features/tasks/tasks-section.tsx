@@ -7,7 +7,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EngineBadge, PageHeader, Panel, StatusBadge } from "@/components/common";
+import { EngineBadge, Panel, StatusBadge } from "@/components/common";
+import { PageBand } from "@/features/shell/page-band";
 import { MessageDialog } from "@/components/message-dialog";
 import { formatDate, plural } from "@/lib/format";
 import { canMessage, needsAction, TIMELINE_STATUS, taskBadge, taskLabel, taskShortName } from "@/lib/tasks";
@@ -139,7 +140,7 @@ export function TasksSection() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageBand
         eyebrow={`${counts.booked} of ${plural(plan.checklist.length, "booking")} done`}
         title="Tasks"
         description="Book each vendor before its book-by date. Mark what's booked or running late, and everything that depends on it adjusts on its own."

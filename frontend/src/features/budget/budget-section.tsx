@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EngineBadge, FieldError, PageHeader, Panel, SourceBadge, StatusBadge } from "@/components/common";
+import { EngineBadge, FieldError, Panel, SourceBadge, StatusBadge } from "@/components/common";
+import { PageBand } from "@/features/shell/page-band";
 import { useChangePreview } from "@/components/use-change-preview";
 import { inr, LEVEL_LABELS, signedInr } from "@/lib/format";
 import type { BudgetLine, Plan } from "@/lib/types";
@@ -197,7 +198,7 @@ export function BudgetSection() {
   const { plan, inputs } = usePlan();
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageBand
         eyebrow={`${inr(inputs.budget_inr)} · ${inr(plan.per_guest_inr)} per guest · ${LEVEL_LABELS[plan.budget_level]} budget`}
         title="Budget"
         description="Estimates are typical costs for Indian events like yours. A line turns Confirmed when you accept a quote, and the rest adjusts around it."

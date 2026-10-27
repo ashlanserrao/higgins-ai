@@ -58,7 +58,7 @@ export function OverviewCard({ next, nextBadge, footer }: { next: ReactNode; nex
   };
 
   return (
-    <section aria-label="Your plan" className="relative z-10 -mt-[34px] rounded-xl border bg-card p-4 shadow-card md:p-[18px] [[data-theme=dark]_&]:shadow-none">
+    <section aria-label="Your plan" className="rounded-xl border bg-card p-4 shadow-card md:p-[18px] [[data-theme=dark]_&]:shadow-none">
       <TabsPrimitive.Root value={tab} onValueChange={choose}>
         <TabsPrimitive.List className="no-print flex gap-6 border-b">
           {TABS.map(({ id, label, short }) => (

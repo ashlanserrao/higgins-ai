@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EmptyState, FieldError, PageHeader, Panel, Stat } from "@/components/common";
+import { EmptyState, FieldError, Panel, Stat } from "@/components/common";
+import { PageBand } from "@/features/shell/page-band";
 import { useChangePreview } from "@/components/use-change-preview";
 import { plural } from "@/lib/format";
 import type { Guest, Rsvp } from "@/lib/types";
@@ -55,7 +56,7 @@ export function GuestsSection() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageBand
         eyebrow={`Planning for ${plural(inputs.guests, "guest")}`}
         title="Guests"
         description="Keep track of who's coming. Expected guests are everyone coming or maybe coming, with their party size."

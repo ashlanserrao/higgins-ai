@@ -8,7 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, EmptyState, PageHeader, Panel, StatusBadge } from "@/components/common";
+import { AiBadge, EmptyState, Panel, StatusBadge } from "@/components/common";
+import { PageBand } from "@/features/shell/page-band";
 import { MessageDialog } from "@/components/message-dialog";
 import { api } from "@/lib/api";
 import { formatDate, inr, plural } from "@/lib/format";
@@ -191,7 +192,7 @@ export function VendorsSection() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
+      <PageBand
         eyebrow={`${plural(inputs.progress.quotes.length, "quote")} · ${plan.budget_lines.filter((l) => l.source === "confirmed").length} confirmed`}
         title="Vendors"
         description="See quotes side by side: total, cost per guest and what's missing. Accept one per category and your budget adjusts around it."

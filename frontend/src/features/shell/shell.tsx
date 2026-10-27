@@ -177,11 +177,9 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   const { section, eventId, go } = useNav();
   const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
-  // On a desktop the Overview's band carries the command bar, Share and Print, so the top bar
-  // steps aside there and the band starts at the top of the page.
-  const banded = section === "overview";
+  // On a desktop each page's band carries the command bar, Share and Print, so the top bar
+  // steps aside and the band starts at the top of the page.
   const desktop = useMediaQuery(DESKTOP);
-  const firstGap = banded ? "first:mt-4 md:first:mt-6" : undefined;
 
   const navLink = (item: (typeof NAV)[number], compact = false) => {
     const Icon = item.icon;
@@ -238,7 +236,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       </aside>
 
       <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
-        {!(banded && desktop) && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
+        {!desktop && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="page-pad flex flex-wrap items-center gap-2 py-3 lg:flex-nowrap">
             <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface lg:hidden" />
             {/* A fresh bar per event, so a half-typed change never applies to another one. */}
@@ -252,9 +250,9 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           </div>
         </header>}
 
-        <main id="main" className={cn("page-pad w-full flex-1 space-y-6 py-6 md:py-8", banded && "pt-0 md:pt-0")}>
+        <main id="main" className="page-pad w-full flex-1 space-y-6 pb-6 md:pb-8">
           {shared && (
-            <div className={cn("no-print flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm", firstGap)}>
+            <div className="no-print mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm md:mt-6">
               <Download className="size-4 text-info" aria-hidden="true" />
               <span className="flex-1">Someone shared this plan with you. Keep it to add it to your events. Your own plans stay as they are.</span>
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>

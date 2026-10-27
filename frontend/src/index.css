@@ -634,22 +634,29 @@ higgins-how-it-works {
   }
 }
 
-/* The Overview's header band (features/overview/band.tsx). */
 .page-pad {
   padding-inline: var(--page-pad);
 }
-.overview-band {
+/* The band at the top of every page (features/shell/page-band.tsx): full width of the content
+   column, its content on the page's edges, and whatever follows it rising 34px over its foot. */
+.page-band {
   margin-inline: calc(var(--page-pad) * -1);
+  margin-bottom: -34px;
   padding-inline: var(--page-pad);
   background: linear-gradient(135deg, var(--band-from), var(--band-to));
 }
+.page-band + * {
+  position: relative;
+  z-index: 1;
+}
 @media print {
   /* Printers drop backgrounds, so the band prints as ordinary dark text. */
-  .overview-band {
+  .page-band {
+    margin-bottom: 0;
     background: none;
   }
-  .overview-band,
-  .overview-band * {
+  .page-band,
+  .page-band * {
     color: var(--text-primary) !important;
   }
 }
