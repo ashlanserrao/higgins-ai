@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
 import { eventName, formatDate, greeting, inr, plural, weekday } from "@/lib/format";
 import { usePlan } from "@/state/planner";
-import { PageBand } from "@/features/shell/page-band";
+import { PageBand } from "@/components/page-band";
 
 /** "12 days / To go", with the edges said in words. */
 function countdownStat(days: number): [value: string, label: string] {

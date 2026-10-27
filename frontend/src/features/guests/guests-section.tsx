@@ -9,13 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState, FieldError, Panel, Stat } from "@/components/common";
-import { PageBand } from "@/features/shell/page-band";
+import { PageBand } from "@/components/page-band";
 import { useChangePreview } from "@/components/use-change-preview";
 import { plural } from "@/lib/format";
 import type { Guest, Rsvp } from "@/lib/types";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { expectedGuests } from "@/features/shell/shell";
+import { expectedGuests } from "@/lib/guests";
 
 const RSVP_LABELS: Record<Rsvp, string> = { invited: "Invited", yes: "Coming", maybe: "Maybe", no: "Not coming" };
 

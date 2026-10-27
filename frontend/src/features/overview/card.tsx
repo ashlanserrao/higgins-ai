@@ -12,7 +12,7 @@ import type { TimelineEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { IdeasStatusLine } from "@/features/ideas/ideas-section";
+import { IdeasStatusLine } from "@/components/ideas-status-line";
 
 export type OverviewTab = "next" | "soon" | "ideas";
 

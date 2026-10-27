@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EngineBadge, Panel, StatusBadge } from "@/components/common";
-import { PageBand } from "@/features/shell/page-band";
+import { PageBand } from "@/components/page-band";
 import { MessageDialog } from "@/components/message-dialog";
 import { formatDate, plural } from "@/lib/format";
 import { canMessage, needsAction, TIMELINE_STATUS, taskBadge, taskLabel, taskShortName } from "@/lib/tasks";
@@ -16,7 +16,7 @@ import type { ChecklistItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { BookingDialog, type BookingTarget } from "./booking-dialog";
+import { BookingDialog, type BookingTarget } from "@/components/booking-dialog";
 
 function TaskDetails({ item }: { item: ChecklistItem }) {
   const { plan } = usePlan();

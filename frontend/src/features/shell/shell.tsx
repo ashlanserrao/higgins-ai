@@ -1,7 +1,7 @@
 // Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (command bar,
 // share, print) and a bottom nav on phones, where the switcher moves to the top bar.
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
   Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
@@ -12,7 +12,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { PageBandTools } from "@/components/page-band";
 import { inr, shortInr } from "@/lib/format";
+import { expectedGuests } from "@/lib/guests";
 import { buildShareUrl } from "@/lib/share";
 import { needsAction } from "@/lib/tasks";
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
@@ -33,9 +35,6 @@ const NAV: { id: Section; label: string; icon: LucideIcon; chip: string }[] = [
   { id: "guests", label: "Guests", icon: Users, chip: "bg-info-soft text-info" },
   { id: "ideas", label: "Ideas", icon: Lightbulb, chip: "bg-ai-tint text-ai" },
 ];
-
-export const expectedGuests = (guests: { party: number; rsvp: string }[]) =>
-  guests.filter((g) => g.rsvp === "yes" || g.rsvp === "maybe").reduce((sum, g) => sum + g.party, 0);
 
 const PILL = "num rounded-full bg-surface px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground";
 
@@ -127,12 +126,8 @@ function EventCard() {
   );
 }
 
-/** Print or save the whole plan (App renders every section first). */
-const PrintContext = createContext<() => void>(() => window.print());
-export const usePrint = () => useContext(PrintContext);
-
 /** `tone="band"`: white on the Overview's coloured band. */
-export function ShareButton({ tone }: { tone?: "band" }) {
+function ShareButton({ tone }: { tone?: "band" }) {
   const { inputs, plannedOn, ideas, ideasStatus, announce } = usePlan();
   const [url, setUrl] = useState("");
   const share = async () => {
@@ -169,6 +164,25 @@ export function ShareButton({ tone }: { tone?: "band" }) {
           <Input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Shareable link" />
         </DialogContent>
       </Dialog>
+    </>
+  );
+}
+
+/** On a desktop the page band carries these instead of the top bar. `onPrint` prints or saves
+ *  the whole plan (App renders every section first). */
+function BandTools({ onPrint }: { onPrint: () => void }) {
+  const { activeId } = usePlan();
+  return (
+    <>
+      {/* A fresh bar per event, so a half-typed change never applies to another one. */}
+      <div className="min-w-0 flex-1"><CommandBar key={activeId} tone="band" /></div>
+      <ShareButton tone="band" />
+      <Button
+        variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"
+        className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
+      >
+        <Printer aria-hidden="true" />
+      </Button>
     </>
   );
 }
@@ -258,7 +272,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
             </div>
           )}
-          <PrintContext value={onPrint}>{children}</PrintContext>
+          <PageBandTools value={desktop ? <BandTools onPrint={onPrint} /> : null}>{children}</PageBandTools>
         </main>
       </div>
 

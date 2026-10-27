@@ -13,7 +13,7 @@ import { canMessage, taskShortName } from "@/lib/tasks";
 import type { ChecklistItem } from "@/lib/types";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { BookingDialog, type BookingTarget } from "@/features/tasks/booking-dialog";
+import { BookingDialog, type BookingTarget } from "@/components/booking-dialog";
 import { attentionFor, dueLabel, leadFor, shownBy, type Attention, type Lead } from "./next-step";
 
 /** Shared by the panel and the tab: the lead and what else needs the organiser. */
