@@ -153,6 +153,21 @@ pytest
 - **`test_api.py`:** the plan over HTTP, plain-language 422 errors that don't echo input, 413 for oversized bodies, 411 for chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options
 - **`test_ai.py`:** `/api/ideas` returns valid ideas and the plan stays rules-only. Bad JSON, extra fields, over-long text, empty lists and timeouts all return no ideas, never an error. Also: no API key (the plan still works and ideas are reported unavailable), caching, triage advice dropped outside triage, preference fencing
 
+## API types
+
+The frontend's API types are generated from the backend's Pydantic models, so the two can't drift apart. After changing `app/models.py` or `app/responses.py`:
+
+```bash
+python scripts/export_openapi.py        # from the repo root: writes frontend/openapi.json
+cd frontend && npm run gen:types        # writes src/lib/api-types.ts
+```
+
+Both files are committed, so the frontend builds without Python. `src/lib/types.ts` re-exports them under friendly names (`Plan`, `PlanRequest`, …) and holds the few types the API doesn't describe: guests and `/api/options`. A backend test fails if `openapi.json` is out of date.
+
+- **Response types are complete.** API models extend `ApiModel`, which marks fields with defaults as required in output schemas, because responses always include them. A model used both ways gets an `-Input` and an `-Output` schema; the app works with `-Output`.
+- **`gen:types` runs through `npx`,** pinned to `openapi-typescript@7.13.0` with TypeScript 5.9. `openapi-typescript` needs TypeScript's JS compiler API, which TypeScript 7 (this project's compiler) doesn't ship, so it can't be a devDependency here.
+- The schema is only exported, never served: `/openapi.json` and `/docs` stay disabled.
+
 ## Security
 
 - The OpenAI key lives only in the server's `.env` (git-ignored). The browser never calls OpenAI.

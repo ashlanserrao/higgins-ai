@@ -6,48 +6,46 @@ imports app.models.
 
 from typing import Any
 
-from pydantic import BaseModel
-
 from app.ai.quotes import QuoteDraft
 from app.ai.schema import EventIdeas
-from app.models import Plan, PlanDiff, PlanRequest
+from app.models import ApiModel, Plan, PlanDiff, PlanRequest
 
 
-class PlanResponse(BaseModel):
+class PlanResponse(ApiModel):
     plan: Plan
     # True when an API key is configured, so the page knows to fetch ideas next.
     ai_available: bool
 
 
-class CompareResponse(BaseModel):
+class CompareResponse(ApiModel):
     inputs: PlanRequest  # the edited request, to keep if the organiser confirms
     plan: Plan
     changes: PlanDiff
 
 
-class QuoteExtractResponse(BaseModel):
+class QuoteExtractResponse(ApiModel):
     # Null if nothing could be read; the organiser can still type the quote in.
     quote: QuoteDraft | None
     ai_available: bool
 
 
-class MessageResponse(BaseModel):
+class MessageResponse(ApiModel):
     text: str
 
 
-class FieldChange(BaseModel):
+class FieldChange(ApiModel):
     field: str
     label: str
     before: Any  # None: not set before
     after: Any
 
 
-class FieldError(BaseModel):
+class FieldError(ApiModel):
     field: str
     message: str
 
 
-class UnderstandResponse(BaseModel):
+class UnderstandResponse(ApiModel):
     ai_available: bool
     understood: bool  # False: the AI failed or the message asked for nothing it could use
     inputs: dict[str, Any]  # new event: values to fill the form with; revision: the edited request
@@ -60,7 +58,7 @@ class UnderstandResponse(BaseModel):
     changes: PlanDiff | None = None
 
 
-class IdeasResponse(BaseModel):
+class IdeasResponse(ApiModel):
     # Null if this call failed; the page offers a retry while ai_available is true.
     ideas: EventIdeas | None
     ai_available: bool

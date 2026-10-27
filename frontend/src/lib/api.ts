@@ -2,8 +2,8 @@
 // the frontend only sends inputs and shows what comes back.
 
 import type {
-  EventIdeas, FieldError, MessageKind, Options, Plan, PlanDiff, PlanEdit, PlanRequest,
-  QuoteDraft, UnderstandResponse,
+  CompareResponse, FieldError, IdeasResponse, MessageKind, MessageResponse, Options, PlanEdit, PlanRequest,
+  PlanResponse, QuoteExtractResponse, UnderstandResponse,
 } from "./types";
 
 export class ApiError extends Error {
@@ -40,21 +40,21 @@ export const api = {
   options: () => request<Options>("/api/options"),
 
   /** Rules-only plan: milliseconds, safe to call on every change. */
-  plan: (inputs: PlanRequest) => post<{ plan: Plan; ai_available: boolean }>("/api/plan", inputs),
+  plan: (inputs: PlanRequest) => post<PlanResponse>("/api/plan", inputs),
 
   /** Before/after for a change. Nothing is saved: keep `inputs` if the user confirms. */
   compare: (base: PlanRequest, changes: PlanEdit) =>
-    post<{ inputs: PlanRequest; plan: Plan; changes: PlanDiff }>("/api/compare", { base, changes }),
+    post<CompareResponse>("/api/compare", { base, changes }),
 
   message: (inputs: PlanRequest, taskId: string, kind: MessageKind, includeBudget: boolean) =>
-    post<{ text: string }>("/api/messages", { inputs, task_id: taskId, kind, include_budget: includeBudget }),
+    post<MessageResponse>("/api/messages", { inputs, task_id: taskId, kind, include_budget: includeBudget }),
 
   /** AI: seconds, may return null. */
-  ideas: (inputs: PlanRequest) => post<{ ideas: EventIdeas | null; ai_available: boolean }>("/api/ideas", inputs),
+  ideas: (inputs: PlanRequest) => post<IdeasResponse>("/api/ideas", inputs),
 
   /** AI: reads a pasted quote into a draft the organiser must check. */
   extractQuote: (inputs: PlanRequest, text: string) =>
-    post<{ quote: QuoteDraft | null; ai_available: boolean }>("/api/quotes/extract", { inputs, text }),
+    post<QuoteExtractResponse>("/api/quotes/extract", { inputs, text }),
 
   /** AI: plain language to form values (current = null) or a proposed revision. */
   understand: (message: string, current: PlanRequest | null) =>

@@ -28,14 +28,20 @@ T = TypeVar("T")
 _CITY_EXTRA_CHARS = set(" .-'")
 
 
-class TaskUpdate(BaseModel):
+class ApiModel(BaseModel):
+    # Responses always include fields that have defaults, so the OpenAPI output schemas mark
+    # them required and the generated frontend types don't make them optional.
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+class TaskUpdate(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     state: TaskState
     on: date
 
 
-class Quote(BaseModel):
+class Quote(ApiModel):
     """A vendor's quote as the organiser entered or reviewed it. Unknown fields stay null."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -65,7 +71,7 @@ class Quote(BaseModel):
         return self
 
 
-class Move(BaseModel):
+class Move(ApiModel):
     """Money the organiser moved from one budget line to another."""
 
     model_config = ConfigDict(extra="forbid")
@@ -81,7 +87,7 @@ class Move(BaseModel):
         return self
 
 
-class Progress(BaseModel):
+class Progress(ApiModel):
     """What the organiser has done so far. Kept in the browser and sent with every plan."""
 
     model_config = ConfigDict(extra="forbid")
@@ -100,7 +106,7 @@ class Progress(BaseModel):
         return self
 
 
-class PlanRequest(BaseModel):
+class PlanRequest(ApiModel):
     """What the organizer enters in the form."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
@@ -139,7 +145,7 @@ class PlanRequest(BaseModel):
         return self
 
 
-class PlanEdit(BaseModel):
+class PlanEdit(ApiModel):
     """Fields to change in a plan; anything left out stays as it is.
 
     The event type and free-text preferences can't be edited: changing them is a new plan.
@@ -168,14 +174,14 @@ class PlanEdit(BaseModel):
         return PlanRequest.model_validate(data | changes)
 
 
-class CompareRequest(BaseModel):
+class CompareRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     base: PlanRequest
     changes: PlanEdit
 
 
-class MessageRequest(BaseModel):
+class MessageRequest(ApiModel):
     model_config = ConfigDict(extra="forbid")
 
     inputs: PlanRequest
@@ -184,21 +190,21 @@ class MessageRequest(BaseModel):
     include_budget: bool = False
 
 
-class UnderstandRequest(BaseModel):
+class UnderstandRequest(ApiModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     message: str = Field(min_length=1, max_length=500)
     current: PlanRequest | None = None  # None: a new event
 
 
-class QuoteExtractRequest(BaseModel):
+class QuoteExtractRequest(ApiModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     inputs: PlanRequest
     text: str = Field(min_length=1, max_length=3000)
 
 
-class BudgetLine(BaseModel):
+class BudgetLine(ApiModel):
     key: str
     label: str
     percent: float
@@ -217,7 +223,7 @@ class BudgetLine(BaseModel):
         return self.amount_inr - self.estimate_inr
 
 
-class QuoteComparison(BaseModel):
+class QuoteComparison(ApiModel):
     """One quote set against the plan's estimate for its category."""
 
     quote_id: str
@@ -233,13 +239,13 @@ class QuoteComparison(BaseModel):
     expired: bool
 
 
-class BudgetCut(BaseModel):
+class BudgetCut(ApiModel):
     key: str
     label: str
     amount_inr: int
 
 
-class Rebalance(BaseModel):
+class Rebalance(ApiModel):
     """How the plan absorbed accepted quotes that differ from the estimates."""
 
     change_inr: int  # confirmed minus estimated, across accepted quotes
@@ -249,7 +255,7 @@ class Rebalance(BaseModel):
     explanation: str
 
 
-class ChecklistItem(BaseModel):
+class ChecklistItem(ApiModel):
     id: str
     label: str
     lead_days: int
@@ -268,20 +274,20 @@ class ChecklistItem(BaseModel):
     at_risk: bool = False
 
 
-class TimelineEntry(BaseModel):
+class TimelineEntry(ApiModel):
     date: date
     label: str
     kind: Literal["booking", "milestone", "event"]
     status: Literal["on_track", "tight", "overdue", "at_risk", "done"] = "on_track"
 
 
-class Triage(BaseModel):
+class Triage(ApiModel):
     active: bool
     book_today: list[str]
     cut_suggestions: list[str]
 
 
-class Plan(BaseModel):
+class Plan(ApiModel):
     """The deterministic, rules-based plan. AI output never changes these values."""
 
     event_type: EventType
@@ -310,12 +316,12 @@ class Plan(BaseModel):
     rebalance: Rebalance | None = None
 
 
-class Pair(BaseModel, Generic[T]):
+class Pair(ApiModel, Generic[T]):
     before: T
     after: T
 
 
-class LineChange(BaseModel):
+class LineChange(ApiModel):
     key: str
     label: str
     before_inr: int | None  # None: the line wasn't in the plan
@@ -323,7 +329,7 @@ class LineChange(BaseModel):
     delta_inr: int
 
 
-class TaskChange(BaseModel):
+class TaskChange(ApiModel):
     id: str
     label: str
     # done, at_risk, book_today, tight or on_track; None: the task wasn't in the plan.
@@ -331,7 +337,7 @@ class TaskChange(BaseModel):
     after: str | None
 
 
-class PlanDiff(BaseModel):
+class PlanDiff(ApiModel):
     """What changes between two plans: the numbers, each budget line and each task."""
 
     days_remaining: Pair[int]

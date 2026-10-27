@@ -1,10 +1,12 @@
 """HTTP-level checks: routes, validation errors, rate limiting and security headers."""
 
+import json
 from datetime import timedelta
+from pathlib import Path
 
 import pytest
 
-from app.main import ai_limiter, plan_limiter
+from app.main import ai_limiter, app, plan_limiter
 from tests.conftest import TODAY
 
 
@@ -14,6 +16,15 @@ def as_json(request) -> dict:
 
 def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_schema_is_exported_for_the_frontend_not_served(client):
+    saved = Path(__file__).resolve().parent.parent / "frontend" / "openapi.json"
+    assert json.loads(saved.read_text(encoding="utf-8")) == app.openapi(), (
+        "API changed: run python scripts/export_openapi.py, then npm run gen:types in frontend/"
+    )
+    for path in ("/openapi.json", "/docs", "/redoc"):
+        assert client.get(path).status_code == 404
 
 
 def test_diwali_plan_over_http(client, diwali_request):

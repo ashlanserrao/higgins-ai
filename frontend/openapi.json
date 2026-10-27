@@ -1,0 +1,2466 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Event Planning Assistant",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/options": {
+      "get": {
+        "summary": "Options",
+        "description": "Priority choices per event type, so the form never duplicates the rules tables.",
+        "operationId": "options_api_options_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Options Api Options Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/plan": {
+      "post": {
+        "summary": "Create Plan",
+        "description": "Rules-only plan: returns in milliseconds so the page can show it immediately.",
+        "operationId": "create_plan_api_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRequest-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/compare": {
+      "post": {
+        "summary": "Compare Plans",
+        "description": "Before/after for a what-if, a money move or a typed revision. Nothing is saved.",
+        "operationId": "compare_plans_api_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/messages": {
+      "post": {
+        "summary": "Create Message",
+        "description": "A ready-to-send enquiry, follow-up or confirmation for one booking. No AI.",
+        "operationId": "create_message_api_messages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ideas": {
+      "post": {
+        "summary": "Create Ideas",
+        "description": "AI ideas for the same inputs, fetched after the plan is already on screen.",
+        "operationId": "create_ideas_api_ideas_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRequest-Input"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdeasResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quotes/extract": {
+      "post": {
+        "summary": "Extract Quote",
+        "description": "Read a pasted quote into a draft for the organiser to check. Nothing is saved.",
+        "operationId": "extract_quote_api_quotes_extract_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuoteExtractResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/understand": {
+      "post": {
+        "summary": "Understand",
+        "description": "Turn a typed request into form values (new event) or a proposed revision with its\nbefore/after. Nothing is saved or applied.",
+        "operationId": "understand_api_understand_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnderstandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnderstandResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BudgetCut": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "amount_inr": {
+            "type": "integer",
+            "title": "Amount Inr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "amount_inr"
+        ],
+        "title": "BudgetCut"
+      },
+      "BudgetLine": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "percent": {
+            "type": "number",
+            "title": "Percent"
+          },
+          "amount_inr": {
+            "type": "integer",
+            "title": "Amount Inr"
+          },
+          "estimate_inr": {
+            "type": "integer",
+            "title": "Estimate Inr"
+          },
+          "moved_inr": {
+            "type": "integer",
+            "title": "Moved Inr",
+            "default": 0
+          },
+          "boosted": {
+            "type": "boolean",
+            "title": "Boosted",
+            "default": false
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "estimate",
+              "confirmed"
+            ],
+            "title": "Source",
+            "default": "estimate"
+          },
+          "quote_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote Id"
+          },
+          "change_inr": {
+            "type": "integer",
+            "title": "Change Inr",
+            "readOnly": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "percent",
+          "amount_inr",
+          "estimate_inr",
+          "moved_inr",
+          "boosted",
+          "source",
+          "quote_id",
+          "change_inr"
+        ],
+        "title": "BudgetLine"
+      },
+      "ChecklistItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "lead_days": {
+            "type": "integer",
+            "title": "Lead Days"
+          },
+          "book_by": {
+            "type": "string",
+            "format": "date",
+            "title": "Book By"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "tight",
+              "book_today"
+            ],
+            "title": "Status"
+          },
+          "essential": {
+            "type": "boolean",
+            "title": "Essential"
+          },
+          "done": {
+            "type": "boolean",
+            "title": "Done",
+            "default": false
+          },
+          "booked_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Booked On"
+          },
+          "expected_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected On"
+          },
+          "delayed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delayed By"
+          },
+          "waiting_on": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Waiting On"
+          },
+          "at_risk": {
+            "type": "boolean",
+            "title": "At Risk",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "lead_days",
+          "book_by",
+          "status",
+          "essential",
+          "done",
+          "booked_on",
+          "expected_on",
+          "delayed_by",
+          "waiting_on",
+          "at_risk"
+        ],
+        "title": "ChecklistItem"
+      },
+      "CompareRequest": {
+        "properties": {
+          "base": {
+            "$ref": "#/components/schemas/PlanRequest-Input"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/PlanEdit"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "base",
+          "changes"
+        ],
+        "title": "CompareRequest"
+      },
+      "CompareResponse": {
+        "properties": {
+          "inputs": {
+            "$ref": "#/components/schemas/PlanRequest-Output"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "changes": {
+            "$ref": "#/components/schemas/PlanDiff"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inputs",
+          "plan",
+          "changes"
+        ],
+        "title": "CompareResponse"
+      },
+      "EventIdeas": {
+        "properties": {
+          "themes": {
+            "items": {
+              "$ref": "#/components/schemas/Idea"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Themes"
+          },
+          "decor": {
+            "items": {
+              "$ref": "#/components/schemas/Idea"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Decor"
+          },
+          "food": {
+            "items": {
+              "$ref": "#/components/schemas/Idea"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Food"
+          },
+          "entertainment": {
+            "items": {
+              "$ref": "#/components/schemas/Idea"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Entertainment"
+          },
+          "triage_advice": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Triage Advice"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "themes",
+          "decor",
+          "food",
+          "entertainment",
+          "triage_advice"
+        ],
+        "title": "EventIdeas"
+      },
+      "FieldChange": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "before": {
+            "title": "Before"
+          },
+          "after": {
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "label",
+          "before",
+          "after"
+        ],
+        "title": "FieldChange"
+      },
+      "FieldError": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "FieldError"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Idea": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "detail": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title",
+          "detail"
+        ],
+        "title": "Idea"
+      },
+      "IdeasResponse": {
+        "properties": {
+          "ideas": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventIdeas"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ideas",
+          "ai_available"
+        ],
+        "title": "IdeasResponse"
+      },
+      "LineChange": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "before_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Inr"
+          },
+          "after_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Inr"
+          },
+          "delta_inr": {
+            "type": "integer",
+            "title": "Delta Inr"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "before_inr",
+          "after_inr",
+          "delta_inr"
+        ],
+        "title": "LineChange"
+      },
+      "MessageRequest": {
+        "properties": {
+          "inputs": {
+            "$ref": "#/components/schemas/PlanRequest-Input"
+          },
+          "task_id": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Task Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "enquiry",
+              "follow_up",
+              "confirmation"
+            ],
+            "title": "Kind"
+          },
+          "include_budget": {
+            "type": "boolean",
+            "title": "Include Budget",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inputs",
+          "task_id",
+          "kind"
+        ],
+        "title": "MessageRequest"
+      },
+      "MessageResponse": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "MessageResponse"
+      },
+      "Move": {
+        "properties": {
+          "from_key": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "From Key"
+          },
+          "to_key": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "To Key"
+          },
+          "amount_inr": {
+            "type": "integer",
+            "multipleOf": 100.0,
+            "maximum": 100000000.0,
+            "minimum": 100.0,
+            "title": "Amount Inr"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "from_key",
+          "to_key",
+          "amount_inr"
+        ],
+        "title": "Move",
+        "description": "Money the organiser moved from one budget line to another."
+      },
+      "Pair_Literal__ok____tight___": {
+        "properties": {
+          "before": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "tight"
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "tight"
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after"
+        ],
+        "title": "Pair[Literal['ok', 'tight']]"
+      },
+      "Pair_Literal__tight____modest____comfortable____generous___": {
+        "properties": {
+          "before": {
+            "type": "string",
+            "enum": [
+              "tight",
+              "modest",
+              "comfortable",
+              "generous"
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "type": "string",
+            "enum": [
+              "tight",
+              "modest",
+              "comfortable",
+              "generous"
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after"
+        ],
+        "title": "Pair[Literal['tight', 'modest', 'comfortable', 'generous']]"
+      },
+      "Pair_bool_": {
+        "properties": {
+          "before": {
+            "type": "boolean",
+            "title": "Before"
+          },
+          "after": {
+            "type": "boolean",
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after"
+        ],
+        "title": "Pair[bool]"
+      },
+      "Pair_int_": {
+        "properties": {
+          "before": {
+            "type": "integer",
+            "title": "Before"
+          },
+          "after": {
+            "type": "integer",
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after"
+        ],
+        "title": "Pair[int]"
+      },
+      "Plan": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "wedding",
+              "birthday",
+              "community"
+            ],
+            "title": "Event Type"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Event Date"
+          },
+          "today": {
+            "type": "string",
+            "format": "date",
+            "title": "Today"
+          },
+          "days_remaining": {
+            "type": "integer",
+            "title": "Days Remaining"
+          },
+          "city_tier": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "City Tier"
+          },
+          "per_guest_inr": {
+            "type": "integer",
+            "title": "Per Guest Inr"
+          },
+          "floor_per_guest_inr": {
+            "type": "integer",
+            "title": "Floor Per Guest Inr"
+          },
+          "budget_status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "tight"
+            ],
+            "title": "Budget Status"
+          },
+          "budget_level": {
+            "type": "string",
+            "enum": [
+              "tight",
+              "modest",
+              "comfortable",
+              "generous"
+            ],
+            "title": "Budget Level"
+          },
+          "budget_lines": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetLine"
+            },
+            "type": "array",
+            "title": "Budget Lines"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "cost_saving_swaps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cost Saving Swaps"
+          },
+          "triage": {
+            "$ref": "#/components/schemas/Triage"
+          },
+          "timeline": {
+            "items": {
+              "$ref": "#/components/schemas/TimelineEntry"
+            },
+            "type": "array",
+            "title": "Timeline"
+          },
+          "checklist": {
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItem"
+            },
+            "type": "array",
+            "title": "Checklist"
+          },
+          "per_flat_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Flat Inr"
+          },
+          "ignored_progress": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ignored Progress"
+          },
+          "quote_comparisons": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/QuoteComparison"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Quote Comparisons"
+          },
+          "ignored_quotes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ignored Quotes"
+          },
+          "ignored_moves": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Ignored Moves"
+          },
+          "rebalance": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rebalance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_type",
+          "event_date",
+          "today",
+          "days_remaining",
+          "city_tier",
+          "per_guest_inr",
+          "floor_per_guest_inr",
+          "budget_status",
+          "budget_level",
+          "budget_lines",
+          "warnings",
+          "cost_saving_swaps",
+          "triage",
+          "timeline",
+          "checklist",
+          "per_flat_inr",
+          "ignored_progress",
+          "quote_comparisons",
+          "ignored_quotes",
+          "ignored_moves",
+          "rebalance"
+        ],
+        "title": "Plan",
+        "description": "The deterministic, rules-based plan. AI output never changes these values."
+      },
+      "PlanDiff": {
+        "properties": {
+          "days_remaining": {
+            "$ref": "#/components/schemas/Pair_int_"
+          },
+          "per_guest_inr": {
+            "$ref": "#/components/schemas/Pair_int_"
+          },
+          "budget_status": {
+            "$ref": "#/components/schemas/Pair_Literal__ok____tight___"
+          },
+          "budget_level": {
+            "$ref": "#/components/schemas/Pair_Literal__tight____modest____comfortable____generous___"
+          },
+          "triage_active": {
+            "$ref": "#/components/schemas/Pair_bool_"
+          },
+          "over_budget_inr": {
+            "$ref": "#/components/schemas/Pair_int_"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/LineChange"
+            },
+            "type": "array",
+            "title": "Lines"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskChange"
+            },
+            "type": "array",
+            "title": "Tasks"
+          },
+          "warnings_added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings Added"
+          },
+          "warnings_removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings Removed"
+          },
+          "summary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "days_remaining",
+          "per_guest_inr",
+          "budget_status",
+          "budget_level",
+          "triage_active",
+          "over_budget_inr",
+          "lines",
+          "tasks",
+          "warnings_added",
+          "warnings_removed",
+          "summary"
+        ],
+        "title": "PlanDiff",
+        "description": "What changes between two plans: the numbers, each budget line and each task."
+      },
+      "PlanEdit": {
+        "properties": {
+          "event_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Date"
+          },
+          "guests": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guests"
+          },
+          "budget_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Inr"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "city_tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Tier"
+          },
+          "venue_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "venue",
+                  "home",
+                  "outdoor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Type"
+          },
+          "venue_includes_catering": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue Includes Catering"
+          },
+          "priorities": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priorities"
+          },
+          "households": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Households"
+          },
+          "moves": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/Move"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moves"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PlanEdit",
+        "description": "Fields to change in a plan; anything left out stays as it is.\n\nThe event type and free-text preferences can't be edited: changing them is a new plan."
+      },
+      "PlanRequest-Input": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "wedding",
+              "birthday",
+              "community"
+            ],
+            "title": "Event Type"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Event Date"
+          },
+          "guests": {
+            "type": "integer",
+            "maximum": 5000.0,
+            "minimum": 1.0,
+            "title": "Guests"
+          },
+          "budget_inr": {
+            "type": "integer",
+            "maximum": 100000000.0,
+            "minimum": 1000.0,
+            "title": "Budget Inr"
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "City"
+          },
+          "city_tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Tier"
+          },
+          "venue_type": {
+            "type": "string",
+            "enum": [
+              "venue",
+              "home",
+              "outdoor"
+            ],
+            "title": "Venue Type",
+            "default": "venue"
+          },
+          "venue_includes_catering": {
+            "type": "boolean",
+            "title": "Venue Includes Catering",
+            "default": false
+          },
+          "priorities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Priorities"
+          },
+          "households": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Households"
+          },
+          "preferences": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Preferences",
+            "default": ""
+          },
+          "must_haves": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Must Haves",
+            "default": ""
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress-Input"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_type",
+          "event_date",
+          "guests",
+          "budget_inr",
+          "city"
+        ],
+        "title": "PlanRequest",
+        "description": "What the organizer enters in the form."
+      },
+      "PlanRequest-Output": {
+        "properties": {
+          "event_type": {
+            "type": "string",
+            "enum": [
+              "wedding",
+              "birthday",
+              "community"
+            ],
+            "title": "Event Type"
+          },
+          "event_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Event Date"
+          },
+          "guests": {
+            "type": "integer",
+            "maximum": 5000.0,
+            "minimum": 1.0,
+            "title": "Guests"
+          },
+          "budget_inr": {
+            "type": "integer",
+            "maximum": 100000000.0,
+            "minimum": 1000.0,
+            "title": "Budget Inr"
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "City"
+          },
+          "city_tier": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City Tier"
+          },
+          "venue_type": {
+            "type": "string",
+            "enum": [
+              "venue",
+              "home",
+              "outdoor"
+            ],
+            "title": "Venue Type",
+            "default": "venue"
+          },
+          "venue_includes_catering": {
+            "type": "boolean",
+            "title": "Venue Includes Catering",
+            "default": false
+          },
+          "priorities": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "title": "Priorities"
+          },
+          "households": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Households"
+          },
+          "preferences": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Preferences",
+            "default": ""
+          },
+          "must_haves": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Must Haves",
+            "default": ""
+          },
+          "progress": {
+            "$ref": "#/components/schemas/Progress-Output"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_type",
+          "event_date",
+          "guests",
+          "budget_inr",
+          "city",
+          "city_tier",
+          "venue_type",
+          "venue_includes_catering",
+          "priorities",
+          "households",
+          "preferences",
+          "must_haves",
+          "progress"
+        ],
+        "title": "PlanRequest",
+        "description": "What the organizer enters in the form."
+      },
+      "PlanResponse": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/Plan"
+          },
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "ai_available"
+        ],
+        "title": "PlanResponse"
+      },
+      "Progress-Input": {
+        "properties": {
+          "tasks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TaskUpdate"
+            },
+            "propertyNames": {
+              "maxLength": 30
+            },
+            "type": "object",
+            "maxProperties": 30,
+            "title": "Tasks"
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/Quote-Input"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Quotes"
+          },
+          "moves": {
+            "items": {
+              "$ref": "#/components/schemas/Move"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Moves"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Progress",
+        "description": "What the organiser has done so far. Kept in the browser and sent with every plan."
+      },
+      "Progress-Output": {
+        "properties": {
+          "tasks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/TaskUpdate"
+            },
+            "propertyNames": {
+              "maxLength": 30
+            },
+            "type": "object",
+            "maxProperties": 30,
+            "title": "Tasks"
+          },
+          "quotes": {
+            "items": {
+              "$ref": "#/components/schemas/Quote-Output"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Quotes"
+          },
+          "moves": {
+            "items": {
+              "$ref": "#/components/schemas/Move"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Moves"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "tasks",
+          "quotes",
+          "moves"
+        ],
+        "title": "Progress",
+        "description": "What the organiser has done so far. Kept in the browser and sent with every plan."
+      },
+      "Quote-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Id"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Category"
+          },
+          "vendor": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Vendor",
+            "default": ""
+          },
+          "total_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Inr"
+          },
+          "per_plate_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Plate Inr"
+          },
+          "guests_covered": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guests Covered"
+          },
+          "inclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Inclusions"
+          },
+          "exclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Exclusions"
+          },
+          "taxes_included": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxes Included"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "ai_extracted"
+            ],
+            "title": "Source",
+            "default": "manual"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "accepted_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "category"
+        ],
+        "title": "Quote",
+        "description": "A vendor's quote as the organiser entered or reviewed it. Unknown fields stay null."
+      },
+      "Quote-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 40,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Id"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 30,
+            "title": "Category"
+          },
+          "vendor": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Vendor",
+            "default": ""
+          },
+          "total_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Inr"
+          },
+          "per_plate_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Plate Inr"
+          },
+          "guests_covered": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guests Covered"
+          },
+          "inclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Inclusions"
+          },
+          "exclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Exclusions"
+          },
+          "taxes_included": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxes Included"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "ai_extracted"
+            ],
+            "title": "Source",
+            "default": "manual"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "Verified",
+            "default": false
+          },
+          "accepted_on": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accepted On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "vendor",
+          "total_inr",
+          "per_plate_inr",
+          "guests_covered",
+          "inclusions",
+          "exclusions",
+          "taxes_included",
+          "valid_until",
+          "source",
+          "verified",
+          "accepted_on"
+        ],
+        "title": "Quote",
+        "description": "A vendor's quote as the organiser entered or reviewed it. Unknown fields stay null."
+      },
+      "QuoteComparison": {
+        "properties": {
+          "quote_id": {
+            "type": "string",
+            "title": "Quote Id"
+          },
+          "vendor": {
+            "type": "string",
+            "title": "Vendor"
+          },
+          "total_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Inr"
+          },
+          "calculated": {
+            "type": "boolean",
+            "title": "Calculated"
+          },
+          "per_guest_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Guest Inr"
+          },
+          "capacity": {
+            "type": "string",
+            "enum": [
+              "fits",
+              "too_small",
+              "not_stated"
+            ],
+            "title": "Capacity"
+          },
+          "vs_estimate_inr": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vs Estimate Inr"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quote_id",
+          "vendor",
+          "total_inr",
+          "calculated",
+          "per_guest_inr",
+          "capacity",
+          "vs_estimate_inr",
+          "missing",
+          "accepted",
+          "expired"
+        ],
+        "title": "QuoteComparison",
+        "description": "One quote set against the plan's estimate for its category."
+      },
+      "QuoteDraft": {
+        "properties": {
+          "vendor": {
+            "type": "string",
+            "maxLength": 80,
+            "title": "Vendor"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "total_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Inr"
+          },
+          "per_plate_inr": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Plate Inr"
+          },
+          "guests_covered": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guests Covered"
+          },
+          "inclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Inclusions"
+          },
+          "exclusions": {
+            "items": {
+              "type": "string",
+              "maxLength": 80,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Exclusions"
+          },
+          "taxes_included": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxes Included"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "vendor",
+          "category",
+          "total_inr",
+          "per_plate_inr",
+          "guests_covered",
+          "inclusions",
+          "exclusions",
+          "taxes_included",
+          "valid_until"
+        ],
+        "title": "QuoteDraft",
+        "description": "The quote fields the AI could read. Null means the quote didn't say."
+      },
+      "QuoteExtractRequest": {
+        "properties": {
+          "inputs": {
+            "$ref": "#/components/schemas/PlanRequest-Input"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "inputs",
+          "text"
+        ],
+        "title": "QuoteExtractRequest"
+      },
+      "QuoteExtractResponse": {
+        "properties": {
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuoteDraft"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quote",
+          "ai_available"
+        ],
+        "title": "QuoteExtractResponse"
+      },
+      "Rebalance": {
+        "properties": {
+          "change_inr": {
+            "type": "integer",
+            "title": "Change Inr"
+          },
+          "from_contingency_inr": {
+            "type": "integer",
+            "title": "From Contingency Inr"
+          },
+          "cuts": {
+            "items": {
+              "$ref": "#/components/schemas/BudgetCut"
+            },
+            "type": "array",
+            "title": "Cuts"
+          },
+          "over_budget_inr": {
+            "type": "integer",
+            "title": "Over Budget Inr"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "change_inr",
+          "from_contingency_inr",
+          "cuts",
+          "over_budget_inr",
+          "explanation"
+        ],
+        "title": "Rebalance",
+        "description": "How the plan absorbed accepted quotes that differ from the estimates."
+      },
+      "TaskChange": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "before",
+          "after"
+        ],
+        "title": "TaskChange"
+      },
+      "TaskUpdate": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "booked",
+              "delayed"
+            ],
+            "title": "State"
+          },
+          "on": {
+            "type": "string",
+            "format": "date",
+            "title": "On"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "on"
+        ],
+        "title": "TaskUpdate"
+      },
+      "TimelineEntry": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "booking",
+              "milestone",
+              "event"
+            ],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "on_track",
+              "tight",
+              "overdue",
+              "at_risk",
+              "done"
+            ],
+            "title": "Status",
+            "default": "on_track"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "label",
+          "kind",
+          "status"
+        ],
+        "title": "TimelineEntry"
+      },
+      "Triage": {
+        "properties": {
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "book_today": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Book Today"
+          },
+          "cut_suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cut Suggestions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active",
+          "book_today",
+          "cut_suggestions"
+        ],
+        "title": "Triage"
+      },
+      "UnderstandRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanRequest-Input"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "UnderstandRequest"
+      },
+      "UnderstandResponse": {
+        "properties": {
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available"
+          },
+          "understood": {
+            "type": "boolean",
+            "title": "Understood"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "type": "array",
+            "title": "Fields"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "unclear": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unclear"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Plan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanDiff"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_available",
+          "understood",
+          "inputs",
+          "fields",
+          "missing",
+          "unclear",
+          "errors",
+          "plan",
+          "changes"
+        ],
+        "title": "UnderstandResponse"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
