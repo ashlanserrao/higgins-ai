@@ -76,7 +76,7 @@ export function CommandBar({ tone }: { tone?: "band" }) {
           className={cn(
             "h-11 rounded-full pr-16 pl-11",
             band
-              ? "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/88 focus-visible:border-primary-foreground/70 focus-visible:ring-primary-foreground/35 dark:bg-primary-foreground/10"
+              ? "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/88 focus-visible:border-primary-foreground/70 focus-visible:ring-primary-foreground/35"
               : "border-transparent bg-surface shadow-card",
           )}
           aria-describedby="command-hint"

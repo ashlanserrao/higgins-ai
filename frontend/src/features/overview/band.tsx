@@ -49,7 +49,7 @@ export function OverviewBand() {
           <ShareButton tone="band" />
           <Button
             variant="ghost" size="icon" onClick={print} aria-label="Print or save as PDF" title="Print or save as PDF"
-            className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground dark:hover:bg-primary-foreground/15"
+            className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
           >
             <Printer aria-hidden="true" />
           </Button>

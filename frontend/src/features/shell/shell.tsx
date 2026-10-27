@@ -4,7 +4,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import {
   AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
-  Share2, Store, Undo2, UserPlus, Users, Wallet, X, type LucideIcon,
+  Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -12,7 +12,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { StatusBadge } from "@/components/common";
 import { inr, shortInr } from "@/lib/format";
 import { buildShareUrl } from "@/lib/share";
 import { needsAction } from "@/lib/tasks";
@@ -154,7 +153,7 @@ export function ShareButton({ tone }: { tone?: "band" }) {
       {tone === "band" ? (
         <Button
           variant="outline" onClick={share}
-          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground shadow-none hover:bg-primary-foreground/15 hover:text-primary-foreground dark:bg-transparent dark:hover:bg-primary-foreground/15"
+          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground shadow-none hover:bg-primary-foreground/15 hover:text-primary-foreground"
         >
           <Share2 aria-hidden="true" /> <span className="xl:hidden">Share</span><span className="hidden xl:inline">Share with family</span>
         </Button>
@@ -171,23 +170,6 @@ export function ShareButton({ tone }: { tone?: "band" }) {
         </DialogContent>
       </Dialog>
     </>
-  );
-}
-
-function UndoBar({ className }: { className?: string }) {
-  const { lastChange, undo } = usePlan();
-  const [hidden, setHidden] = useState<object | null>(null);
-  if (!lastChange || hidden === lastChange) return null;
-  return (
-    <div className={cn("no-print flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-sm shadow-card", className)} role="status">
-      <StatusBadge tone="success">Done</StatusBadge>
-      <span className="min-w-0 flex-1">
-        <span className="font-medium">{lastChange.label}</span>
-        {lastChange.summary.length > 0 && <span className="text-muted-foreground"> · {lastChange.summary.join(" ")}</span>}
-      </span>
-      <Button size="sm" variant="outline" onClick={undo}><Undo2 aria-hidden="true" /> Undo</Button>
-      <Button size="icon-sm" variant="ghost" onClick={() => setHidden(lastChange)} aria-label="Hide"><X aria-hidden="true" /></Button>
-    </div>
   );
 }
 
@@ -278,7 +260,6 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
             </div>
           )}
-          <UndoBar className={firstGap} />
           <PrintContext value={onPrint}>{children}</PrintContext>
         </main>
       </div>

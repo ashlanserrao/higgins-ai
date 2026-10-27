@@ -110,7 +110,7 @@ export function Timeline({ limit }: { limit?: number }) {
 }
 
 export function TasksSection() {
-  const { plan, updateProgress } = usePlan();
+  const { plan, updateProgress, fail } = usePlan();
   const { consumeIntent } = useNav();
   const [filter, setFilter] = useState("all");
   const [booking, setBooking] = useState<BookingTarget | null>(null);
@@ -135,7 +135,7 @@ export function TasksSection() {
     updateProgress((progress) => {
       delete progress.tasks[item.id];
       return progress;
-    }, `${item.label}: ${item.done ? "back on your list" : "back to its usual date"}`).catch(() => undefined);
+    }, `${item.label}: ${item.done ? "back on your list" : "back to its usual date"}`).catch((error) => fail((error as Error).message));
 
   return (
     <div className="space-y-6">

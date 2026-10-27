@@ -2,8 +2,9 @@
 // The open event follows the URL, so back and forward move between events too.
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarCheck, Loader2, PieChart, Share2, Undo2, X, type LucideIcon } from "lucide-react";
+import { CalendarCheck, Loader2, PieChart, Share2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/toaster";
 import { BudgetSection } from "@/features/budget/budget-section";
 import { GuestsSection } from "@/features/guests/guests-section";
 import { IdeasSection } from "@/features/ideas/ideas-section";
@@ -14,7 +15,6 @@ import { Shell } from "@/features/shell/shell";
 import { TasksSection } from "@/features/tasks/tasks-section";
 import { VendorsSection } from "@/features/vendors/vendors-section";
 import { SECTIONS, useNav, type Section } from "@/state/nav";
-import { eventName } from "@/lib/format";
 import { usePlanner } from "@/state/planner";
 
 const VIEWS: Record<Section, () => React.JSX.Element> = {
@@ -43,19 +43,6 @@ function useEventRoute() {
       synced.current = { eventId, activeId };
     }
   }, [booting, eventId, page, activeId, events, openEvent, switchEvent]);
-}
-
-/** After a delete: what went, and a way to bring it back. */
-function DeletedNotice() {
-  const { lastDeleted, undoDelete, dismissDeleted } = usePlanner();
-  if (!lastDeleted) return null;
-  return (
-    <div className="no-print fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center gap-3 rounded-xl bg-card px-4 py-3 text-sm shadow-raised lg:bottom-6">
-      <span className="min-w-0 flex-1 truncate">Deleted <span className="font-medium">{eventName(lastDeleted.event)}</span></span>
-      <Button size="sm" variant="outline" onClick={undoDelete}><Undo2 aria-hidden="true" /> Undo</Button>
-      <Button size="icon-sm" variant="ghost" onClick={dismissDeleted} aria-label="Dismiss"><X aria-hidden="true" /></Button>
-    </div>
-  );
 }
 
 const YOU_GET: { icon: LucideIcon; label: string }[] = [
@@ -173,7 +160,7 @@ export default function App() {
       ) : (
         <Onboarding />
       )}
-      <DeletedNotice />
+      <Toaster />
     </>
   );
 }

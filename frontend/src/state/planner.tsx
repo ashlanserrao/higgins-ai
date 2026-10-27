@@ -54,12 +54,13 @@ interface State {
   lastChange: LastChange | null;
   recent: RecentChange[]; // newest first, this visit only: never saved
   lastDeleted: DeletedEvent | null;
+  failure: { id: number; text: string } | null; // something the organiser asked for that didn't happen
 }
 
 const initialState: State = {
   booting: true, bootError: "", options: null, events: [], activeId: null, returnTo: null, inputs: null, plan: null,
   aiAvailable: false, ideas: null, ideasFor: null, ideasLoadingFor: null, ideasFailed: false, plannedOn: todayInIndia(),
-  guests: [], shared: false, lastChange: null, recent: [], lastDeleted: null,
+  guests: [], shared: false, lastChange: null, recent: [], lastDeleted: null, failure: null,
 };
 
 /** Ideas depend on the plan inputs, not on bookings or quotes made since. */
@@ -106,6 +107,11 @@ function usePlannerState() {
   const tickets = useRef<Record<string, number>>({});
 
   const announce = useCallback((text: string) => setMessage(text), []);
+  /** A failure the organiser should see: a toast that stays until it's closed. */
+  const fail = useCallback((text: string) => {
+    stateRef.current = { ...stateRef.current, failure: { id: Date.now(), text } };
+    setState(stateRef.current);
+  }, []);
   const update = useCallback((change: (s: State) => Partial<State>) => {
     stateRef.current = { ...stateRef.current, ...change(stateRef.current) };
     setState(stateRef.current);
@@ -203,7 +209,6 @@ function usePlannerState() {
     const previous = stateRef.current.inputs;
     takeTicket("plan", stateRef.current.activeId);
     patch({ inputs, plan, lastChange: previous ? { label, summary, previous } : null, recent: noted(label, summary) });
-    announce(`${label}. ${summary.join(" ")}`);
   }, [announce, patch, takeTicket]);
 
   /** Bookings, quotes and moves: change progress, then recalculate. */
@@ -211,16 +216,21 @@ function usePlannerState() {
     const previous = stateRef.current.inputs;
     if (!previous) return;
     const inputs = { ...previous, progress: change(structuredClone(previous.progress)) };
-    const plan = (await recalculate(inputs, { lastChange: { label, summary: [], previous }, recent: noted(label) }))?.plan;
-    if (plan) announce(`${label}. ${plan.warnings.length ? plan.warnings[plan.warnings.length - 1] : ""}`);
-  }, [announce, recalculate]);
+    await recalculate(inputs, { lastChange: { label, summary: [], previous }, recent: noted(label) });
+  }, [recalculate]);
 
   const undo = useCallback(async () => {
     const last = stateRef.current.lastChange;
     if (!last) return;
-    await recalculate(last.previous, { lastChange: null, recent: noted(`Undid: ${last.label}`) });
-    announce(`Undone: ${last.label}.`);
-  }, [announce, recalculate]);
+    try {
+      await recalculate(last.previous, { lastChange: null, recent: noted(`Undid: ${last.label}`) });
+      announce(`Undone: ${last.label}.`);
+    } catch (error) {
+      fail(`Couldn't undo “${last.label}”. ${(error as Error).message}`);
+    }
+  }, [announce, fail, recalculate]);
+
+  const dismissFailure = useCallback(() => patch({ failure: null }), [patch]);
 
   const setGuests = useCallback((guests: Guest[]) => patch({ guests }), [patch]);
 
@@ -274,8 +284,7 @@ function usePlannerState() {
     if (!wasOpen) patch(changes);
     else if (next) openSaved(next, changes);
     else patch({ ...changes, ...opened(null) });
-    announce(`Deleted ${eventName(event)}. You can undo this.`);
-  }, [announce, openSaved, patch]);
+  }, [openSaved, patch]);
 
   const undoDelete = useCallback(() => {
     const s = stateRef.current;
@@ -349,7 +358,7 @@ function usePlannerState() {
 
   return {
     ...state, events: allEvents(state), ideasStatus, message,
-    announce, makePlan, applyChange, updateProgress, undo, loadIdeas, setGuests, keepSharedPlan,
+    announce, fail, dismissFailure, makePlan, applyChange, updateProgress, undo, loadIdeas, setGuests, keepSharedPlan,
     switchEvent, startNewEvent, cancelNewEvent, renameEvent, deleteEvent, undoDelete, dismissDeleted,
   };
 }
