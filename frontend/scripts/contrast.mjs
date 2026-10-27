@@ -20,9 +20,23 @@ const tokens = (theme, event) => {
   return { ...light, ...darkBase, ...merge((s) => s.includes(`[data-theme="dark"] [data-event="${event}"]`)) };
 };
 
+const NAMED = { black: "#000000", white: "#ffffff" };
+const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const toHex = (rgb) => `#${rgb.map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`;
+/** `a` laid over `b` at `share` (0 to 1): color-mix(in srgb, a share, b), or a translucent fill. */
+const blend = (a, b, share) => toHex(channels(a).map((c, i) => c * share + channels(b)[i] * (1 - share)));
+
+// A token's final hex: follows var() references and works out color-mix(in srgb, A n%, B).
 const resolve = (vars, value, depth = 0) => {
-  const ref = value?.match(/^var\((--[\w-]+)\)$/);
-  return ref && depth < 10 ? resolve(vars, vars[ref[1]], depth + 1) : value;
+  if (!value || depth > 10) return value;
+  const ref = value.match(/^var\((--[\w-]+)\)$/);
+  if (ref) return resolve(vars, vars[ref[1]], depth + 1);
+  const mix = value.match(/^color-mix\(in srgb,\s*(.+?)\s+([\d.]+)%\s*,\s*(.+)\)$/);
+  if (mix) {
+    const [a, b] = [resolve(vars, mix[1], depth + 1), resolve(vars, mix[3], depth + 1)];
+    return /^#[0-9a-f]{6}$/i.test(a ?? "") && /^#[0-9a-f]{6}$/i.test(b ?? "") ? blend(a, b, Number(mix[2]) / 100) : value;
+  }
+  return NAMED[value] ?? value;
 };
 const luminance = (hex) => {
   const n = hex.replace("#", "");
@@ -35,7 +49,7 @@ const ratio = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-// [foreground, background, minimum, what it is]
+// [foreground, background, minimum, what it is]. "--token/0.78" is that colour at 78% opacity.
 const SURFACES = ["--bg-canvas", "--bg-surface", "--bg-surface-soft"];
 const PAIRS = [
   ...["--text-primary", "--text-secondary", "--text-tertiary"].flatMap((fg) => SURFACES.map((bg) => [fg, bg, 4.5, "text"])),
@@ -46,6 +60,9 @@ const PAIRS = [
   ["--accent-ink", "--bg-canvas", 4.5, "landing: active nav link"],
   ["--primary-foreground", "--accent", 4.5, "filled button"],
   ["--primary-foreground", "--accent-hover", 4.5, "filled button, hover"],
+  // White on the Overview band, checked at the band's lightest point.
+  ["--primary-foreground", "--band-to", 4.5, "band: white text"],
+  ["--primary-foreground/0.78", "--band-to", 4.5, "band: eyebrow and stat labels"],
   ["--accent-text", "--bg-surface", 3, "accent edge (selected card, step bar)"],
   ["--ring", "--bg-surface", 3, "focus ring"],
   ["--ring", "--bg-surface-soft", 3, "focus ring"],
@@ -70,8 +87,10 @@ const rows = [];
 for (const theme of ["light", "dark"]) {
   for (const event of EVENTS) {
     const vars = tokens(theme, event);
-    for (const [fg, bg, min, what, kind] of PAIRS) {
-      const [a, b] = [resolve(vars, vars[fg]), resolve(vars, vars[bg])];
+    for (const [fgSpec, bg, min, what, kind] of PAIRS) {
+      const [fg, alpha] = fgSpec.split("/");
+      let [a, b] = [resolve(vars, vars[fg]), resolve(vars, vars[bg])];
+      if (alpha && /^#[0-9a-f]{6}$/i.test(a ?? "") && /^#[0-9a-f]{6}$/i.test(b ?? "")) a = blend(a, b, Number(alpha));
       if (!/^#[0-9a-f]{3,6}$/i.test(a ?? "") || !/^#[0-9a-f]{3,6}$/i.test(b ?? "")) {
         console.error(`Can't check ${fg} on ${bg} (${theme}, ${event}): ${a} / ${b}`);
         failures++;
@@ -82,7 +101,7 @@ for (const theme of ["light", "dark"]) {
       if (!ok && kind !== "note") failures++;
       // Base pairs don't change with the event: print them once per theme.
       const perEvent = /accent|ring|primary-foreground/.test(fg + bg);
-      if (perEvent || event === "wedding" || !ok) rows.push([theme, perEvent ? event : "all", what, `${fg} on ${bg}`, `${a} / ${b}`, r.toFixed(2), min, ok ? "pass" : kind === "note" ? "note" : "FAIL"]);
+      if (perEvent || event === "wedding" || !ok) rows.push([theme, perEvent ? event : "all", what, `${fgSpec} on ${bg}`, `${a} / ${b}`, r.toFixed(2), min, ok ? "pass" : kind === "note" ? "note" : "FAIL"]);
     }
   }
 }

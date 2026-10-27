@@ -14,11 +14,11 @@ import type { ChecklistItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { BudgetTable, RebalanceNote } from "@/features/budget/budget-section";
+import { RebalanceNote } from "@/features/budget/budget-section";
 import { IdeasStatusLine } from "@/features/ideas/ideas-section";
 import { BookingDialog, type BookingTarget } from "@/features/tasks/booking-dialog";
-import { Timeline } from "@/features/tasks/tasks-section";
 import { OverviewBand } from "./band";
+import { OverviewCard } from "./card";
 import { QuickActions } from "./quick-actions";
 
 const list = (names: string[]) =>
@@ -166,7 +166,8 @@ function NextSteps() {
   );
 }
 
-function WhatMoved() {
+/** Not on the Overview since the band-and-card redesign; kept for reuse (see the report). */
+export function WhatMoved() {
   const { plan, lastChange } = usePlan();
   const { go } = useNav();
   const knockOn = plan.checklist.filter((i) => i.delayed_by && i.delayed_by !== i.id && !i.done);
@@ -207,7 +208,8 @@ function WhatMoved() {
   );
 }
 
-function IdeasTeaser() {
+/** Not on the Overview since the band-and-card redesign; kept for reuse. */
+export function IdeasTeaser() {
   const { ideas, ideasStatus, loadIdeas } = usePlan();
   const { go } = useNav();
   return (
@@ -242,7 +244,8 @@ function IdeasTeaser() {
   );
 }
 
-function VitalSigns() {
+/** Not on the Overview since the band-and-card redesign; kept for reuse. */
+export function VitalSigns() {
   const { plan, inputs } = usePlan();
   const contingency = plan.budget_lines.find((l) => l.key === "contingency");
   const ok = plan.budget_status === "ok";
@@ -266,24 +269,10 @@ function VitalSigns() {
 }
 
 export function OverviewSection() {
-  const { go } = useNav();
   return (
-    <div className="space-y-8">
+    <div>
       <OverviewBand />
-      <NextSteps />
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
-        <WhatMoved />
-        <IdeasTeaser />
-      </div>
-      <VitalSigns />
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,4fr)]">
-        <Panel title="Budget at a glance" actions={<Button size="sm" variant="link" onClick={() => go("budget")}>Open budget <ArrowRight aria-hidden="true" /></Button>}>
-          <BudgetTable />
-        </Panel>
-        <Panel title="Coming up" icon={CalendarClock} actions={<Button size="sm" variant="link" onClick={() => go("tasks")}>Full timeline <ArrowRight aria-hidden="true" /></Button>}>
-          <Timeline limit={6} />
-        </Panel>
-      </div>
+      <OverviewCard next={<NextSteps />} />
     </div>
   );
 }

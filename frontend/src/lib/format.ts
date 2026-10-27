@@ -52,6 +52,9 @@ export const VENUE_LABELS = { venue: "Hall or venue", home: "At home", outdoor: 
 export const TIER_LABELS = { 1: "Metro", 2: "Tier-2 city", 3: "Smaller town" } as const;
 export const LEVEL_LABELS = { tight: "Tight", modest: "Modest", comfortable: "Comfortable", generous: "Generous" } as const;
 
+/** Whole days from one ISO date to another; negative when `to` comes first. */
+export const daysBetween = (from: string, to: string) => Math.round((parse(to).getTime() - parse(from).getTime()) / 86_400_000);
+
 /** Whole days from today (in India) to the date; negative once it has passed. */
 export const daysUntil = (iso: string) => Math.round((parse(iso).getTime() - parse(todayInIndia()).getTime()) / 86_400_000);
 
