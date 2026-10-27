@@ -3,30 +3,30 @@
 import logging
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from app.ai.client import StructuredAI
 from app.ai.ideas import IdeasGenerator
-from app.ai.quotes import QuoteDraft, QuoteExtractor
-from app.ai.understand import REQUIRED_FIELDS, PlanInterpreter
-from app.ai.schema import EventIdeas
+from app.ai.quotes import QuoteExtractor
+from app.ai.understand import PlanInterpreter
 from app.config import IST, settings
 from app.engine import rules
-from app.engine.errors import PlanInputError
 from app.engine.diff import diff_plans
+from app.engine.errors import PlanInputError
 from app.engine.messages import vendor_message
 from app.engine.planner import build_plan
-from app.errors import FIELD_LABELS, field_errors
-from app.models import (
-    CompareRequest, MessageRequest, Plan, PlanDiff, PlanRequest, QuoteExtractRequest, UnderstandRequest,
+from app.errors import field_errors
+from app.models import CompareRequest, MessageRequest, PlanRequest, QuoteExtractRequest, UnderstandRequest
+from app.responses import (
+    CompareResponse, IdeasResponse, MessageResponse, PlanResponse, QuoteExtractResponse, UnderstandResponse,
 )
 from app.security import SECURITY_HEADERS, RateLimiter
+from app.services.understand import understand_message
 
 logger = logging.getLogger(__name__)
 
@@ -45,59 +45,6 @@ ai = StructuredAI(settings)
 ideas_generator = IdeasGenerator(ai)
 quote_extractor = QuoteExtractor(ai)
 plan_interpreter = PlanInterpreter(ai)
-
-
-class PlanResponse(BaseModel):
-    plan: Plan
-    # True when an API key is configured, so the page knows to fetch ideas next.
-    ai_available: bool
-
-
-class CompareResponse(BaseModel):
-    inputs: PlanRequest  # the edited request, to keep if the organiser confirms
-    plan: Plan
-    changes: PlanDiff
-
-
-class QuoteExtractResponse(BaseModel):
-    # Null if nothing could be read; the organiser can still type the quote in.
-    quote: QuoteDraft | None
-    ai_available: bool
-
-
-class MessageResponse(BaseModel):
-    text: str
-
-
-class FieldChange(BaseModel):
-    field: str
-    label: str
-    before: Any  # None: not set before
-    after: Any
-
-
-class FieldError(BaseModel):
-    field: str
-    message: str
-
-
-class UnderstandResponse(BaseModel):
-    ai_available: bool
-    understood: bool  # False: the AI failed or the message asked for nothing it could use
-    inputs: dict[str, Any]  # new event: values to fill the form with; revision: the edited request
-    fields: list[FieldChange]
-    missing: list[str]  # required fields a new event still needs
-    unclear: list[str]
-    errors: list[FieldError]
-    # Revisions only, when the edited request is valid: the new plan and what changes.
-    plan: Plan | None = None
-    changes: PlanDiff | None = None
-
-
-class IdeasResponse(BaseModel):
-    # Null if this call failed; the page offers a retry while ai_available is true.
-    ideas: EventIdeas | None
-    ai_available: bool
 
 
 def today_in_india() -> date:
@@ -241,47 +188,7 @@ def understand(
 ) -> UnderstandResponse:
     """Turn a typed request into form values (new event) or a proposed revision with its
     before/after. Nothing is saved or applied."""
-    current = body.current
-    result = UnderstandResponse(
-        ai_available=interpreter.available, understood=False, inputs={}, fields=[],
-        missing=[], unclear=[], errors=[],
-    )
-    interpretation = interpreter.interpret(body.message, current, today)
-    if interpretation is None:
-        return result
-    values = interpretation.values
-    before = current.model_dump() if current else {}
-    result.understood = bool(values)
-    result.unclear = interpretation.unclear
-    result.fields = [
-        FieldChange(field=name, label=FIELD_LABELS.get(name, name), before=before.get(name), after=value)
-        for name, value in values.items()
-        if before.get(name) != value
-    ]
-    if current and values.get("event_type", current.event_type) != current.event_type:
-        result.errors = [FieldError(
-            field="event_type", message="Changing the event type starts a new plan. Use the form instead.",
-        )]
-        return result
-
-    merged = before | values
-    result.inputs = values if current is None else merged
-    result.missing = [name for name in REQUIRED_FIELDS if merged.get(name) is None]
-    if result.missing:
-        return result
-    try:
-        proposed = PlanRequest.model_validate(merged)
-        plan = build_plan(proposed, today)  # also catches dates the engine rejects
-    except ValidationError as exc:
-        result.errors = [FieldError(**error) for error in field_errors(exc.errors())]
-        return result
-    except PlanInputError as exc:
-        result.errors = [FieldError(field=exc.field, message=str(exc))]
-        return result
-    if current:
-        result.inputs = proposed.model_dump()
-        result.plan, result.changes = plan, diff_plans(build_plan(current, today), plan)
-    return result
+    return understand_message(body, interpreter, today)
 
 
 if FRONTEND_DIR.is_dir():
