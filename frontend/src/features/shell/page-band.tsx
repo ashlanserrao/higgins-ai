@@ -37,7 +37,8 @@ export function PageBand({ eyebrow, title, description, actions, children }: {
       <div className="flex flex-col gap-x-6 gap-y-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           {eyebrow && <p className="text-xs text-primary-foreground/80">{eyebrow}</p>}
-          <h1 id={titleId} tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(26px,1.8cqw+10px,36px)] leading-tight tracking-[-0.02em] outline-none">
+          {/* Two pixels under the Overview's figures at every width, so the numbers stay dominant. */}
+          <h1 id={titleId} tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(28px,2.4cqw+8px,42px)] leading-tight tracking-[-0.02em] outline-none">
             {title}
           </h1>
           {description && <p className="mt-1 max-w-3xl text-[13px] text-primary-foreground/85">{description}</p>}
