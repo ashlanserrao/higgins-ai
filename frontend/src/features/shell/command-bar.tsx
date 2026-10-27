@@ -7,13 +7,16 @@ import { Input } from "@/components/ui/input";
 import { ChangeDialog } from "@/components/change-dialog";
 import { AiBadge, AiNote, FieldError } from "@/components/common";
 import { api } from "@/lib/api";
+import { addDays, formatShortDate } from "@/lib/format";
 import type { PlanRequest, UnderstandResponse } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";
 
 const show = (value: unknown) =>
   value === null || value === undefined || value === "" ? "not set" : Array.isArray(value) ? value.join(", ") || "none" : String(value);
 
-export function CommandBar() {
+/** `tone="band"`: white on the Overview's coloured band. */
+export function CommandBar({ tone }: { tone?: "band" }) {
   const { inputs, aiAvailable } = usePlan();
   const [text, setText] = useState("");
   const [asked, setAsked] = useState("");
@@ -49,25 +52,50 @@ export function CommandBar() {
   };
 
   const unavailable = !aiAvailable;
+  const band = tone === "band";
+  // An example that is never already true: a week after the current date.
+  const example = inputs ? `move the date to ${formatShortDate(addDays(inputs.event_date, 7))}` : "add 10 guests";
 
   return (
     <>
       <form onSubmit={submit} role="search" className="relative w-full">
         <label htmlFor="command" className="sr-only">Tell me what to change</label>
-        <span className="pointer-events-none absolute top-1/2 left-2 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-ai-tint text-ai" aria-hidden="true">
+        <span
+          className={cn(
+            "pointer-events-none absolute top-1/2 left-2 grid size-7 -translate-y-1/2 place-items-center rounded-full",
+            band ? "bg-primary-foreground/15 text-primary-foreground" : "bg-ai-tint text-ai",
+          )}
+          aria-hidden="true"
+        >
           <Sparkles className="size-3.5" />
         </span>
         <Input
           ref={field} id="command" value={text} onChange={(e) => setText(e.target.value)} maxLength={500}
           disabled={unavailable}
-          placeholder={unavailable ? "Changes in your own words need the AI, which isn't set up here" : "Ask Higgins to change anything, e.g. “add 40 guests”"}
-          className="h-11 rounded-full border-transparent bg-surface pr-16 pl-11 shadow-card"
+          placeholder={unavailable ? "Changes in your own words need the AI, which isn't set up here" : `Ask Higgins to change anything, e.g. “${example}”`}
+          className={cn(
+            "h-11 rounded-full pr-16 pl-11",
+            band
+              ? "border-primary-foreground/30 bg-primary-foreground/10 text-primary-foreground placeholder:text-primary-foreground/88 focus-visible:border-primary-foreground/70 focus-visible:ring-primary-foreground/35 dark:bg-primary-foreground/10"
+              : "border-transparent bg-surface shadow-card",
+          )}
           aria-describedby="command-hint"
         />
         <span id="command-hint" className="sr-only">Press slash to jump here. You'll see the changes before anything is applied.</span>
-        <kbd className="pointer-events-none absolute top-1/2 right-10 hidden -translate-y-1/2 rounded border bg-card px-1.5 text-xs text-muted-foreground md:block" aria-hidden="true">/</kbd>
+        <kbd
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-10 hidden -translate-y-1/2 rounded border px-1.5 text-xs md:block",
+            band ? "border-primary-foreground/30 text-primary-foreground/88" : "bg-card text-muted-foreground",
+          )}
+          aria-hidden="true"
+        >
+          /
+        </kbd>
         <button type="submit" disabled={unavailable || !text.trim()} aria-label="Preview this change"
-          className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1.5 text-ai hover:bg-ai-tint disabled:opacity-40">
+          className={cn(
+            "absolute top-1/2 right-2 -translate-y-1/2 rounded-full p-1.5 disabled:opacity-40",
+            band ? "text-primary-foreground hover:bg-primary-foreground/15" : "text-ai hover:bg-ai-tint",
+          )}>
           <ArrowRight className="size-4" aria-hidden="true" />
         </button>
       </form>

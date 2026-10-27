@@ -6,9 +6,9 @@ import {
   AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Compass, GitBranch, Info, Lightbulb, MessageSquareText, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AiBadge, AiNote, EngineBadge, PageHeader, Panel, Stat, StatusBadge } from "@/components/common";
+import { AiBadge, AiNote, EngineBadge, Panel, Stat, StatusBadge } from "@/components/common";
 import { MessageDialog } from "@/components/message-dialog";
-import { EVENT_LABELS, formatDate, greeting, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
+import { formatDate, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
 import { canMessage, taskLabel, taskLine, taskShortName } from "@/lib/tasks";
 import type { ChecklistItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ import { BudgetTable, RebalanceNote } from "@/features/budget/budget-section";
 import { IdeasStatusLine } from "@/features/ideas/ideas-section";
 import { BookingDialog, type BookingTarget } from "@/features/tasks/booking-dialog";
 import { Timeline } from "@/features/tasks/tasks-section";
+import { OverviewBand } from "./band";
 import { QuickActions } from "./quick-actions";
 
 const list = (names: string[]) =>
@@ -265,16 +266,10 @@ function VitalSigns() {
 }
 
 export function OverviewSection() {
-  const { plan, inputs } = usePlan();
   const { go } = useNav();
   return (
     <div className="space-y-8">
-      <PageHeader
-        eyebrow={`${EVENT_LABELS[inputs.event_type]} in ${inputs.city} · ${weekday(inputs.event_date)}, ${formatDate(inputs.event_date)} · ${plural(inputs.guests, "guest")}`}
-        title={`${greeting()}. ${plural(plan.days_remaining, "day")} to go.`}
-        description={`Everything for your ${EVENT_LABELS[inputs.event_type].toLowerCase()} in ${inputs.city}, worked out from your numbers. Change anything and the plan adjusts, no starting over.`}
-        actions={<QuickActions />}
-      />
+      <OverviewBand />
       <NextSteps />
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <WhatMoved />

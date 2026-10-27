@@ -1,7 +1,7 @@
 // Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (command bar,
 // share, print) and a bottom nav on phones, where the switcher moves to the top bar.
 
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import {
   CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
   Share2, Store, Undo2, UserPlus, Users, Wallet, X, type LucideIcon,
@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/common";
 import { formatDate, inr, plural, shortInr } from "@/lib/format";
 import { buildShareUrl } from "@/lib/share";
 import { needsAction } from "@/lib/tasks";
+import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
@@ -117,7 +118,12 @@ function EventCard() {
   );
 }
 
-function ShareButton() {
+/** Print or save the whole plan (App renders every section first). */
+const PrintContext = createContext<() => void>(() => window.print());
+export const usePrint = () => useContext(PrintContext);
+
+/** `tone="band"`: white on the Overview's coloured band. */
+export function ShareButton({ tone }: { tone?: "band" }) {
   const { inputs, plannedOn, ideas, ideasStatus, announce } = usePlan();
   const [url, setUrl] = useState("");
   const share = async () => {
@@ -135,7 +141,16 @@ function ShareButton() {
   };
   return (
     <>
-      <Button variant="outline" onClick={share}><Share2 aria-hidden="true" /> <span className="hidden sm:inline">Share with family</span></Button>
+      {tone === "band" ? (
+        <Button
+          variant="outline" onClick={share}
+          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground shadow-none hover:bg-primary-foreground/15 hover:text-primary-foreground dark:bg-transparent dark:hover:bg-primary-foreground/15"
+        >
+          <Share2 aria-hidden="true" /> <span className="xl:hidden">Share</span><span className="hidden xl:inline">Share with family</span>
+        </Button>
+      ) : (
+        <Button variant="outline" onClick={share}><Share2 aria-hidden="true" /> <span className="hidden sm:inline">Share with family</span></Button>
+      )}
       <Dialog open={Boolean(url)} onOpenChange={(o) => !o && setUrl("")}>
         <DialogContent>
           <DialogHeader>
@@ -149,12 +164,12 @@ function ShareButton() {
   );
 }
 
-function UndoBar() {
+function UndoBar({ className }: { className?: string }) {
   const { lastChange, undo } = usePlan();
   const [hidden, setHidden] = useState<object | null>(null);
   if (!lastChange || hidden === lastChange) return null;
   return (
-    <div className="no-print flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-sm shadow-card" role="status">
+    <div className={cn("no-print flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-card px-4 py-2.5 text-sm shadow-card", className)} role="status">
       <StatusBadge tone="success">Done</StatusBadge>
       <span className="min-w-0 flex-1">
         <span className="font-medium">{lastChange.label}</span>
@@ -170,6 +185,11 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   const { section, eventId, go } = useNav();
   const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
+  // On a desktop the Overview's band carries the command bar, Share and Print, so the top bar
+  // steps aside there and the band starts at the top of the page.
+  const banded = section === "overview";
+  const desktop = useMediaQuery(DESKTOP);
+  const firstGap = banded ? "first:mt-4 md:first:mt-6" : undefined;
 
   const navLink = (item: (typeof NAV)[number], compact = false) => {
     const Icon = item.icon;
@@ -218,7 +238,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       </aside>
 
       <div className="flex min-w-0 flex-col pb-20 lg:pb-0">
-        <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
+        {!(banded && desktop) && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 md:flex-nowrap md:px-8">
             <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface md:w-60 md:flex-none lg:hidden" />
             {/* A fresh bar per event, so a half-typed change never applies to another one. */}
@@ -230,18 +250,18 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
               <Button variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"><Printer aria-hidden="true" /></Button>
             </div>
           </div>
-        </header>
+        </header>}
 
-        <main id="main" className="mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-4 py-6 md:px-10 md:py-8">
+        <main id="main" className={cn("mx-auto w-full max-w-[1400px] flex-1 space-y-6 px-4 py-6 md:px-10 md:py-8", banded && "pt-0 md:pt-0")}>
           {shared && (
-            <div className="no-print flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm">
+            <div className={cn("no-print flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm", firstGap)}>
               <Download className="size-4 text-info" aria-hidden="true" />
               <span className="flex-1">Someone shared this plan with you. Keep it to add it to your events. Your own plans stay as they are.</span>
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
             </div>
           )}
-          <UndoBar />
-          {children}
+          <UndoBar className={firstGap} />
+          <PrintContext value={onPrint}>{children}</PrintContext>
         </main>
       </div>
 

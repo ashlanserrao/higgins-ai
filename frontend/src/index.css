@@ -73,6 +73,11 @@
   --ai-solid: var(--ai); /* filled AI button, white text */
   --ai-solid-hover: var(--ai-hover);
 
+  /* The Overview's header band: the event accent, deepening toward one corner. White text sits
+     on it, so its lightest point (--band-to) must clear AA with white: `npm run contrast`. */
+  --band-from: color-mix(in srgb, var(--accent) 70%, black);
+  --band-to: color-mix(in srgb, var(--accent) 84%, black);
+
   --shadow-tone: #2b1b20; /* the colour inside the shadows below */
   --shadow-card: 0 1px 2px rgba(43, 27, 32, 0.04), 0 8px 24px rgba(43, 27, 32, 0.06);
   --shadow-raised: 0 2px 4px rgba(43, 27, 32, 0.05), 0 16px 40px rgba(43, 27, 32, 0.1);
@@ -184,6 +189,10 @@
     --ai-border: #4a3d60;
     --ai-solid: #7356bd;
     --ai-solid-hover: #6448ab;
+
+    /* Deeper and quieter in dark: the accent sunk into the canvas rather than into black. */
+    --band-from: color-mix(in srgb, var(--accent) 45%, var(--bg-canvas));
+    --band-to: color-mix(in srgb, var(--accent) 75%, var(--bg-canvas));
 
     --shadow-tone: #000000;
     --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -614,6 +623,21 @@ higgins-how-it-works {
 @media screen {
   :root[data-theme="dark"] higgins-how-it-works {
     --hm-halo-strength: 0.7;
+  }
+}
+
+/* The Overview's header band (features/overview/band.tsx). */
+.overview-band {
+  background: linear-gradient(135deg, var(--band-from), var(--band-to));
+}
+@media print {
+  /* Printers drop backgrounds, so the band prints as ordinary dark text. */
+  .overview-band {
+    background: none;
+  }
+  .overview-band,
+  .overview-band * {
+    color: var(--text-primary) !important;
   }
 }
 

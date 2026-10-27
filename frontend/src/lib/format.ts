@@ -63,6 +63,9 @@ export function countdown(iso: string): string {
   return days === -1 ? "Happened yesterday" : `Happened ${-days} days ago`;
 }
 
+/** "mangalore" → "Mangalore", "new delhi" → "New Delhi": for display; stored data keeps its case. */
+export const titleCase = (text: string) => text.replace(/(^|[\s-])(\p{L})/gu, (_, gap: string, letter: string) => gap + letter.toUpperCase());
+
 /** The organiser's own name for an event, or "Wedding in Jaipur". */
 export const eventName = (event: { name: string; inputs: { event_type: keyof typeof EVENT_LABELS; city: string } }) =>
-  event.name.trim() || `${EVENT_LABELS[event.inputs.event_type]} in ${event.inputs.city}`;
+  event.name.trim() || `${EVENT_LABELS[event.inputs.event_type]} in ${titleCase(event.inputs.city.trim())}`;
