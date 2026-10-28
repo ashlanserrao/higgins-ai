@@ -1,4 +1,4 @@
-// <higgins-how-it-works src="machine-a.js" poster="poster-a.svg" ratio="1.71">
+// <higgins-how-it-works src="/hm/machine.js" poster="/hm/poster.html" ratio="0.8600">
 // Narrow screens get the static poster. Wider screens reserve the space and import the
 // live machine only when the section comes within 600px of the viewport.
 const NARROW = "(max-width: 719px)";

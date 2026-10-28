@@ -9,6 +9,7 @@
     "typecheck": "tsc -b",
     "contrast": "node scripts/contrast.mjs",
     "test": "vitest run",
+    "build:hm": "node how-it-works/build.mjs",
     "gen:types": "npx --yes -p typescript@5.9.3 -p openapi-typescript@7.13.0 openapi-typescript openapi.json -o src/lib/api-types.ts",
     "preview": "vite preview"
   },

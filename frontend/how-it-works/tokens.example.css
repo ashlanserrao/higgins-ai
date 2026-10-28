@@ -1,0 +1,47 @@
+/* Stand-in for the Higgins design tokens. Replace the --hg-* values (or point them at
+   your real token names); the machine itself only reads the --hm-* mapping at the bottom. */
+:root{
+  --hg-font:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --hg-bg:#fbf7ef;          /* ivory */
+  --hg-surface:#f3ecdf;     /* soft surface */
+  --hg-raised:#fffdf8;
+  --hg-shadow:#4a3426;
+  --hg-ink:#2b1d16;
+  --hg-muted:#6f5d52;
+  --hg-line:#e6dccb;
+  --hg-brass:#b58a3c;
+  --hg-maroon:#7a1f2b;
+  --hg-coral:#d9624e;
+  --hg-indigo:#3d3a8c;
+  --hg-marigold:#e9a23b;
+  --hg-gold:#c9a033;
+  --hg-halo:.28;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --hg-bg:#1b1512;--hg-surface:#251d18;--hg-raised:#30261f;--hg-shadow:#060403;--hg-ink:#f3eadb;--hg-muted:#b9a998;--hg-line:#3a2e26;
+    --hg-brass:#c39a50;--hg-maroon:#c4586a;--hg-coral:#ef8a73;--hg-indigo:#9590e6;--hg-marigold:#f0b45a;--hg-gold:#dcb54c;--hg-halo:.7;
+  }
+}
+:root[data-theme="dark"]{
+  --hg-bg:#1b1512;--hg-surface:#251d18;--hg-raised:#30261f;--hg-shadow:#060403;--hg-ink:#f3eadb;--hg-muted:#b9a998;--hg-line:#3a2e26;
+  --hg-brass:#c39a50;--hg-maroon:#c4586a;--hg-coral:#ef8a73;--hg-indigo:#9590e6;--hg-marigold:#f0b45a;--hg-gold:#dcb54c;--hg-halo:.7;
+}
+/* Event accents */
+body,[data-event="wedding"]{--hg-accent:var(--hg-maroon);--hg-highlight:var(--hg-marigold)}
+[data-event="birthday"]{--hg-accent:var(--hg-coral);--hg-highlight:var(--hg-marigold)}
+[data-event="festival"]{--hg-accent:var(--hg-indigo);--hg-highlight:var(--hg-gold)}
+
+/* The machine's inputs. Declared on the element so they pick up the event accent around it. */
+higgins-how-it-works,.hm-host{
+  --hm-paper:var(--hg-bg);
+  --hm-surface:var(--hg-surface);
+  --hm-raised:var(--hg-raised);
+  --hm-shadow:var(--hg-shadow);
+  --hm-ink:var(--hg-ink);
+  --hm-accent:var(--hg-accent);
+  --hm-highlight:var(--hg-highlight);
+  --hm-brass:var(--hg-brass);
+  --hm-halo-strength:var(--hg-halo);
+  --hm-font:var(--hg-font);
+}

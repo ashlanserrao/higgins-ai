@@ -14,7 +14,7 @@ import { useReveal } from "./reveal";
 import { HowItWorks, PAD, PlanForStrip, SamplePlan, WhatYouGet } from "./sections";
 
 /** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
-const MACHINE_LOADER = "/hm/higgins-how-it-works.js";
+const MACHINE_LOADER = "/hm/loader.js";
 
 /** Just the drawing: hides the component's corner captions, legend and frame, and drops its
  *  78vh height cap (index.css sizes it). The top gap, room for a hover label, scales with the
@@ -183,8 +183,8 @@ export function Landing() {
           </div>
 
           <div className={PAD}>
-            <higgins-how-it-works ref={machine} src="/hm/machine-b.js" poster="/hm/poster-b.html" ratio="0.8600">
-              <noscript><img src="/hm/poster-b-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
+            <higgins-how-it-works ref={machine} src="/hm/machine.js" poster="/hm/poster.html" ratio="0.8600">
+              <noscript><img src="/hm/poster-light.png" alt={COPY.hero.machineAlt} width={1244} height={876} className="h-auto w-full" /></noscript>
             </higgins-how-it-works>
           </div>
         </section>
