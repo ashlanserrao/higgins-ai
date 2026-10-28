@@ -183,7 +183,7 @@ export function buildMachine(C) {
     push(L(k.pathOf([on(0, 0, 0.02), on(ch.len, 0, 0.02)].map(at)), { tone: "faint" }));
     const edge = [on(-10, 4.4, 0), on(ch.len + 4, 4.4, 0)].map(at);
     defs.push(`<clipPath id="${ID}-coins${ci}"><path d="${k.pathOf([[edge[0][0], edge[0][1] - 400], edge[0], edge[1], [edge[1][0], edge[1][1] - 400]], true)}"/></clipPath>`);
-    live(`<g clip-path="url(#${ID}-coins${ci})">${Array.from({ length: COINS }, (_, i) => `<g data-coin="${i}" data-seg="${ci}" style="display:none"></g>`).join("")}</g>`);
+    live(`<g clip-path="url(#${ID}-coins${ci})">${Array.from({ length: COINS }, (_, i) => `<g data-coin="${i}" data-seg="${ci}"></g>`).join("")}</g>`);
     both(mat("hm-brass", pr(wall(4.4, 5.6, 3.2), 0, ch.len, { tone: "mid" })));
     both(mat("hm-brass", pr([[-5.6, -1.6], [5.6, -1.6], [5.6, 4.5], [-5.6, 4.5]], ch.len, ch.len + 1.4, { tone: "mid" })));
     both(Dt([0.1, 0.35, 0.6, 0.85].map((x) => at(on(ch.len * x, 5.6, 1.6))), { size: 0.42, tone: "mid" }));

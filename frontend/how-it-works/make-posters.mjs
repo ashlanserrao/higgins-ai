@@ -1,4 +1,5 @@
 // node make-posters.mjs  (with `node serve.mjs` running)  ->  ../public/hm/poster.html and the PNGs
+// node make-posters.mjs --convert-existing  ->  applies posterMarkup() to the committed poster.html
 //
 // The posters are committed artifacts: `npm run build:hm` doesn't touch them. Regenerating them
 // needs the anatomy skill's headless-browser driver (drive.mjs and capture.mjs), which is not in
@@ -6,6 +7,7 @@
 //
 // The poster is the machine's finished state, frozen: same markup and styles, no script,
 // no hit areas, so it follows the page's tokens (theme and event accent) like the live one.
+// It carries no styles of its own: the loader links machine.css and applies each data-style.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -13,6 +15,18 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, "..", "public", "hm");
+
+/** No inline styles, for style-src 'self': drop any <style> block, and turn the values the
+ *  runtime set from script into data-style, which the loader applies from script again. */
+const posterMarkup = (html) => html.replace(/^<style>[\s\S]*?<\/style>/, "").replace(/ style="/g, ' data-style="');
+
+if (process.argv.includes("--convert-existing")) {
+  const file = join(OUT, "poster.html");
+  writeFileSync(file, posterMarkup(readFileSync(file, "utf8")));
+  console.log("converted", file);
+  process.exit(0);
+}
+
 const SCRIPTS = process.env.ANATOMY_SCRIPTS;
 if (!SCRIPTS || !existsSync(join(SCRIPTS, "drive.mjs"))) {
   console.error("Set ANATOMY_SCRIPTS to the folder with the anatomy skill's drive.mjs and capture.mjs.");
@@ -21,7 +35,6 @@ if (!SCRIPTS || !existsSync(join(SCRIPTS, "drive.mjs"))) {
 const DRIVE = join(SCRIPTS, "drive.mjs");
 const CAPTURE = join(SCRIPTS, "capture.mjs");
 const BASE = process.env.HM_URL || "http://localhost:8017";
-const CSS = readFileSync(join(HERE, "src", "machine.css"), "utf8");
 
 const freeze = `(() => {
   const card = document.querySelector('.hm-card').cloneNode(true);
@@ -42,7 +55,7 @@ const run = spawnSync(process.execPath, [DRIVE, `${BASE}/demo/test-light.html?fi
 const line = run.stdout.split("\n").find((l) => l.startsWith("eval: "));
 if (!line) throw new Error(run.stdout + run.stderr);
 const html = JSON.parse(line.slice(6));
-writeFileSync(join(OUT, "poster.html"), `<style>${CSS}</style>${html}`);
+writeFileSync(join(OUT, "poster.html"), posterMarkup(html));
 console.log("poster.html", (html.length / 1024).toFixed(0), "KB");
 for (const theme of ["light", "dark"]) {
   spawnSync(process.execPath, [CAPTURE, `${BASE}/demo/test-${theme}.html?finish=1&hits=0`, "--select", ".hm-card", "--out", join(OUT, `poster-${theme}.png`), "--scale", "1", "--width", "1280", "--wait", "1200"], { stdio: "inherit" });

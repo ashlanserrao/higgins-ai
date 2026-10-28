@@ -27,8 +27,11 @@ class HowItWorks extends HTMLElement {
     this.narrow = narrow;
     this.stop();
     const ratio = Number(this.getAttribute("ratio")) || 1.7;
-    // Reserve the card's space so nothing below jumps when it fills in.
-    this.shadowRoot.innerHTML = `<div style="aspect-ratio:${ratio};width:100%;border-radius:16px;background:var(--hm-surface)"></div>`;
+    // Reserve the card's space so nothing below jumps when it fills in. Styled from script, not
+    // markup, so a strict CSP (style-src 'self') allows it.
+    const box = document.createElement("div");
+    Object.assign(box.style, { aspectRatio: String(ratio), width: "100%", borderRadius: "16px", background: "var(--hm-surface)" });
+    this.shadowRoot.replaceChildren(box);
     if (narrow) return this.poster();
     this.watch = new IntersectionObserver((entries) => {
       if (!entries.some((e) => e.isIntersecting)) return;
@@ -42,9 +45,25 @@ class HowItWorks extends HTMLElement {
   }
   async poster() {
     try {
-      const text = await (await fetch(new URL(this.getAttribute("poster"), document.baseURI))).text();
+      const url = new URL(this.getAttribute("poster"), document.baseURI);
+      // machine.css sits next to the poster. A <link> inside the poster's markup would resolve
+      // against the page, not the poster file, so it's built here; the poster goes in once it loads.
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = new URL("machine.css", url).href;
+      const styled = new Promise((resolve, reject) => { link.onload = resolve; link.onerror = reject; });
+      this.shadowRoot.append(link);
+      const text = await (await fetch(url)).text();
+      await styled;
       if (this.narrow === false && this.live) return;
-      this.shadowRoot.innerHTML = text;
+      const art = document.createElement("template");
+      art.innerHTML = text;
+      // The frozen run's inline styles travel as data-style; applied from script, a CSP allows them.
+      for (const el of art.content.querySelectorAll("[data-style]")) {
+        el.style.cssText = el.dataset.style;
+        el.removeAttribute("data-style");
+      }
+      this.shadowRoot.replaceChildren(link, art.content);
     } catch {
       /* keep the reserved space; the <noscript> image covers no-JS visitors */
     }

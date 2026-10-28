@@ -1,5 +1,6 @@
 // Live behaviour for the machine. Concatenated after model.mjs (exports stripped) and the
-// build's constants (D = page data, ART = markup, CSS = styles) into one ES module.
+// build's constants (D = page data, ART = markup) into one ES module. The styles are
+// machine.css next to it, linked rather than inlined so a strict CSP (style-src 'self') holds.
 
 const TIPS = {
   ticket: () => "The sentence you type, in your own words.",
@@ -35,11 +36,26 @@ export function mount(root, host) {
   const move = (el, d) => { const [dx, dy] = shift(d); el.setAttribute("transform", `translate(${f1(dx)} ${f1(dy)})`); };
   const V = [ca * ce, sa * ce, se];
 
-  root.innerHTML = `<style>${CSS}</style>${ART}`;
-  const svg = root.querySelector("svg.hm-live");
-  for (const node of root.querySelectorAll("[data-coin]")) node.innerHTML = D.coinSvg;
-  const $ = (s) => root.querySelector(s);
-  const $$ = (s) => [...root.querySelectorAll(s)];
+  // The art is wired up straight away but goes in only once machine.css has loaded, so it
+  // never shows unstyled; until then the loader's placeholder holds the space.
+  const art = document.createElement("template");
+  art.innerHTML = ART;
+  const frag = art.content;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = new URL("./machine.css", import.meta.url).href;
+  let gone = false;
+  const ready = new Promise((resolve) => link.addEventListener("load", () => {
+    if (!gone) root.replaceChildren(link, frag);
+    resolve();
+  }, { once: true }));
+  root.append(link);
+  const svg = frag.querySelector("svg.hm-live");
+  // Hidden from JS, not markup: hide() and show() test the inline display, and a CSP allows
+  // styles set from script.
+  for (const node of frag.querySelectorAll("[data-coin]")) { node.innerHTML = D.coinSvg; node.style.display = "none"; }
+  const $ = (s) => frag.querySelector(s);
+  const $$ = (s) => [...frag.querySelectorAll(s)];
   const el = {
     ticket: $('[data-part="ticket"]'),
     lines: $$("[data-ticket]"),
@@ -416,7 +432,7 @@ export function mount(root, host) {
     visible = entries[entries.length - 1].isIntersecting;
     if (visible) { begin(); kick(); }
   }, { rootMargin: "0px 0px -15% 0px", threshold: 0.2 });
-  io.observe(root.querySelector(".hm-stage"));
+  io.observe($(".hm-stage"));
   const onVis = () => { if (!document.hidden) kick(); };
   document.addEventListener("visibilitychange", onVis);
   still.addEventListener?.("change", () => { if (still.matches && run) { run = null; queued = false; plan = withIndex(planOf(state), state); settleOn(plan); describeNow(); } });
@@ -432,7 +448,8 @@ export function mount(root, host) {
   refreshTip();
 
   return {
-    destroy() { io.disconnect(); document.removeEventListener("visibilitychange", onVis); cancelAnimationFrame(frame); },
+    ready, // resolves once the art is on the page
+    destroy() { gone = true; io.disconnect(); document.removeEventListener("visibilitychange", onVis); cancelAnimationFrame(frame); },
     finish() { started = true; run = null; queued = false; host.removeAttribute("data-running"); settleOn(plan); describeNow(); },
   };
 }

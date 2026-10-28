@@ -1,4 +1,4 @@
-// npm run build:hm  ->  ../public/hm/ (loader.js, machine.js) and demo/ (host page and test pages,
+// npm run build:hm  ->  ../public/hm/ (loader.js, machine.js, machine.css) and demo/ (host page and test pages,
 // git-ignored). The posters in public/hm/ come from make-posters.mjs.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -43,12 +43,14 @@ const data = { ...v.data, tankW: v.data.tankW ?? 18 };
 const module = `// Higgins: "See how it works" machine. ${HEADER.slice(3)}
 const D = ${JSON.stringify(data)};
 const ART = ${JSON.stringify(art(v))};
-const CSS = ${JSON.stringify(CSS)};
 ${MODEL}
 ${RUNTIME}
 export const ratio = ${v.W} / ${v.H};
 `;
 writeFileSync(join(OUT, "machine.js"), module);
+// Linked by the runtime and the poster, never inlined, so the page can keep style-src 'self'.
+writeFileSync(join(OUT, "machine.css"), `/* ${HEADER.slice(3)} */
+${CSS}`);
 const paths = (art(v).match(/<path/g) || []).length;
 console.log(`machine.js  ${(module.length / 1024).toFixed(0)} KB raw, ${paths} paths`);
 
@@ -102,7 +104,7 @@ import { mount } from "/hm/machine.js";
 const host = document.getElementById("m");
 const api = mount(host, host);
 window.__hm = api;
-if (new URLSearchParams(location.search).get("hits") === "0") host.querySelector(".hm-hits").remove();
+if (new URLSearchParams(location.search).get("hits") === "0") api.ready.then(() => host.querySelector(".hm-hits").remove());
 if (new URLSearchParams(location.search).get("finish") === "1") api.finish();
 </script></body></html>`;
 writeFileSync(join(HERE, "demo", "index.html"), demo());

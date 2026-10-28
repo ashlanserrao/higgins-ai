@@ -7,8 +7,9 @@ An interactive isometric machine for the Higgins landing page. It is a framework
 | Path | What it is |
 |---|---|
 | `../public/hm/loader.js` | The loader (0.9 KB gzipped). It defines `<higgins-how-it-works>`, shows the poster below 720 px wide, and otherwise imports the live machine when the section comes within 600 px of the viewport. Built from `src/loader.js`. |
-| `../public/hm/machine.js` | The live machine, one self-contained ES module: markup, styles and runtime in one file. Built by `build.mjs`. |
-| `../public/hm/poster.html` | The static poster: the finished state, frozen, with no script. The loader injects it into the shadow root, so it follows theme and accent like the live machine. Made by `make-posters.mjs`. |
+| `../public/hm/machine.js` | The live machine, one ES module: markup and runtime. It links `machine.css` and inserts the art once that has loaded. Built by `build.mjs`. |
+| `../public/hm/machine.css` | The machine's styles, shared by the live machine and the poster. Built by `build.mjs` from `src/machine.css`. |
+| `../public/hm/poster.html` | The static poster: the finished state, frozen, with no script or styles of its own. The loader links `machine.css`, injects the poster into the shadow root and applies its `data-style` values, so it follows theme and accent like the live machine. Made by `make-posters.mjs`. |
 | `../public/hm/poster-light.png`, `poster-dark.png` | PNG renders for the `<noscript>` fallback only. Made by `make-posters.mjs`. |
 | `src/` | Sources: `model.mjs` (the example numbers), `machine-geometry.mjs` (all the parts), `variant-b.mjs` (the cabinet layout), `parts.mjs` (part builders), `runtime.js` (motion and input), `machine.css`, `loader.js`. |
 | `kit/iso-kit.mjs`, `kit/lathe.mjs` | **Vendored** from the Anatomy skill's kit, unchanged: the isometric projection and solid builders that `src/parts.mjs` draws with. Used at build time only. |
@@ -18,9 +19,11 @@ An interactive isometric machine for the Higgins landing page. It is a framework
 Build and preview, from `frontend/`:
 
 ```sh
-npm run build:hm               # writes ../public/hm/loader.js, machine.js and demo/
+npm run build:hm               # writes ../public/hm/loader.js, machine.js, machine.css and demo/
 node how-it-works/serve.mjs    # http://localhost:8017/ (the demo host page)
 ```
+
+**No inline styles anywhere**, so the app can send `style-src 'self'`: the CSS is a linked file, and what the runtime styles (coins, levels, the placeholder) it sets from script, which a CSP allows.
 
 **The posters are committed artifacts.** `npm run build:hm` never touches `poster.html` or the PNGs. Regenerate them after changing the art or the example numbers. That needs the Anatomy skill's headless-browser driver (`drive.mjs` and `capture.mjs`), which is not in this repo:
 
