@@ -6,8 +6,8 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from app.ai.client import StructuredAI
@@ -20,6 +20,7 @@ from app.engine.diff import diff_plans
 from app.engine.errors import PlanInputError
 from app.engine.messages import vendor_message
 from app.engine.planner import build_plan
+from app.frontend import FrontendFiles
 from app.models import CompareRequest, MessageRequest, PlanRequest, QuoteExtractRequest, UnderstandRequest
 from app.responses import (
     CompareResponse, IdeasResponse, MessageResponse, PlanResponse, QuoteExtractResponse, UnderstandResponse,
@@ -94,6 +95,11 @@ async def guard_requests(request: Request, call_next):
         response = await call_next(request)
     response.headers.update(SECURITY_HEADERS)
     return response
+
+
+# Added last, so it wraps the guard: every response leaves compressed with the guard's headers
+# kept, its own 411/413/429 included. Bodies under 1 KB aren't worth compressing.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 @app.exception_handler(RequestValidationError)
@@ -192,4 +198,4 @@ def understand(
 
 
 if FRONTEND_DIR.is_dir():
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    app.mount("/", FrontendFiles(directory=FRONTEND_DIR, html=True), name="frontend")

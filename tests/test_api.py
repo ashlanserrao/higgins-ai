@@ -5,7 +5,10 @@ from datetime import timedelta
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
+from app.frontend import FrontendFiles
 from app.main import ai_limiter, app, plan_limiter
 from tests.conftest import TODAY
 
@@ -30,6 +33,7 @@ def test_schema_is_exported_for_the_frontend_not_served(client):
 def test_diwali_plan_over_http(client, diwali_request):
     response = client.post("/api/plan", json=as_json(diwali_request))
     assert response.status_code == 200
+    assert response.headers["content-encoding"] == "gzip"  # a plan is well over the 1 KB minimum
     body = response.json()
     assert body["ai_available"] is False
     assert body["plan"]["triage"]["book_today"] == ["venue"]
@@ -89,6 +93,19 @@ def test_security_headers_on_static_and_api(client):
         assert "'unsafe-inline'" not in headers["content-security-policy"]
         assert headers["x-content-type-options"] == "nosniff"
         assert headers["referrer-policy"] == "no-referrer"
+
+
+def test_built_files_are_cached_by_how_they_are_named(tmp_path):
+    # A stand-in for frontend/dist, so this runs without a frontend build.
+    for name in ("index.html", "assets/index-3f9c2a1b.js", "hm/loader.js"):
+        (tmp_path / name).parent.mkdir(exist_ok=True)
+        (tmp_path / name).write_text("x")
+    site = FastAPI()
+    site.mount("/", FrontendFiles(directory=tmp_path, html=True))
+    client = TestClient(site)
+    assert client.get("/assets/index-3f9c2a1b.js").headers["cache-control"] == "public, max-age=31536000, immutable"
+    assert client.get("/").headers["cache-control"] == "no-cache"
+    assert client.get("/hm/loader.js").headers["cache-control"] == "public, max-age=3600"
 
 
 def test_options_list_priorities_without_contingency(client):
