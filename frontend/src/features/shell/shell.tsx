@@ -1,5 +1,5 @@
-// Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (command bar,
-// share, print) and a bottom nav on phones, where the switcher moves to the top bar.
+// Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (share, print), a
+// bottom nav on phones, where the switcher moves to the top bar, and the Ask Higgins dock.
 
 import { useState, type ReactNode } from "react";
 import {
@@ -21,7 +21,7 @@ import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
 import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { CommandBar } from "./command-bar";
+import { AskDock } from "./ask-dock";
 import { EventSwitcher } from "./event-switcher";
 import { AppearanceControl } from "./theme-control";
 
@@ -170,11 +170,8 @@ function ShareButton({ tone }: { tone?: "band" }) {
 /** On a desktop the page band carries these instead of the top bar. `onPrint` prints or saves
  *  the whole plan (App renders every section first). */
 function BandTools({ onPrint }: { onPrint: () => void }) {
-  const { activeId } = usePlan();
   return (
     <>
-      {/* A fresh bar per event, so a half-typed change never applies to another one. */}
-      <div className="min-w-0 flex-1"><CommandBar key={activeId} tone="band" /></div>
       <ShareButton tone="band" />
       <Button
         variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"
@@ -190,7 +187,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   const { section, eventId, go } = useNav();
   const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
-  // On a desktop each page's band carries the command bar, Share and Print, so the top bar
+  // On a desktop each page's band carries Share and Print, so the top bar
   // steps aside and the band starts at the top of the page.
   const desktop = useMediaQuery(DESKTOP);
 
@@ -252,8 +249,6 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         {!desktop && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="page-pad flex flex-wrap items-center gap-2 py-3 lg:flex-nowrap">
             <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface lg:hidden" />
-            {/* A fresh bar per event, so a half-typed change never applies to another one. */}
-            <div className="order-last w-full lg:order-none lg:w-auto lg:flex-1"><CommandBar key={activeId} /></div>
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
               <AddMenu className="max-sm:w-9 max-sm:px-0 lg:hidden" />
               <Button variant="ghost" size="icon" onClick={onEdit} className="lg:hidden" aria-label="Edit event details" title="Edit event details"><PencilLine aria-hidden="true" /></Button>
@@ -263,7 +258,8 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           </div>
         </header>}
 
-        <main id="main" className="page-pad w-full flex-1 space-y-6 pb-6 md:pb-8">
+        {/* Room at the foot for the Ask Higgins circle, so the last content scrolls clear of it. */}
+        <main id="main" className="page-pad w-full flex-1 space-y-6 pb-24">
           {shared && (
             <div className="no-print mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm md:mt-6">
               <Download className="size-4 text-info" aria-hidden="true" />
@@ -278,6 +274,8 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       <nav aria-label="Sections" className="no-print fixed inset-x-0 bottom-0 z-30 flex bg-surface shadow-raised lg:hidden">
         {NAV.map((item) => navLink(item, true))}
       </nav>
+      {/* A fresh dock per event, so a half-typed change never applies to another one. */}
+      <AskDock key={activeId} />
     </div>
   );
 }

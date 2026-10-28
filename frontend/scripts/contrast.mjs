@@ -78,6 +78,10 @@ const PAIRS = [
   ["--ai", "--bg-surface", 4.5, "AI text"],
   ["--primary-foreground", "--ai-solid", 4.5, "filled AI button"],
   ["--primary-foreground", "--ai-solid-hover", 4.5, "filled AI button, hover"],
+  // Ask Higgins (features/shell/ask-dock.tsx); its other pairs are the text and accent ones above.
+  ["--bg-surface", "--text-primary", 3, "Ask: send arrow on its inverse circle"],
+  ["--ai", "--bg-surface-soft", 4.5, "Ask: \"I understood\" on the phone's card"],
+  ["--warning", "--bg-surface-soft", 4.5, "Ask: a warning on the phone's card"],
   // The chart is decorative (the table beside it carries the numbers): reported, never failing.
   ...Array.from({ length: 9 }, (_, i) => [`--chart-${i + 1}`, "--bg-surface", 3, "chart slice", "note"]),
 ];

@@ -113,8 +113,9 @@ export function Toaster() {
       className={cn(
         // No gap here: with nothing showing the layer is 0px tall, so a toast arriving moves nothing.
         "no-print pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center px-(--page-gutter)",
-        // Above the phone's bottom navigation; on a desktop, centred on the content beside the sidebar.
-        "bottom-[calc(env(safe-area-inset-bottom)+5rem)] lg:bottom-6 lg:pl-[calc(260px+var(--page-gutter))]",
+        // Above the phone's bottom navigation; on a desktop, centred on the content beside the
+        // sidebar. Both rise above the Ask Higgins dock while it is open (it sets --ask-lift).
+        "bottom-[calc(env(safe-area-inset-bottom)+5rem+var(--ask-lift,0px))] lg:bottom-[calc(1.5rem+var(--ask-lift,0px))] lg:pl-[calc(260px+var(--page-gutter))]",
       )}
     >
       {/* Both regions are always mounted, so screen readers hear each toast as it arrives. */}

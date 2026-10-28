@@ -1,11 +1,10 @@
 // The coloured band at the top of every page: the event accent behind the page's heading. On a
-// desktop it also carries the command bar, Share and Print (the shell's top bar steps aside
-// there). Whatever comes straight after it rises over its foot (see .page-band in index.css),
+// desktop it also carries Share and Print (the shell's top bar steps aside there). Whatever comes straight after it rises over its foot (see .page-band in index.css),
 // so a page's first card overlaps the band.
 
 import { createContext, useContext, useId, type ReactNode } from "react";
 
-/** The shell's tools for the band (command bar, Share, Print); null when the top bar has them. */
+/** The shell's tools for the band (Share, Print); null when the top bar has them. */
 export const PageBandTools = createContext<ReactNode>(null);
 
 export function PageBand({ eyebrow, title, description, actions, children }: {
@@ -16,7 +15,7 @@ export function PageBand({ eyebrow, title, description, actions, children }: {
 
   return (
     <section aria-labelledby={titleId} className="page-band pt-5 pb-[52px] text-primary-foreground md:pt-6">
-      {tools && <div className="no-print mb-6 flex items-center gap-2">{tools}</div>}
+      {tools && <div className="no-print mb-6 flex items-center justify-end gap-2">{tools}</div>}
       <div className="flex flex-col gap-x-6 gap-y-3 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           {eyebrow && <p className="text-xs text-primary-foreground/80">{eyebrow}</p>}
