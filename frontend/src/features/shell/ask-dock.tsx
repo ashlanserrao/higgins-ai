@@ -182,22 +182,6 @@ export function AskDock() {
     return () => window.removeEventListener("keydown", onKey);
   }, [openDock]);
 
-  // Toasts rise above the dock while it is open, and above the circle on a phone, where both sit
-  // at the foot of the screen (Toaster reads --ask-lift).
-  useLayoutEffect(() => {
-    const el = dock.current;
-    if (!el) return;
-    const root = document.documentElement;
-    const lift = () => root.style.setProperty("--ask-lift", open || phone ? `${el.offsetHeight + 12}px` : "0px");
-    lift();
-    const observer = new ResizeObserver(lift);
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty("--ask-lift");
-    };
-  }, [open, phone]);
-
   // The phone sheet: stays above the on-screen keyboard, and a tap outside it closes it.
   useEffect(() => {
     const el = dock.current;
