@@ -15,17 +15,22 @@ export function PageBand({ eyebrow, title, description, actions, children }: {
 
   return (
     <section aria-labelledby={titleId} className="page-band pt-5 pb-[52px] text-primary-foreground md:pt-6">
-      {tools && <div className="no-print mb-6 flex items-center justify-end gap-2">{tools}</div>}
-      <div className="flex flex-col gap-x-6 gap-y-3 md:flex-row md:items-end md:justify-between">
+      {/* The heading starts at the top of the band; Share and Print sit level with it on the
+          right, and the page's own actions under them, level with the description. */}
+      <div className="flex flex-col gap-x-6 gap-y-3 md:flex-row md:justify-between">
         <div className="min-w-0">
           {eyebrow && <p className="text-xs text-primary-foreground/80">{eyebrow}</p>}
-          {/* Two pixels under the Overview's figures at every width, so the numbers stay dominant. */}
-          <h1 id={titleId} tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(28px,2.4cqw+8px,42px)] leading-tight tracking-[-0.02em] outline-none">
+          <h1 id={titleId} tabIndex={-1} data-section-title className="mt-1.5 text-[clamp(36px,3cqw+14px,56px)] leading-[1.1] tracking-[-0.02em] outline-none">
             {title}
           </h1>
-          {description && <p className="mt-1 max-w-3xl text-[13px] text-primary-foreground/85">{description}</p>}
+          {description && <p className="mt-1.5 max-w-3xl text-[13px] text-primary-foreground/85">{description}</p>}
         </div>
-        {actions && <div className="no-print flex shrink-0 flex-wrap gap-2">{actions}</div>}
+        {(tools || actions) && (
+          <div className="no-print flex shrink-0 flex-col items-start gap-3 md:items-end md:justify-between">
+            {tools && <div className="flex items-center gap-2">{tools}</div>}
+            {actions && <div className="flex flex-wrap gap-2 md:justify-end">{actions}</div>}
+          </div>
+        )}
       </div>
       {children}
     </section>

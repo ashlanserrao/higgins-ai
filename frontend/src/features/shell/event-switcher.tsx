@@ -78,8 +78,11 @@ function EventRow({ event, onRename, onDelete }: { event: SavedEvent; onRename: 
 }
 
 /** `withAppearance`: phones have no sidebar, so the theme choice lives in this menu there.
- *  `variant="card"`: the sidebar's, with room for the whole name and the date and guests. */
-export function EventSwitcher({ className, withAppearance = false, variant }: { className?: string; withAppearance?: boolean; variant?: "card" }) {
+ *  `variant="card"`: the sidebar's, with room for the whole name and the date and guests.
+ *  `variant="rail"`: the folded sidebar's, the event's dot alone, opening to its right. */
+export function EventSwitcher({ className, withAppearance = false, variant }: {
+  className?: string; withAppearance?: boolean; variant?: "card" | "rail";
+}) {
   const { events, activeId, shared, inputs, switchEvent, startNewEvent, renameEvent, deleteEvent } = usePlan();
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState<SavedEvent | null>(null);
@@ -89,6 +92,7 @@ export function EventSwitcher({ className, withAppearance = false, variant }: { 
   const trigger = useRef<HTMLButtonElement>(null);
   const nameField = useId();
   const current = events.find((e) => e.id === activeId);
+  const name = current ? eventName(current) : "Shared plan";
 
   // Dialogs open from the menu, which has closed by then: focus goes back to the switcher.
   const backToTrigger = (event: Event) => {
@@ -107,24 +111,30 @@ export function EventSwitcher({ className, withAppearance = false, variant }: { 
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger
           ref={trigger}
+          title={variant === "rail" ? name : undefined}
           className={cn("flex min-w-0 items-center gap-2 rounded-lg text-left transition-colors sm:gap-3", className)}
         >
           <EventDot type={inputs.event_type} />
-          <span className="min-w-0 flex-1">
-            <span className={cn("font-display block text-base leading-snug", variant === "card" ? "break-words" : "truncate")}>
-              {current ? eventName(current) : "Shared plan"}
-            </span>
-            <span className="num block truncate text-xs text-muted-foreground">
-              {variant === "card"
-                ? `${formatShortDate(inputs.event_date)} · ${plural(inputs.guests, "guest")}${shared ? " · Not saved yet" : ""}`
-                : `${titleCase(inputs.city)} · ${shared ? "Not saved yet" : countdown(inputs.event_date)}`}
-            </span>
-          </span>
-          <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {variant === "rail" ? (
+            <span className="sr-only">{name}</span>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className={cn("font-display block text-base leading-snug", variant === "card" ? "break-words" : "truncate")}>{name}</span>
+                <span className="num block truncate text-xs text-muted-foreground">
+                  {variant === "card"
+                    ? `${formatShortDate(inputs.event_date)} · ${plural(inputs.guests, "guest")}${shared ? " · Not saved yet" : ""}`
+                    : `${titleCase(inputs.city)} · ${shared ? "Not saved yet" : countdown(inputs.event_date)}`}
+                </span>
+              </span>
+              <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            </>
+          )}
           <span className="sr-only">, switch event</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
+          side={variant === "rail" ? "right" : undefined}
           data-event-switcher=""
           className={cn(
             "w-(--radix-dropdown-menu-trigger-width) min-w-88 max-w-[calc(100vw-2rem)] rounded-xl p-1.5",

@@ -242,7 +242,7 @@ export function AskDock() {
           // A sheet across the foot of a phone, over the bottom navigation.
           ? "inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom)+var(--ask-kb,0px))] rounded-2xl border bg-popover p-2 shadow-raised [[data-theme=dark]_&]:border-(--hairline-strong)"
           // Bottom right of the content: above the bottom navigation, or beside the sidebar.
-          : "pointer-events-none right-4 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] left-4 lg:right-6 lg:bottom-6 lg:left-[calc(260px+24px)]",
+          : "pointer-events-none right-4 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] left-4 lg:right-6 lg:bottom-6 lg:left-[calc(var(--sidebar-w,260px)+24px)]",
       )}
     >
       {stage === "review" && outcome && (

@@ -1,10 +1,11 @@
-// Dashboard frame: sidebar (event switcher, Add menu, sections), top bar (share, print), a
-// bottom nav on phones, where the switcher moves to the top bar, and the Ask Higgins dock.
+// Dashboard frame: sidebar (event switcher, Add menu, sections), which folds to a rail of icons
+// on a desktop, top bar (share, print), a bottom nav on phones, where the switcher moves to the
+// top bar, and the Ask Higgins dock.
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode, type Ref } from "react";
 import {
-  AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PencilLine, Plus, Printer, ReceiptIndianRupee,
-  Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
+  AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine, Plus,
+  Printer, ReceiptIndianRupee, Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -53,7 +54,8 @@ function useCounts(): Record<Section, ReactNode> {
   };
 }
 
-function AddMenu({ className }: { className?: string }) {
+/** `rail`: the folded sidebar's, an icon that opens to its right. */
+function AddMenu({ className, rail = false }: { className?: string; rail?: boolean }) {
   const { go } = useNav();
   const items: { label: string; icon: LucideIcon; section: Section; intent: Intent }[] = [
     { label: "Add a quote", icon: ReceiptIndianRupee, section: "vendors", intent: "add-quote" },
@@ -64,9 +66,11 @@ function AddMenu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className={className} aria-label="Add"><Plus aria-hidden="true" /> <span className="hidden sm:inline">Add</span></Button>
+        <Button variant="outline" size={rail ? "icon" : "default"} className={className} aria-label="Add" title={rail ? "Add" : undefined}>
+          <Plus aria-hidden="true" /> {!rail && <span className="hidden sm:inline">Add</span>}
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-56">
+      <DropdownMenuContent align="start" side={rail ? "right" : undefined} className="w-56">
         <DropdownMenuLabel>Something changed?</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {items.map(({ label, icon: Icon, section, intent }) => (
@@ -79,48 +83,108 @@ function AddMenu({ className }: { className?: string }) {
   );
 }
 
-function Logo() {
+const MARK = "font-display grid size-10 shrink-0 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink";
+const COLLAPSED_KEY = "sidebar:collapsed";
+
+/** Folded or not, remembered in this browser (storage can be blocked: then it lasts the visit). */
+function useCollapsed() {
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggle = () => {
+    try {
+      localStorage.setItem(COLLAPSED_KEY, collapsed ? "0" : "1");
+    } catch {
+      // Not remembered; it still folds.
+    }
+    setCollapsed(!collapsed);
+  };
+  return [collapsed, toggle] as const;
+}
+
+function Logo({ toggleRef, onCollapse }: { toggleRef: Ref<HTMLButtonElement>; onCollapse: () => void }) {
   const { openPage } = useNav();
   return (
-    <a
-      href="#/welcome"
-      onClick={(e) => {
-        e.preventDefault();
-        openPage("welcome");
-      }}
-      className="flex items-center gap-2.5 rounded-lg"
+    <div className="flex items-center gap-2">
+      <a
+        href="#/welcome"
+        onClick={(e) => {
+          e.preventDefault();
+          openPage("welcome");
+        }}
+        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
+      >
+        <span className={MARK} aria-hidden="true">H</span>
+        <div className="leading-tight">
+          <p className="font-display text-lg">Higgins AI</p>
+          <p className="text-xs text-muted-foreground">Event planner</p>
+        </div>
+      </a>
+      <Button
+        ref={toggleRef} variant="ghost" size="icon-sm" onClick={onCollapse}
+        aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded aria-controls="sidebar"
+        className="text-muted-foreground hover:text-foreground"
+      >
+        <PanelLeftClose aria-hidden="true" />
+      </Button>
+    </div>
+  );
+}
+
+/** The folded sidebar's logo: pointing at it or focusing it shows that it expands the sidebar.
+ *  Pointer events, not CSS hover, so it also shows on laptops that report touch only. */
+function RailLogo({ toggleRef, onExpand }: { toggleRef: Ref<HTMLButtonElement>; onExpand: () => void }) {
+  const [hinted, setHinted] = useState(false);
+  return (
+    <button
+      ref={toggleRef} type="button" onClick={onExpand}
+      onPointerEnter={() => setHinted(true)} onPointerLeave={() => setHinted(false)}
+      onFocus={() => setHinted(true)} onBlur={() => setHinted(false)}
+      aria-label="Expand sidebar" title="Expand sidebar" aria-expanded={false} aria-controls="sidebar"
+      className={MARK}
     >
-      <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-      <div className="leading-tight">
-        <p className="font-display text-lg">Higgins AI</p>
-        <p className="text-xs text-muted-foreground">Event planner</p>
-      </div>
-    </a>
+      {hinted ? <PanelLeftOpen className="size-5" aria-hidden="true" /> : <span aria-hidden="true">H</span>}
+    </button>
   );
 }
 
 /** The open event, and a link to the budget only when it needs a look (tight or over). The
- *  numbers themselves live on the Overview band and the Budget page. */
-function EventCard() {
+ *  numbers themselves live on the Overview band and the Budget page. `rail`: the folded
+ *  sidebar's, the event's dot and a warning icon. */
+function EventCard({ rail = false }: { rail?: boolean }) {
   const { plan } = usePlan();
   const { eventId, go } = useNav();
   const over = plan.rebalance?.over_budget_inr ?? 0;
-  return (
+  const warning = over ? `Over budget by ${inr(over)}` : "Budget tight";
+  const budgetLink = plan.budget_status !== "ok" && (
+    <a
+      href={routeHash({ eventId, section: "budget" })}
+      onClick={(e) => {
+        e.preventDefault();
+        go("budget");
+      }}
+      aria-label={rail ? warning : undefined} title={rail ? warning : undefined}
+      className={rail
+        ? "grid size-8 place-items-center rounded-full bg-warning-soft text-warning"
+        : "mx-2.5 mb-2.5 inline-flex items-start gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning hover:underline"}
+    >
+      <AlertTriangle className={rail ? "size-3.5" : "mt-px size-3.5 shrink-0"} aria-hidden="true" />
+      {!rail && warning}
+    </a>
+  );
+  return rail ? (
+    <div className="flex flex-col items-center gap-2">
+      <EventSwitcher variant="rail" className="size-10 justify-center rounded-xl bg-surface shadow-card hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
+      {budgetLink}
+    </div>
+  ) : (
     <div className="rounded-xl bg-surface p-1.5 text-sm shadow-card">
       <EventSwitcher variant="card" className="w-full p-2.5 hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
-      {plan.budget_status !== "ok" && (
-        <a
-          href={routeHash({ eventId, section: "budget" })}
-          onClick={(e) => {
-            e.preventDefault();
-            go("budget");
-          }}
-          className="mx-2.5 mb-2.5 inline-flex items-start gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning hover:underline"
-        >
-          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-          {over ? `Over budget by ${inr(over)}` : "Budget tight"}
-        </a>
-      )}
+      {budgetLink}
     </div>
   );
 }
@@ -187,6 +251,13 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   const { section, eventId, go } = useNav();
   const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
+  const [collapsed, toggleSidebar] = useCollapsed();
+  // The fold's button changes places as it folds, so focus follows it.
+  const toggleButton = useRef<HTMLButtonElement>(null);
+  const toggle = () => {
+    toggleSidebar();
+    window.requestAnimationFrame(() => toggleButton.current?.focus());
+  };
   // On a desktop each page's band carries Share and Print, so the top bar
   // steps aside and the band starts at the top of the page.
   const desktop = useMediaQuery(DESKTOP);
@@ -194,6 +265,26 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   const navLink = (item: (typeof NAV)[number], compact = false) => {
     const Icon = item.icon;
     const active = section === item.id;
+    if (collapsed && !compact) return (
+      <a
+        key={item.id}
+        href={routeHash({ eventId, section: item.id })}
+        onClick={(e) => {
+          e.preventDefault();
+          go(item.id);
+        }}
+        aria-current={active ? "page" : undefined}
+        title={item.label}
+        className={cn("relative grid size-10 place-items-center rounded-lg", active ? "bg-primary-soft" : "hover:bg-surface")}
+      >
+        <span className={cn("grid size-[26px] place-items-center rounded-lg", active ? "bg-primary text-primary-foreground" : item.chip)} aria-hidden="true">
+          <Icon className="size-3.5" />
+        </span>
+        <span className="sr-only">{item.label}{counts[item.id] && <>, {counts[item.id]}</>}</span>
+        {/* Only what needs attention keeps a mark when the counts fold away. */}
+        {item.id === "tasks" && counts.tasks && <span className="absolute top-1 right-1 size-2 rounded-full bg-warning ring-2 ring-surface-soft" aria-hidden="true" />}
+      </a>
+    );
     return (
       <a
         key={item.id}
@@ -226,23 +317,39 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
   };
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[260px_1fr]">
+    <div
+      className={cn(
+        "min-h-screen lg:grid lg:grid-cols-[var(--sidebar-w)_1fr] lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out",
+        // The dock reads the width too, to stay beside the sidebar.
+        collapsed ? "[--sidebar-w:72px]" : "[--sidebar-w:260px]",
+      )}
+    >
       <a href="#main" className="sr-only z-50 rounded bg-primary px-3 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
         Skip to content
       </a>
 
-      <aside className="no-print sticky top-0 hidden h-screen flex-col gap-5 scroll-area overflow-x-hidden overflow-y-auto bg-surface-soft p-5 lg:flex">
-        <Logo />
-        <EventCard />
-        <AddMenu className="w-full" />
-        <nav aria-label="Sections" className="flex flex-col gap-0.5">{NAV.map((item) => navLink(item))}</nav>
-        <div className="mt-auto space-y-0.5 border-t pt-3">
-          <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
-            <PencilLine className="size-4" aria-hidden="true" /> Edit event details
-          </button>
-          <AppearanceControl />
-          <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
-        </div>
+      <aside
+        id="sidebar"
+        className={cn(
+          "no-print sticky top-0 hidden h-screen flex-col gap-5 overflow-x-hidden overflow-y-auto bg-surface-soft lg:flex",
+          // The rail still scrolls on a very short window, without a scrollbar beside its icons.
+          collapsed ? "items-center px-3 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "scroll-area p-5",
+        )}
+      >
+        {collapsed ? <RailLogo toggleRef={toggleButton} onExpand={toggle} /> : <Logo toggleRef={toggleButton} onCollapse={toggle} />}
+        <EventCard rail={collapsed} />
+        <AddMenu rail={collapsed} className={collapsed ? "size-10" : "w-full"} />
+        <nav aria-label="Sections" className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>{NAV.map((item) => navLink(item))}</nav>
+        {/* Editing the event and the theme wait for the full sidebar. */}
+        {!collapsed && (
+          <div className="mt-auto space-y-0.5 border-t pt-3">
+            <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
+              <PencilLine className="size-4" aria-hidden="true" /> Edit event details
+            </button>
+            <AppearanceControl />
+            <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
+          </div>
+        )}
       </aside>
 
       <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
