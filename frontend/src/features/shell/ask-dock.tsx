@@ -10,25 +10,16 @@ import { FieldError } from "@/components/field-error";
 import { api } from "@/lib/api";
 import type { PlanRequest, UnderstandResponse } from "@/lib/types";
 import { useMediaQuery } from "@/lib/use-media-query";
-import { speechSupported, useSpeech, type SpeechError } from "@/lib/use-speech";
+import { speechSupported, useSpeech } from "@/lib/use-speech";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";
 import { headline, reviewRows, suggestions } from "./ask-words";
 
 const PHONE = "(max-width: 767.98px)";
 const OPENED_KEY = "ask:opened";
-const VOICE_NOTED_KEY = "ask:voice-noted";
 const draftKey = (eventId: string) => `ask:draft:${eventId}`;
 // Rows the review card shows before "Show n more".
 const ROWS_SHOWN = 5;
-
-// How long a voice problem stays on screen.
-const VOICE_ERROR_MS = 2000;
-const VOICE_ERRORS: Record<SpeechError, string> = {
-  "no-speech": "I couldn't hear anything. Try again, or type it.",
-  denied: "Microphone access is off. You can type your change instead.",
-  failed: "Voice isn't working right now. You can type your change instead.",
-};
 
 // Storage can be blocked (private mode, site data off); the dock works without it.
 const read = (storage: () => Storage, key: string) => {
@@ -63,7 +54,6 @@ export function AskDock() {
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [pulse] = useState(() => !read(local, OPENED_KEY));
-  const [voiceNote, setVoiceNote] = useState(false);
   const ticket = useRef(0);
   const dock = useRef<HTMLDivElement>(null);
   const circle = useRef<HTMLButtonElement>(null);
@@ -85,13 +75,6 @@ export function AskDock() {
     heard.current = false;
     field.current?.focus();
   }, [speech.listening]);
-  // A voice problem is said once, briefly; the field is right there to type instead.
-  const { error: voiceError, clearError } = speech;
-  useEffect(() => {
-    if (!voiceError) return;
-    const timer = window.setTimeout(clearError, VOICE_ERROR_MS);
-    return () => window.clearTimeout(timer);
-  }, [voiceError, clearError]);
 
   // Unsent words wait for the organiser while this tab is open, per event.
   useEffect(() => {
@@ -201,14 +184,7 @@ export function AskDock() {
     };
   }, [phone, open, close]);
 
-  const listen = () => {
-    if (speech.listening) return speech.stop();
-    if (!read(local, VOICE_NOTED_KEY)) {
-      setVoiceNote(true);
-      write(local, VOICE_NOTED_KEY, "1");
-    }
-    speech.start();
-  };
+  const listen = () => (speech.listening ? speech.stop() : speech.start());
 
   // Esc steps back one level: listening, then the review card, then the bar.
   const onKeyDown = (event: KeyboardEvent) => {
@@ -226,10 +202,7 @@ export function AskDock() {
     }
   };
 
-  const message = !aiAvailable ? null
-    : speech.error ? VOICE_ERRORS[speech.error]
-      : voiceNote && speech.listening ? "Voice is processed by your browser's speech service."
-        : null;
+  const message = aiAvailable ? speech.message : null;
   const chips = open && stage === "open" && aiAvailable && !text.trim() && !speech.listening && !busy
     ? suggestions(inputs, plan.rebalance?.over_budget_inr ?? 0) : [];
 

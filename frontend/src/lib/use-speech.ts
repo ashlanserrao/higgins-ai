@@ -29,7 +29,7 @@ const Speech = scope.SpeechRecognition ?? scope.webkitSpeechRecognition;
 export const speechSupported = Boolean(Speech);
 
 /** Why listening ended without words. */
-export type SpeechError = "no-speech" | "denied" | "failed";
+type SpeechError = "no-speech" | "denied" | "failed";
 
 const reason = (code: string): SpeechError | null =>
   code === "aborted" ? null
@@ -37,12 +37,37 @@ const reason = (code: string): SpeechError | null =>
       : code === "not-allowed" || code === "service-not-allowed" ? "denied"
         : "failed";
 
+// Calm, and always pointing back to the keyboard.
+const ERRORS: Record<SpeechError, string> = {
+  "no-speech": "I couldn't hear anything. Try again, or type it.",
+  denied: "Microphone access is off. You can type instead.",
+  failed: "Voice isn't working right now. You can type instead.",
+};
+// A problem is said once, briefly: the field is right there to type in.
+const ERROR_MS = 2000;
+// Said while listening the first time this browser uses voice, here or anywhere in the app.
+const FIRST_USE = "Voice is processed by your browser's speech service.";
+const NOTED_KEY = "voice:noted";
+
+/** True the first time only. Storage can be blocked: then it's said every visit. */
+function firstUse() {
+  try {
+    if (localStorage.getItem(NOTED_KEY)) return false;
+    localStorage.setItem(NOTED_KEY, "1");
+  } catch {
+    // Not remembered.
+  }
+  return true;
+}
+
 /** `onHeard` gets the final words once listening stops on its own, by stop() or when the tab is
- *  hidden; abort() drops them. One pause in speech ends listening (no continuous mode). */
+ *  hidden; abort() drops them. One pause in speech ends listening (no continuous mode).
+ *  `message` is what to show beside the mic: a problem for two seconds, or the first-use note. */
 export function useSpeech(onHeard: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<SpeechError | null>(null);
+  const [noting, setNoting] = useState(false);
   const current = useRef<{ recognition: Recognition; dropped: boolean } | null>(null);
   const heard = useRef(onHeard);
   useEffect(() => {
@@ -55,6 +80,7 @@ export function useSpeech(onHeard: (text: string) => void) {
     current.current.dropped = true;
     current.current.recognition.abort();
   }, []);
+  const clearError = useCallback(() => setError(null), []);
 
   const start = useCallback(() => {
     if (!Speech || current.current) return;
@@ -85,7 +111,14 @@ export function useSpeech(onHeard: (text: string) => void) {
     }
     current.current = session;
     setListening(true);
+    setNoting(firstUse());
   }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = window.setTimeout(clearError, ERROR_MS);
+    return () => window.clearTimeout(timer);
+  }, [error, clearError]);
 
   // A hidden tab keeps what was heard; leaving the page drops it.
   useEffect(() => {
@@ -96,5 +129,6 @@ export function useSpeech(onHeard: (text: string) => void) {
   }, [listening, stop]);
   useEffect(() => abort, [abort]);
 
-  return { listening, transcript, error, clearError: useCallback(() => setError(null), []), start, stop, abort };
+  const message = error ? ERRORS[error] : noting && listening ? FIRST_USE : null;
+  return { listening, transcript, message, clearError, start, stop, abort };
 }
