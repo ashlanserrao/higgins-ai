@@ -423,16 +423,15 @@ html.theme-switching *::after {
 }
 
 /* Thin, quiet scrollbars: a slim warm thumb, no track. Standard properties only (no
-   ::-webkit-scrollbar). Mouse and trackpad only: touch screens keep their native overlay. */
-@media (hover: hover) and (pointer: fine) {
-  html,
-  .scroll-area {
-    scrollbar-width: thin;
-    scrollbar-color: var(--scroll-thumb) transparent;
-  }
-  .scroll-area:hover {
-    scrollbar-color: var(--scroll-thumb-hover) transparent;
-  }
+   ::-webkit-scrollbar). On every device, not only where a mouse is detected: touchscreen laptops
+   can report no mouse at all, and the app is used mostly on laptops. */
+html,
+.scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+}
+.scroll-area:hover {
+  scrollbar-color: var(--scroll-thumb-hover) transparent;
 }
 
 /*

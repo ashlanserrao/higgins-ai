@@ -1,5 +1,6 @@
-// Light, dark or auto (follows the device). A per-device preference, kept apart from event
-// data. public/theme-init.js applies it before first paint; this keeps it in step afterwards.
+// Light or dark, a per-device preference kept apart from event data. Until the organiser picks
+// one it's "auto" and follows the device (the toggle shows whichever is showing).
+// public/theme-init.js applies it before first paint; this keeps it in step afterwards.
 
 import { useSyncExternalStore } from "react";
 

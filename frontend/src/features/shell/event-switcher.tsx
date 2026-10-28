@@ -85,7 +85,7 @@ export function EventSwitcher({ className, withAppearance = false, variant }: { 
   const [renaming, setRenaming] = useState<SavedEvent | null>(null);
   const [deleting, setDeleting] = useState<SavedEvent | null>(null);
   const [appearance, setAppearance] = useState(false);
-  const { preference } = useTheme();
+  const { resolved } = useTheme();
   const trigger = useRef<HTMLButtonElement>(null);
   const nameField = useId();
   const current = events.find((e) => e.id === activeId);
@@ -148,7 +148,7 @@ export function EventSwitcher({ className, withAppearance = false, variant }: { 
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setAppearance(true)} className="gap-3 px-2.5 py-2">
-                <SunMoon aria-hidden="true" /> Appearance: {THEME_OPTIONS.find((o) => o.value === preference)?.label}
+                <SunMoon aria-hidden="true" /> Appearance: {THEME_OPTIONS.find((o) => o.value === resolved)?.label}
               </DropdownMenuItem>
             </>
           )}

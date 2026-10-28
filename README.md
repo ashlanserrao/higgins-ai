@@ -213,7 +213,7 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 - Results are announced through an `aria-live` status region, and focus moves to the plan heading.
 - Field errors are linked with `aria-describedby` and `aria-invalid`, and focus moves to the first invalid field.
 - Focus never drops to the page: dialogs return it to what opened them (or the menu's button, or the next sensible control). Toasts announce the Ctrl+Z undo shortcut, so undo is reachable before they leave.
-- Colors meet WCAG AA contrast in both light and dark mode. Status never relies on color alone ("Book today", "(overdue)", "priority" tags). Touch targets are at least 44 px. The layout is phone-first.
+- Colors meet WCAG AA contrast in both light and dark mode. Status never relies on color alone ("Book today", "(overdue)", "priority" tags). Touch targets are at least 44 px, apart from the compact Light/Dark toggle in the sidebar (28 px, above the 24 px minimum). The layout is phone-first.
 
 ## Lighthouse
 
