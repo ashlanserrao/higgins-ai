@@ -2,7 +2,7 @@
 // each badge pairs an icon with a word.
 
 import type { ReactNode } from "react";
-import { AlertTriangle, BadgeCheck, Calculator, CheckCircle2, CircleDashed, Clock, Sparkles, type LucideIcon } from "lucide-react";
+import { AlertTriangle, BadgeCheck, CheckCircle2, CircleDashed, Clock, Sparkles, type LucideIcon } from "lucide-react";
 import type { TaskTone } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
 
@@ -40,13 +40,6 @@ export function SourceBadge({ source }: { source: "estimate" | "confirmed" }) {
     <StatusBadge tone="neutral">Estimate</StatusBadge>
   );
 }
-
-/** The deterministic side: numbers and dates worked out by the rules, not guessed by AI. */
-export const EngineBadge = () => (
-  <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-soft px-2.5 py-1 text-xs font-medium text-muted-foreground">
-    <Calculator className="size-3.5" aria-hidden="true" /> Worked out for you, no maths needed
-  </span>
-);
 
 export const AiNote = ({ children = "Suggested by AI. Give it a quick check before using it." }: { children?: ReactNode }) => (
   <p className="flex items-center gap-1.5 text-xs font-medium text-ai">

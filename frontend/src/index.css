@@ -23,7 +23,8 @@
 
 /*
   Design tokens: the single source of truth for colour, type, shape and depth.
-  "Warm editorial": ivory surfaces, a soft serif for display, shadows over borders.
+  "Warm editorial": ivory surfaces, a soft serif for display, hairline borders and no
+  shadows, except the Ask Higgins circle, which floats over the page.
   60-30-10: canvas and soft surfaces (60), white cards and text (30), accent (10).
   Two themes (light, and dark under [data-theme="dark"]) x three event accents. Every
   text/background pair meets WCAG AA in all six: `npm run contrast` checks and prints them.
@@ -86,9 +87,8 @@
   --band-from: color-mix(in srgb, var(--accent) 70%, black);
   --band-to: color-mix(in srgb, var(--accent) 84%, black);
 
-  --shadow-tone: #2b1b20; /* the colour inside the shadows below */
-  --shadow-card: 0 1px 2px rgba(43, 27, 32, 0.04), 0 8px 24px rgba(43, 27, 32, 0.06);
-  --shadow-raised: 0 2px 4px rgba(43, 27, 32, 0.05), 0 16px 40px rgba(43, 27, 32, 0.1);
+  --shadow-tone: #2b1b20; /* the how-it-works drawing's shading */
+  --shadow-float: 0 2px 4px rgba(43, 27, 32, 0.05), 0 16px 40px rgba(43, 27, 32, 0.1); /* the Ask Higgins circle only */
 
   /* shadcn/ui names, mapped onto the tokens above. */
   --background: var(--bg-canvas);
@@ -203,8 +203,7 @@
     --band-to: color-mix(in srgb, var(--accent) 75%, var(--bg-canvas));
 
     --shadow-tone: #000000;
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-raised: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.45);
+    --shadow-float: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 16px 40px rgba(0, 0, 0, 0.45);
 
     --destructive: #b23b0a; /* the filled "Delete" button; danger text uses --urgent */
     --ring: var(--accent-ink);
@@ -300,8 +299,7 @@ html.theme-switching *::after {
   --radius-xl: 20px;
   --radius-2xl: 20px;
 
-  --shadow-card: var(--shadow-card);
-  --shadow-raised: var(--shadow-raised);
+  --shadow-float: var(--shadow-float);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -377,8 +375,8 @@ html.theme-switching *::after {
 /* Ask Higgins (features/shell/ask-dock.tsx): the circle's first-visit ring, the mic while it
    listens, and the waveform's bars. */
 @keyframes ask-pulse {
-  0% { box-shadow: var(--shadow-raised), 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
-  100% { box-shadow: var(--shadow-raised), 0 0 0 14px transparent; }
+  0% { box-shadow: var(--shadow-float), 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
+  100% { box-shadow: var(--shadow-float), 0 0 0 14px transparent; }
 }
 @keyframes ask-listen {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent); }

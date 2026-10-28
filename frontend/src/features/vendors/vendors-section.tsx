@@ -35,10 +35,12 @@ function PasteQuote({ onDraft, onManual }: { onDraft: (quote: Quote) => void; on
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const field = useRef<HTMLTextAreaElement>(null);
+  const manual = useRef<HTMLButtonElement>(null);
 
+  // Without the AI the paste box is off, so typing the quote in is where to start.
   useEffect(() => {
-    if (consumeIntent("add-quote")) field.current?.focus();
-  }, [consumeIntent]);
+    if (consumeIntent("add-quote")) (aiAvailable ? field : manual).current?.focus();
+  }, [consumeIntent, aiAvailable]);
 
   const read = async (event: FormEvent) => {
     event.preventDefault();
@@ -73,7 +75,7 @@ function PasteQuote({ onDraft, onManual }: { onDraft: (quote: Quote) => void; on
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="num text-xs text-muted-foreground">{text.length} / 3,000</span>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onManual}><PencilLine aria-hidden="true" /> Type it in</Button>
+            <Button ref={manual} type="button" variant="outline" onClick={onManual}><PencilLine aria-hidden="true" /> Type it in</Button>
             <Button type="submit" disabled={!aiAvailable || busy || !text.trim()} aria-busy={busy}>
               {busy ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Sparkles aria-hidden="true" />}
               {busy ? "Reading…" : "Read the quote"}
@@ -106,7 +108,7 @@ function QuoteCard({ quote, comparison, onEdit }: { quote: Quote; comparison: Qu
   const remove = () => run((quotes) => quotes.filter((q) => q.id !== quote.id), `Deleted ${name}'s quote`);
 
   return (
-    <article className={cn("flex flex-col rounded-xl bg-card p-5 shadow-card transition-[box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-raised", comparison.accepted && "ring-2 ring-success")} aria-label={`Quote from ${name}`}>
+    <article className={cn("flex flex-col rounded-xl border bg-card p-5", comparison.accepted && "ring-2 ring-success")} aria-label={`Quote from ${name}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           {comparison.accepted && <StatusBadge tone="success" icon={BadgeCheck} className="mb-1.5">Accepted · Confirmed</StatusBadge>}

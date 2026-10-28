@@ -162,7 +162,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
         </>
       )}
 
-      <form onSubmit={onSubmit} noValidate className="rounded-xl bg-card p-5 shadow-card md:p-7">
+      <form onSubmit={onSubmit} noValidate className="rounded-xl border bg-card p-5 md:p-7">
         <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Steps">
           {STEPS.map((name, index) => (
             <li key={name}>

@@ -240,7 +240,7 @@ export function AskDock() {
         "no-print fixed z-40 flex flex-col items-end",
         open && phone
           // A sheet across the foot of a phone, over the bottom navigation.
-          ? "inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom)+var(--ask-kb,0px))] rounded-2xl border bg-popover p-2 shadow-raised [[data-theme=dark]_&]:border-(--hairline-strong)"
+          ? "inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom)+var(--ask-kb,0px))] rounded-2xl border bg-popover p-2 [[data-theme=dark]_&]:border-(--hairline-strong)"
           // Bottom right of the content: above the bottom navigation, or beside the sidebar.
           : "pointer-events-none right-4 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] left-4 lg:right-6 lg:bottom-6 lg:left-[calc(var(--sidebar-w,260px)+24px)]",
       )}
@@ -250,7 +250,7 @@ export function AskDock() {
           aria-labelledby={headingId}
           className={cn(
             "pointer-events-auto mb-2 max-h-[min(60vh,520px)] w-[min(520px,100%)] scroll-area overflow-y-auto rounded-[18px] p-4",
-            phone ? "w-full bg-surface-soft" : "border bg-popover shadow-raised [[data-theme=dark]_&]:border-(--hairline-strong)",
+            phone ? "w-full bg-surface-soft" : "border bg-popover [[data-theme=dark]_&]:border-(--hairline-strong)",
           )}
         >
           <Review
@@ -270,7 +270,7 @@ export function AskDock() {
                   setText(example);
                   void send(example);
                 }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border bg-popover px-3 text-[13px] whitespace-nowrap shadow-card outline-none hover:bg-surface-soft focus-visible:ring-[3px] focus-visible:ring-ring/50 pointer-coarse:h-11 [[data-theme=dark]_&]:shadow-none"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border bg-popover px-3 text-[13px] whitespace-nowrap outline-none hover:bg-surface-soft focus-visible:ring-[3px] focus-visible:ring-ring/50 pointer-coarse:h-11"
               >
                 <Icon className="size-3.5 text-primary-text" aria-hidden="true" /> {example}
               </button>
@@ -282,7 +282,7 @@ export function AskDock() {
       {/* Always mounted, so what it says is read out as it changes. */}
       <div aria-live="polite" className="contents">
         {message && (
-          <p className="pointer-events-auto mb-2 w-[min(520px,100%)] rounded-xl border bg-popover px-3 py-2 text-[13px] text-muted-foreground shadow-card max-md:w-full [[data-theme=dark]_&]:shadow-none">
+          <p className="pointer-events-auto mb-2 w-[min(520px,100%)] rounded-xl border bg-popover px-3 py-2 text-[13px] text-muted-foreground max-md:w-full">
             {message}
           </p>
         )}
@@ -298,7 +298,9 @@ export function AskDock() {
           // Grows leftwards from the circle: the right edge stays put.
           open ? (phone ? "w-full" : "w-[min(520px,100%)]") : "w-[52px]",
           !phone && "transition-[width,background-color] duration-280 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          !(open && phone) && "shadow-raised [[data-theme=dark]_&]:border-(--hairline-strong)",
+          !(open && phone) && "[[data-theme=dark]_&]:border-(--hairline-strong)",
+          // The one shadow in the app: the circle floats over whatever page is under it.
+          !open && "shadow-float",
           pulse && !open && "motion-safe:animate-[ask-pulse_1.6s_ease-out_600ms_2]",
         )}
       >

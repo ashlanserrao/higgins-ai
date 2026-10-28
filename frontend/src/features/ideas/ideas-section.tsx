@@ -42,7 +42,7 @@ export function IdeasSection() {
         )}
       </PageBand>
       {/* One card over the band's foot, whatever state the ideas are in. */}
-      <section aria-label="Your ideas" className="space-y-4 rounded-xl border bg-card p-4 shadow-card md:p-[18px] [[data-theme=dark]_&]:shadow-none">
+      <section aria-label="Your ideas" className="space-y-4 rounded-xl border bg-card p-4 md:p-[18px]">
         <IdeasStatusLine />
         <div aria-live="polite" aria-busy={loading} className="space-y-4">
           {ideasStatus === "unavailable" && (
@@ -64,7 +64,7 @@ export function IdeasSection() {
                 ) : ideas ? (
                   <ul className="space-y-3">
                     {ideas[key].map((idea) => (
-                      <li key={idea.title} className="rounded-lg bg-card p-4 shadow-card">
+                      <li key={idea.title} className="rounded-lg border bg-card p-4">
                         <p className="font-display text-base">{idea.title}</p>
                         <p className="mt-0.5 text-sm text-muted-foreground">{idea.detail}</p>
                       </li>

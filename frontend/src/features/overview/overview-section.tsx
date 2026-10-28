@@ -6,7 +6,7 @@ import {
   AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Compass, GitBranch, Info, Lightbulb, MessageSquareText, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AiBadge, AiNote, EngineBadge, StatusBadge } from "@/components/badges";
+import { AiBadge, AiNote, StatusBadge } from "@/components/badges";
 import { Panel, Stat } from "@/components/layout";
 import { MessageDialog } from "@/components/app/message-dialog";
 import { formatDate, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
@@ -33,7 +33,7 @@ function ActionCard({ tone, badge, title, detail, children, footer }: {
 }) {
   return (
     <article className={cn(
-      "flex flex-col rounded-xl p-5 transition-[box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-raised",
+      "flex flex-col rounded-xl p-5",
       tone === "danger" ? "bg-danger-soft/60" : "bg-warning-soft/70",
     )}>
       <StatusBadge tone={tone} icon={tone === "danger" ? AlertTriangle : Info} className="self-start bg-surface/80">{badge}</StatusBadge>
@@ -178,7 +178,7 @@ export function WhatMoved() {
   const moved = knockOn.length > 0 || plan.rebalance || lastChange;
 
   return (
-    <Panel title="What changed" icon={GitBranch} actions={<EngineBadge />}
+    <Panel title="What changed" icon={GitBranch}
       description="When a vendor slips, a quote comes in or your numbers change, here's what moved.">
       {!moved && <p className="text-sm text-muted-foreground">Nothing has moved yet. When something changes, you'll see the ripple here.</p>}
       {lastChange && (
@@ -227,7 +227,7 @@ export function IdeasTeaser() {
           <IdeasStatusLine />
           <ul className="space-y-2">
             {[ideas.themes[0], ideas.decor[0], ideas.food[0]].filter(Boolean).map((idea) => (
-              <li key={idea.title} className="rounded-lg bg-surface p-4 shadow-card">
+              <li key={idea.title} className="rounded-lg border bg-surface p-4">
                 <p className="font-display text-base">{idea.title}</p>
                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{idea.detail}</p>
               </li>
@@ -275,9 +275,10 @@ export function VitalSigns() {
 export function OverviewSection() {
   const { lead, attention } = useNextStep();
   return (
-    <div>
+    <div className="space-y-6">
       <OverviewBand />
-      <OverviewCard next={<NextStepPanel lead={lead} attention={attention} />} nextBadge={<NextStepBadge attention={attention} />} footer={<BudgetBlock />} />
+      <BudgetBlock />
+      <OverviewCard next={<NextStepPanel lead={lead} attention={attention} />} nextBadge={<NextStepBadge attention={attention} />} />
     </div>
   );
 }

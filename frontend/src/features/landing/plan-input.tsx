@@ -26,7 +26,7 @@ export function PlanInput({ id, value, onChange, onSubmit }: {
   };
 
   return (
-    <form onSubmit={submit} className="rounded-[18px] border border-hairline bg-surface p-4 text-left shadow-card md:p-5">
+    <form onSubmit={submit} className="rounded-[18px] border border-hairline bg-surface p-4 text-left md:p-5">
       <label htmlFor={id} className="sr-only">{COPY.hero.label}</label>
       <Textarea
         id={id} rows={3} maxLength={500} value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}

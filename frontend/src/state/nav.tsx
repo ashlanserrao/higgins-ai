@@ -40,9 +40,11 @@ function useNavState() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  // Move focus to the new section's heading so keyboard and screen-reader users land there.
+  // Move focus to the new section's heading so keyboard and screen-reader users land there,
+  // unless an intent opens a tool, which focuses its own first field. Runs on a section change
+  // only, reading the intent that came with it.
   useEffect(() => {
-    document.querySelector<HTMLElement>("[data-section-title]")?.focus({ preventScroll: true });
+    if (!intent) document.querySelector<HTMLElement>("[data-section-title]")?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });
   }, [section]);
 

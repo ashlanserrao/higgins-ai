@@ -50,7 +50,7 @@ export function AppearanceControl() {
               onKeyDown={(e) => onKeyDown(e, index)}
               className={cn(
                 "grid size-7 place-items-center rounded-full text-muted-foreground transition-colors",
-                checked ? "bg-surface text-foreground shadow-card" : "hover:text-foreground",
+                checked ? "bg-surface text-foreground ring-1 ring-border" : "hover:text-foreground",
               )}
             >
               <Icon className="size-3.5" aria-hidden="true" />

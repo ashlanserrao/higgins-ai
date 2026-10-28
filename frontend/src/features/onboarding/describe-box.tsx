@@ -63,7 +63,7 @@ export function DescribeBox({ initialText, active, onFilled, onTyping }: {
   };
 
   return (
-    <form onSubmit={submit} className="rounded-xl bg-ai-soft p-5 shadow-card ring-1 ring-ai-border md:p-7">
+    <form onSubmit={submit} className="rounded-xl border border-ai-border bg-ai-soft p-5 md:p-7">
       <div className="mb-2 flex items-center justify-between gap-2">
         <Label htmlFor="describe" className="font-display text-lg font-normal">Tell me about it in your own words</Label>
         <AiBadge />

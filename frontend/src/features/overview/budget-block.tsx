@@ -1,6 +1,7 @@
-// The foot of the Overview card: where the budget goes as one stacked bar, and a line on what
-// the engine last moved (money shifted when a quote came in), if anything.
+// The Overview's budget card, over the band's foot: where the budget goes as one stacked bar, and
+// a line on what the engine last moved (money shifted when a quote came in), if anything.
 
+import { useId } from "react";
 import { ArrowRight, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { inr } from "@/lib/format";
@@ -36,11 +37,15 @@ export function BudgetBlock() {
   const { go } = useNav();
   const parts = segments(plan.budget_lines);
   const note = plan.rebalance && !plan.rebalance.over_budget_inr ? plan.rebalance.explanation : "";
+  const titleId = useId();
 
   return (
-    <div className="mt-4 border-t pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-sans text-[13px] font-medium">Where your {inr(inputs.budget_inr)} goes</h2>
+    <section aria-labelledby={titleId} className="rounded-xl border bg-card p-4 md:p-[18px]">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <div>
+          <h2 id={titleId} className="font-sans text-base font-semibold">Budget breakdown</h2>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Where your {inr(inputs.budget_inr)} goes</p>
+        </div>
         <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("budget")}>
           Open budget <ArrowRight aria-hidden="true" />
         </Button>
@@ -68,6 +73,6 @@ export function BudgetBlock() {
           <PiggyBank className="mt-px size-3.5 shrink-0 text-success" aria-hidden="true" /> {note}
         </p>
       )}
-    </div>
+    </section>
   );
 }

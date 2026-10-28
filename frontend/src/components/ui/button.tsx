@@ -8,9 +8,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary font-semibold text-primary-foreground shadow-card hover:bg-primary-hover",
+        default: "bg-primary font-semibold text-primary-foreground hover:bg-primary-hover",
         ai: "border border-ai-border bg-ai-tint text-ai hover:bg-ai-border/60",
-        aiSolid: "bg-ai-solid font-semibold text-primary-foreground shadow-card hover:bg-ai-solid-hover",
+        aiSolid: "bg-ai-solid font-semibold text-primary-foreground hover:bg-ai-solid-hover",
         destructive:
           "bg-destructive text-primary-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         outline:

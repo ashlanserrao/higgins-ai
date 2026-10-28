@@ -7,7 +7,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EngineBadge, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
 import { Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
 import { MessageDialog } from "@/components/app/message-dialog";
@@ -48,7 +48,7 @@ function TaskRow({ item, onBook, onMessage, onClear }: {
   const wasDone = useRef(item.done);
   const celebrate = item.done && !wasDone.current;
   return (
-    <li className={cn("flex flex-wrap items-start gap-3 rounded-lg bg-card p-4 shadow-card md:flex-nowrap", badge.tone === "danger" && "ring-1 ring-danger-border", item.done && "bg-surface-soft shadow-none")}>
+    <li className={cn("flex flex-wrap items-start gap-3 rounded-lg border bg-card p-4 md:flex-nowrap", badge.tone === "danger" && "border-danger-border", item.done && "bg-surface-soft")}>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className={cn("font-sans text-sm font-semibold", item.done && "text-muted-foreground")}>{item.label}</h3>
@@ -147,7 +147,7 @@ export function TasksSection() {
         description="Book each vendor before its book-by date. Mark what's booked or running late, and everything that depends on it adjusts on its own."
       />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <Panel title="Bookings" icon={Link2} actions={<EngineBadge />}>
+        <Panel title="Bookings" icon={Link2}>
           <Tabs value={filter} onValueChange={setFilter} className="mb-4">
             <TabsList>
               <TabsTrigger value="all">All</TabsTrigger>

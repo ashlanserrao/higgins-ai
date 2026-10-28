@@ -1,5 +1,5 @@
-// The Overview's card, overlapping the band: three tabs (the next step, what's coming up, ideas)
-// over panels that size to their own content.
+// The Overview's tabbed card, under the budget card: three tabs (the next step, what's coming up,
+// ideas) over panels that size to their own content.
 
 import { useState, type ReactNode } from "react";
 import { ArrowRight, Flag, Sparkles } from "lucide-react";
@@ -50,7 +50,7 @@ function TabLabel({ children }: { children: string }) {
   );
 }
 
-export function OverviewCard({ next, nextBadge, footer }: { next: ReactNode; nextBadge?: ReactNode; footer?: ReactNode }) {
+export function OverviewCard({ next, nextBadge }: { next: ReactNode; nextBadge?: ReactNode }) {
   const [tab, setTab] = useState(readTab);
   const choose = (value: string) => {
     setTab(value as OverviewTab);
@@ -58,15 +58,17 @@ export function OverviewCard({ next, nextBadge, footer }: { next: ReactNode; nex
   };
 
   return (
-    <section aria-label="Your plan" className="rounded-xl border bg-card p-4 shadow-card md:p-[18px] [[data-theme=dark]_&]:shadow-none">
+    <section aria-label="Your plan" className="rounded-xl border bg-card p-4 md:p-[18px]">
       <TabsPrimitive.Root value={tab} onValueChange={choose}>
-        <TabsPrimitive.List className="no-print flex gap-6 border-b">
+        {/* Flat pills: the chosen one takes the event's soft tint, so the filled action button
+            below stays the only solid one. */}
+        <TabsPrimitive.List className="no-print flex flex-wrap gap-1.5">
           {TABS.map(({ id, label, short }) => (
             <TabsPrimitive.Trigger
               key={id} value={id}
               className={cn(
-                "-mb-px flex min-h-11 items-center gap-1.5 rounded-sm border-b-2 border-transparent px-0.5 text-sm text-tertiary hover:text-foreground",
-                "data-[state=active]:border-primary data-[state=active]:font-medium data-[state=active]:text-foreground",
+                "flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-sm text-muted-foreground transition-colors hover:bg-surface-soft hover:text-foreground pointer-coarse:min-h-11",
+                "data-[state=active]:bg-primary-soft data-[state=active]:font-medium data-[state=active]:text-primary-ink",
               )}
             >
               <span className="min-[420px]:hidden"><TabLabel>{short}</TabLabel></span>
@@ -90,7 +92,6 @@ export function OverviewCard({ next, nextBadge, footer }: { next: ReactNode; nex
           </TabsPrimitive.Content>
         ))}
       </TabsPrimitive.Root>
-      {footer}
     </section>
   );
 }

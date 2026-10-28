@@ -1,14 +1,14 @@
-// Budget: every line with Estimate / Confirmed, what re-budgeting did, and moving money
-// between lines with a before/after preview.
+// Budget: every line with Estimate / Confirmed and what re-budgeting did. The same card turns
+// into the money mover (between lines, with a before/after preview), so it's never a scroll away.
 
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, PiggyBank, Scale, Trash2, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, PiggyBank, Scale, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EngineBadge, SourceBadge, StatusBadge } from "@/components/badges";
+import { SourceBadge, StatusBadge } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
 import { Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
@@ -89,9 +89,9 @@ export function BudgetTable({ detailed = false }: { detailed?: boolean }) {
   );
 }
 
-function MoveMoney() {
+/** The money mover, inside the Every line card. `focusFirst`: opened from Add → Move money. */
+function MoveMoney({ focusFirst }: { focusFirst: boolean }) {
   const { plan, inputs } = usePlan();
-  const { consumeIntent } = useNav();
   const { preview, dialog } = useChangePreview();
   const movable = plan.budget_lines.filter((l) => l.source !== "confirmed");
   const [from, setFrom] = useState("");
@@ -103,8 +103,8 @@ function MoveMoney() {
   const label = (key: string) => plan.budget_lines.find((l) => l.key === key)?.label ?? key;
 
   useEffect(() => {
-    if (consumeIntent("move-money")) fromField.current?.focus();
-  }, [consumeIntent]);
+    if (focusFirst) fromField.current?.focus();
+  }, [focusFirst]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -130,8 +130,9 @@ function MoveMoney() {
   };
 
   return (
-    <Panel title="Move money" icon={Scale} description="Shift budget between categories. Lines with an accepted quote stay as they are.">
-      <form onSubmit={submit} className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end" noValidate>
+    // Laid out by the card's own width (it shares a row with the chart on wide screens).
+    <div className="@container">
+      <form onSubmit={submit} className="grid gap-3 @lg:grid-cols-[1fr_auto_1fr] @lg:items-end" noValidate>
         <div className="grid gap-1.5">
           <Label htmlFor="move-from">From</Label>
           <Select value={from} onValueChange={setFrom}>
@@ -139,7 +140,7 @@ function MoveMoney() {
             <SelectContent>{movable.map((l) => <SelectItem key={l.key} value={l.key}>{l.label} · {inr(l.amount_inr)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <ArrowRight className="hidden size-4 self-center text-muted-foreground sm:mt-6 sm:block" aria-hidden="true" />
+        <ArrowRight className="hidden size-4 self-center text-muted-foreground @lg:mt-6 @lg:block" aria-hidden="true" />
         <div className="grid gap-1.5">
           <Label htmlFor="move-to">To</Label>
           <Select value={to} onValueChange={setTo}>
@@ -147,7 +148,7 @@ function MoveMoney() {
             <SelectContent>{movable.filter((l) => l.key !== from).map((l) => <SelectItem key={l.key} value={l.key}>{l.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="grid gap-1.5 sm:col-span-3 sm:grid-cols-[1fr_auto] sm:items-end sm:gap-3">
+        <div className="grid gap-1.5 @lg:col-span-3 @md:grid-cols-[1fr_auto] @md:items-end @md:gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="move-amount">Amount (₹, steps of 100)</Label>
             <Input id="move-amount" type="number" inputMode="numeric" min={100} step={100} value={amount} className="num"
@@ -155,7 +156,7 @@ function MoveMoney() {
           </div>
           <Button type="submit" disabled={moves.length >= 10}>Preview the move</Button>
         </div>
-        <div className="sm:col-span-3"><FieldError id="move-error">{error}</FieldError></div>
+        <div className="@lg:col-span-3"><FieldError id="move-error">{error}</FieldError></div>
       </form>
 
       {moves.length > 0 && (
@@ -176,6 +177,41 @@ function MoveMoney() {
         </ul>
       )}
       {dialog}
+    </div>
+  );
+}
+
+/** Every line, or (one click away, in the same place) the money mover. */
+function LinesCard() {
+  const { plan } = usePlan();
+  const { consumeIntent } = useNav();
+  const [moving, setMoving] = useState(false);
+  // Add → Move money lands here with the mover open and its first field focused.
+  const [fromMenu, setFromMenu] = useState(false);
+  useEffect(() => {
+    if (!consumeIntent("move-money")) return;
+    setMoving(true);
+    setFromMenu(true);
+  }, [consumeIntent]);
+  const toggle = (
+    <Button variant="outline" size="sm" onClick={() => { setMoving(!moving); setFromMenu(false); }}>
+      {moving ? <><ArrowLeft aria-hidden="true" /> Every line</> : <><Scale aria-hidden="true" /> Move money</>}
+    </Button>
+  );
+
+  return moving ? (
+    <Panel title="Move money" icon={Scale} actions={toggle} className="xl:self-start" description="Shift budget between categories. Lines with an accepted quote stay as they are.">
+      <MoveMoney focusFirst={fromMenu} />
+    </Panel>
+  ) : (
+    <Panel title="Every line" icon={Wallet} actions={toggle} className="xl:self-start">
+      <div className="space-y-4">
+        <RebalanceNote />
+        <BudgetTable detailed />
+        {plan.per_flat_inr !== null && (
+          <p className="text-sm">Per-flat contribution: <span className="num font-semibold">{inr(plan.per_flat_inr)}</span></p>
+        )}
+      </div>
     </Panel>
   );
 }
@@ -188,18 +224,9 @@ export function BudgetSection() {
         eyebrow={`${inr(inputs.budget_inr)} · ${inr(plan.per_guest_inr)} per guest · ${LEVEL_LABELS[plan.budget_level]} budget`}
         title="Budget"
         description="Estimates are typical costs for Indian events like yours. A line turns Confirmed when you accept a quote, and the rest adjusts around it."
-        actions={<EngineBadge />}
       />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Panel title="Every line" icon={Wallet}>
-          <div className="space-y-4">
-            <RebalanceNote />
-            <BudgetTable detailed />
-            {plan.per_flat_inr !== null && (
-              <p className="text-sm">Per-flat contribution: <span className="num font-semibold">{inr(plan.per_flat_inr)}</span></p>
-            )}
-          </div>
-        </Panel>
+        <LinesCard />
         <div className="space-y-6">
           <Panel title="Split">
             <Suspense fallback={<div className="h-56" />}><BudgetChart /></Suspense>
@@ -212,7 +239,6 @@ export function BudgetSection() {
           )}
         </div>
       </div>
-      <MoveMoney />
     </div>
   );
 }

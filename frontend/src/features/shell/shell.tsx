@@ -63,6 +63,10 @@ function AddMenu({ className, rail = false }: { className?: string; rail?: boole
     { label: "Add a guest", icon: UserPlus, section: "guests", intent: "add-guest" },
     { label: "Move money", icon: Wallet, section: "budget", intent: "move-money" },
   ];
+  // A chosen item opens its tool with the first field focused. The menu holds focus until it
+  // has fully closed, so the page changes only then; a menu closed without a choice hands
+  // focus back to Add.
+  const chosen = useRef<{ section: Section; intent: Intent } | null>(null);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -70,11 +74,19 @@ function AddMenu({ className, rail = false }: { className?: string; rail?: boole
           <Plus aria-hidden="true" /> {!rail && <span className="hidden sm:inline">Add</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" side={rail ? "right" : undefined} className="w-56">
+      <DropdownMenuContent
+        align="start" side={rail ? "right" : undefined} className="w-56"
+        onCloseAutoFocus={(event) => {
+          if (!chosen.current) return;
+          event.preventDefault();
+          go(chosen.current.section, chosen.current.intent);
+          chosen.current = null;
+        }}
+      >
         <DropdownMenuLabel>Something changed?</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {items.map(({ label, icon: Icon, section, intent }) => (
-          <DropdownMenuItem key={label} onSelect={() => go(section, intent)}>
+          <DropdownMenuItem key={label} onSelect={() => (chosen.current = { section, intent })}>
             <Icon aria-hidden="true" /> {label}
           </DropdownMenuItem>
         ))}
@@ -178,11 +190,11 @@ function EventCard({ rail = false }: { rail?: boolean }) {
   );
   return rail ? (
     <div className="flex flex-col items-center gap-2">
-      <EventSwitcher variant="rail" className="size-10 justify-center rounded-xl bg-surface shadow-card hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
+      <EventSwitcher variant="rail" className="size-10 justify-center rounded-xl border bg-surface hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
       {budgetLink}
     </div>
   ) : (
-    <div className="rounded-xl bg-surface p-1.5 text-sm shadow-card">
+    <div className="rounded-xl border bg-surface p-1.5 text-sm">
       <EventSwitcher variant="card" className="w-full p-2.5 hover:bg-surface-soft data-[state=open]:bg-surface-soft" />
       {budgetLink}
     </div>
@@ -211,7 +223,7 @@ function ShareButton({ tone }: { tone?: "band" }) {
       {tone === "band" ? (
         <Button
           variant="outline" onClick={share}
-          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground shadow-none hover:bg-primary-foreground/15 hover:text-primary-foreground"
+          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
         >
           <Share2 aria-hidden="true" /> <span className="xl:hidden">Share</span><span className="hidden xl:inline">Share with family</span>
         </Button>
@@ -378,7 +390,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         </main>
       </div>
 
-      <nav aria-label="Sections" className="no-print fixed inset-x-0 bottom-0 z-30 flex bg-surface shadow-raised lg:hidden">
+      <nav aria-label="Sections" className="no-print fixed inset-x-0 bottom-0 z-30 flex border-t bg-surface lg:hidden">
         {NAV.map((item) => navLink(item, true))}
       </nav>
       {/* A fresh dock per event, so a half-typed change never applies to another one. */}

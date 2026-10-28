@@ -6,7 +6,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { EngineBadge, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
 import { ApiError } from "@/lib/api";
 import { inr, LEVEL_LABELS, signedInr } from "@/lib/format";
@@ -181,12 +181,7 @@ export function ChangeDialog({ open, onOpenChange, title, description, label, lo
               {error.fields.filter((f) => f.message !== error.message).map((f) => <FieldError key={f.field + f.message}>{f.message}</FieldError>)}
             </div>
           )}
-          {preview && (
-            <div className="space-y-3">
-              <EngineBadge />
-              <DiffView changes={preview.changes} />
-            </div>
-          )}
+          {preview && <DiffView changes={preview.changes} />}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Not now</Button>

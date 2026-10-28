@@ -9,10 +9,11 @@ export function Panel({ title, icon: Icon, description, actions, children, class
   children: ReactNode; className?: string; tone?: "ai";
 }) {
   return (
-    <section className={cn("rounded-xl bg-card p-5 shadow-card md:p-7", tone === "ai" && "bg-ai-soft ring-1 ring-ai-border", className)}>
+    <section className={cn("rounded-xl border bg-card p-5 md:p-7", tone === "ai" && "border-ai-border bg-ai-soft", className)}>
       {(title || actions) && (
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
+          {/* The title takes the room, so the actions stay at the right end unless it's narrow. */}
+          <div className="flex min-w-0 flex-1 basis-60 items-start gap-3">
             {Icon && (
               <span className={cn("rounded-[10px] p-2", tone === "ai" ? "bg-ai-tint text-ai" : "bg-surface-soft text-muted-foreground")}>
                 <Icon className="size-4" aria-hidden="true" />
@@ -36,7 +37,7 @@ export function Stat({ label, value, unit, hint, badge, tone, highlight }: {
   tone?: "success" | "danger"; highlight?: boolean;
 }) {
   return (
-    <div className={cn("rounded-xl bg-card p-5 shadow-card", tone === "success" && "ring-1 ring-success-border", tone === "danger" && "ring-1 ring-danger-border")}>
+    <div className={cn("rounded-xl border bg-card p-5", tone === "success" && "border-success-border", tone === "danger" && "border-danger-border")}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm text-muted-foreground">{label}</p>
         {badge}

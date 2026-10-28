@@ -50,7 +50,7 @@ function Toast({ tone, autoClose, onClose, children, actions }: {
       onFocus={() => setHeld(true)}
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setHeld(false)}
       className={cn(
-        "pointer-events-auto flex max-w-[min(480px,100%)] items-center gap-2.5 rounded-2xl border bg-popover py-1.5 pr-1.5 pl-3 text-[13px] leading-[18px] shadow-raised duration-280 ease-out",
+        "pointer-events-auto flex max-w-[min(480px,100%)] items-center gap-2.5 rounded-2xl border bg-popover py-1.5 pr-1.5 pl-3 text-[13px] leading-[18px] duration-280 ease-out",
         // Dark lifts by a lighter surface, not a heavier shadow, so it stands off the dark card.
         "[[data-theme=dark]_&]:border-(--hairline-strong) [[data-theme=dark]_&]:bg-surface-soft",
         // From above the top edge to just below it, and back up the same way.
