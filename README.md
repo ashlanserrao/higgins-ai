@@ -265,14 +265,15 @@ frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
                            the posters are committed (see how-it-works/README.md)
   public/hm/               Built machine: loader.js, machine.js, machine.css, poster.html, PNGs
   src/
-    main.tsx, App.tsx      Entry and page routing
+    main.tsx, App.tsx      Entry and page routing; each page is a lazy-loaded chunk
+    pages/                 onboarding.tsx and dashboard.tsx (the shell and every section, one chunk)
     state/
       nav.tsx              Open event and section, kept in the URL hash
       planner/             App state: store (state, request tickets), events, ideas,
                            plan-actions, persistence; index.tsx composes them
     features/<domain>/     overview, budget, tasks, vendors, guests, ideas, shell, landing,
                            onboarding (questionnaire container, steps/, pure form.ts).
-                           A feature never imports another; only App.tsx imports features
+                           A feature never imports another; only App.tsx and pages/ import features
     components/            State-free building blocks: badges, layout (Panel, Stat, EmptyState),
                            field-error, page-band
       app/                 Shared pieces that read planner state or call the API: dialogs
