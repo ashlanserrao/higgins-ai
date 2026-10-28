@@ -10,6 +10,7 @@ import { FieldError } from "@/components/field-error";
 import { addDays, formatDate } from "@/lib/format";
 import { taskShortName } from "@/lib/tasks";
 import type { TaskState } from "@/lib/types";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { usePlan } from "@/state/planner";
 
 export interface BookingTarget {
@@ -18,7 +19,7 @@ export interface BookingTarget {
 }
 
 export function BookingDialog({ target, onClose }: { target: BookingTarget | null; onClose: () => void }) {
-  const { plan, updateProgress, announce } = usePlan();
+  const { plan, updateProgress } = usePlan();
   const item = plan.checklist.find((i) => i.id === target?.taskId);
   const [date, setDate] = useState("");
   const [error, setError] = useState("");
@@ -29,6 +30,15 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
     setError("");
     setDate(target.state === "booked" ? plan.today : item?.expected_on ?? addDays(plan.today, 7));
   }, [target]);
+
+  // Closing unmounts the dialog, which skips Radix's own focus return, and a booked task's
+  // "Mark booked" is gone by then: its row's "More" button takes focus instead.
+  const returnFocus = useReturnFocus(Boolean(target), () =>
+    item ? document.querySelector<HTMLElement>(`button[aria-label="More for ${CSS.escape(item.label)}"]`) : null);
+  const close = () => {
+    onClose();
+    returnFocus();
+  };
 
   if (!target || !item) return null;
   const delayed = target.state === "delayed";
@@ -44,8 +54,7 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
         progress.tasks[item.id] = { state: target.state, on: date };
         return progress;
       }, delayed ? `The ${name} can confirm from ${formatDate(date)}` : `Booked the ${name}`);
-      if (!delayed) announce("Booked. One less thing to think about.");
-      onClose();
+      close();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -54,7 +63,7 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
   };
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
+    <Dialog open onOpenChange={(o) => !o && close()}>
       <DialogContent>
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
@@ -75,7 +84,7 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
             <FieldError id="booking-error">{error}</FieldError>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={close}>Cancel</Button>
             <Button type="submit" disabled={busy}>{delayed ? "Save the new date" : "Mark booked"}</Button>
           </DialogFooter>
         </form>

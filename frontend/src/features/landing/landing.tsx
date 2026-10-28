@@ -61,7 +61,9 @@ function useScrollState() {
       setState((s) => (s.scrolled === scrolled && s.active === active ? s : { scrolled, active }));
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(measure); };
-    measure();
+    // The first reading waits for the first paint: measured straight after React's commit, it
+    // would force a layout of the whole page before anything shows.
+    frame = requestAnimationFrame(() => (frame = requestAnimationFrame(measure)));
     addEventListener("scroll", schedule, { passive: true });
     addEventListener("resize", schedule);
     return () => {
@@ -131,7 +133,7 @@ export function Landing() {
           On phones it scrolls away with the page and the links wrap onto their own row. */}
       <header data-scrolled={scrolled || undefined} className="landing-header z-30 md:sticky md:top-0">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-4 md:grid md:h-20 md:grid-cols-[1fr_auto_1fr] md:px-6 md:py-0 lg:px-12">
-          <a href="#/welcome" onClick={(e) => e.preventDefault()} className={cn("justify-self-start rounded-lg", TAP)} aria-label={COPY.nav.home}>
+          <a href="#/welcome" onClick={(e) => e.preventDefault()} className={cn("justify-self-start rounded-lg", TAP)}>
             <Brand />
           </a>
           <nav aria-label="Page" className="order-last flex w-full flex-wrap justify-center gap-x-6 md:order-none md:w-auto">

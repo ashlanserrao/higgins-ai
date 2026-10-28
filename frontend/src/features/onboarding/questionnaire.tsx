@@ -2,7 +2,7 @@
 // plan and for editing one: the same event type keeps bookings, quotes, moves and guests.
 // For a new event the box is the main path; the steps are the fallback and the place to check.
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -87,10 +87,31 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
     return () => window.clearTimeout(timer);
   }, [filling]);
 
+  // Where focus goes after the next render: a field with an error, or the first field of the
+  // step just opened (the Next and Back buttons it was on may be gone). Only for moves the
+  // organiser makes, never during the AI's fill animation, which changes steps too.
+  const focusNext = useRef<string | null>(null);
+  const stepArea = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    const field = target === "step"
+      ? stepArea.current?.querySelector<HTMLElement>("input, select, textarea, button")
+      : document.getElementById(target) ?? document.querySelector<HTMLElement>(`[name="${target}"]`);
+    field?.focus();
+  }, [step, errors]);
+
+  const goTo = (to: number) => {
+    focusNext.current = "step";
+    setStep(to);
+  };
+
   const next = () => {
     const found = stepErrors(values, step);
     setErrors(found);
-    if (!Object.keys(found).length) setStep((s) => s + 1);
+    if (Object.keys(found).length) focusNext.current = Object.keys(found)[0];
+    else goTo(step + 1);
   };
 
   const hasProgress = anyProgress(current, guests.length);
@@ -110,6 +131,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
       setFormError(e.message);
       const first = Object.keys(fieldErrors).map((f) => FIELD_STEP[f]).filter((s) => s !== undefined).sort()[0];
       if (first !== undefined) setStep(first);
+      focusNext.current = Object.keys(fieldErrors).filter((f) => FIELD_STEP[f] === first)[0] ?? null;
     } finally {
       setBusy(false);
     }
@@ -176,14 +198,16 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
           <p role="alert" className="mb-4 rounded-lg bg-danger-soft p-4 text-sm font-medium text-danger">{formError}</p>
         )}
 
-        {step === 0 && <EventStep {...stepProps} />}
-        {step === 1 && <PlaceStep {...stepProps} />}
-        {step === 2 && <PrioritiesStep {...stepProps} priorities={priorities} />}
+        <div ref={stepArea}>
+          {step === 0 && <EventStep {...stepProps} />}
+          {step === 1 && <PlaceStep {...stepProps} />}
+          {step === 2 && <PrioritiesStep {...stepProps} priorities={priorities} />}
+        </div>
 
         <div className="mt-7 flex flex-col-reverse gap-3 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex gap-2">
             {step > 0 && (
-              <Button type="button" variant="outline" onClick={() => setStep((s) => s - 1)}>
+              <Button type="button" variant="outline" onClick={() => goTo(step - 1)}>
                 <ArrowLeft aria-hidden="true" /> Back
               </Button>
             )}

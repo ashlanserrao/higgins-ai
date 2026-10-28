@@ -64,6 +64,15 @@ function Toast({ tone, autoClose, onClose, children, actions }: {
   );
 }
 
+// Undo is a Tab-trip away (the toast sits at the end of the page) and the toast leaves after 6
+// seconds, so the shortcut is announced with the toast and named on the button.
+const UndoButton = ({ onClick }: { onClick: () => void }) => (
+  <Button size="sm" variant="outline" onClick={onClick} aria-keyshortcuts="Control+Z Meta+Z" title="Undo (Ctrl+Z)">
+    <Undo2 aria-hidden="true" /> Undo
+  </Button>
+);
+const UndoHint = () => <span className="sr-only"> Ctrl+Z to undo.</span>;
+
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable=true]"));
 
@@ -115,16 +124,17 @@ export function Toaster() {
       <div role="status" aria-live="polite" className="flex w-full flex-col items-center gap-2">
         {lastDeleted && (
           <Toast key={idOf(lastDeleted)} tone="success" autoClose onClose={dismissDeleted}
-            actions={<Button size="sm" variant="outline" onClick={undoDelete}><Undo2 aria-hidden="true" /> Undo</Button>}>
-            Deleted <span className="font-medium">{eventName(lastDeleted.event)}</span>
+            actions={<UndoButton onClick={undoDelete} />}>
+            Deleted <span className="font-medium">{eventName(lastDeleted.event)}</span><UndoHint />
           </Toast>
         )}
         {change && (
           <Toast key={idOf(change)} tone="success" autoClose onClose={closeChange}
-            actions={<Button size="sm" variant="outline" onClick={() => void undo()}><Undo2 aria-hidden="true" /> Undo</Button>}>
+            actions={<UndoButton onClick={() => void undo()} />}>
             <span className="font-medium">{change.label}</span>
             {/* The first effect only, so it stays within two lines; "Recent changes" keeps the rest. */}
             {change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary[0]}</span>}
+            <UndoHint />
           </Toast>
         )}
       </div>

@@ -9,7 +9,6 @@ export const CONTACT_HREF: string | null = null;
 
 export const COPY = {
   nav: {
-    home: "Higgins AI home",
     howItWorks: "How it works",
     samplePlan: "Sample plan",
     questions: "Questions",

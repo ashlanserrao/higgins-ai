@@ -14,6 +14,7 @@ import { DIFF_TASK_LABELS } from "@/lib/tasks";
 import type { Plan, PlanDiff, PlanRequest } from "@/lib/types";
 import { usePlanner } from "@/state/planner";
 import { cn } from "@/lib/utils";
+import { useReturnFocus } from "@/lib/use-return-focus";
 
 export interface Preview {
   inputs: PlanRequest;
@@ -135,6 +136,8 @@ export function ChangeDialog({ open, onOpenChange, title, description, label, lo
   const [preview, setPreview] = useState<Preview | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [loading, setLoading] = useState(false);
+  // Its opener can change or go once a change applies; focus goes back there, or to the heading.
+  const returnFocus = useReturnFocus(open);
 
   useEffect(() => {
     if (!open) return;
@@ -160,7 +163,7 @@ export function ChangeDialog({ open, onOpenChange, title, description, label, lo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-2xl" onCloseAutoFocus={(e) => { e.preventDefault(); returnFocus(); }}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description ?? "Here's what would change. Nothing happens until you say so."}</DialogDescription>

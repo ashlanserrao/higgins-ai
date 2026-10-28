@@ -89,7 +89,6 @@ function Logo() {
         openPage("welcome");
       }}
       className="flex items-center gap-2.5 rounded-lg"
-      aria-label="Higgins AI home"
     >
       <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
       <div className="leading-tight">
@@ -153,7 +152,7 @@ function ShareButton({ tone }: { tone?: "band" }) {
           <Share2 aria-hidden="true" /> <span className="xl:hidden">Share</span><span className="hidden xl:inline">Share with family</span>
         </Button>
       ) : (
-        <Button variant="outline" onClick={share}><Share2 aria-hidden="true" /> <span className="hidden sm:inline">Share with family</span></Button>
+        <Button variant="outline" onClick={share} aria-label="Share with family"><Share2 aria-hidden="true" /> <span className="hidden sm:inline">Share with family</span></Button>
       )}
       <Dialog open={Boolean(url)} onOpenChange={(o) => !o && setUrl("")}>
         <DialogContent>

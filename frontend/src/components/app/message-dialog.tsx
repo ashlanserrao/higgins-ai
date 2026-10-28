@@ -13,6 +13,7 @@ import { FieldError } from "@/components/field-error";
 import { api } from "@/lib/api";
 import { canMessage, defaultMessageKind, MESSAGE_KINDS } from "@/lib/tasks";
 import type { MessageKind } from "@/lib/types";
+import { useReturnFocus } from "@/lib/use-return-focus";
 import { usePlan } from "@/state/planner";
 
 export function MessageDialog({ taskId, open, onOpenChange }: {
@@ -27,6 +28,8 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Opened from a task's menu, its opener is gone on close: the menu's button gets focus back.
+  const returnFocus = useReturnFocus(open);
 
   // Opening for a task picks the message that fits its state (booked → confirmation…).
   useEffect(() => {
@@ -64,7 +67,7 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-xl" onCloseAutoFocus={(e) => { e.preventDefault(); returnFocus(); }}>
         <DialogHeader>
           <DialogTitle>Message a vendor</DialogTitle>
           <DialogDescription>Written from your plan, ready to send. Copy it, or send it straight from WhatsApp.</DialogDescription>

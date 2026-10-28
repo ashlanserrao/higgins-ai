@@ -203,15 +203,30 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 - The rules engine runs in microseconds, so the plan appears immediately and the what-if sliders can re-run it freely (debounced, outdated responses discarded). Only the ideas need an AI call: one per plan, in the background, with no retries.
 - An in-memory LRU cache (1 hour) means a repeated plan doesn't repeat the AI call. A shared link restores ideas from the URL instead of calling the AI again.
 - The cheapest suitable model, minimal reasoning effort and capped output tokens.
-- No frontend framework, no build step, no external requests. The whole app is a few small static files.
+- Every response over 1 KB is gzipped. Hashed build files are cached for a year and the page revalidates on every visit, so a deploy shows up at once.
+- Each page is its own chunk: a first visit to the landing page downloads about 113 KB of gzipped JavaScript, not the dashboard. No external requests: fonts and scripts are self-hosted.
 
 ## Accessibility
 
 - Every input has a `<label>`; radio and checkbox groups use `<fieldset>`/`<legend>`.
 - Fully keyboard-operable, with a visible focus ring and a skip link.
 - Results are announced through an `aria-live` status region, and focus moves to the plan heading.
-- Field errors are linked with `aria-describedby` and `aria-invalid`.
+- Field errors are linked with `aria-describedby` and `aria-invalid`, and focus moves to the first invalid field.
+- Focus never drops to the page: dialogs return it to what opened them (or the menu's button, or the next sensible control). Toasts announce the Ctrl+Z undo shortcut, so undo is reachable before they leave.
 - Colors meet WCAG AA contrast in both light and dark mode. Status never relies on color alone ("Book today", "(overdue)", "priority" tags). Touch targets are at least 44 px. The layout is phone-first.
+
+## Lighthouse
+
+Lighthouse 13.5.0 on the production build served by uvicorn (with its CSP), headless Chrome, median of 3 runs, 28 Oct 2026. Mobile is Lighthouse's default throttled phone (412 px wide, so the landing page shows the poster); desktop shows the live machine. The dashboard is opened from a share link.
+
+| Page | Device | Performance | Accessibility | Best Practices | SEO |
+|---|---|---|---|---|---|
+| Landing | Desktop | 98 | 100 | 100 | 100 |
+| Landing | Mobile | 85 | 100 | 100 | 100 |
+| Dashboard | Desktop | 99 | 100 | 100 | 100 |
+| Dashboard | Mobile | 78 | 100 | 100 | 100 |
+
+Mobile performance varies by about ten points between runs. What remains there is mostly React's first render on a slow phone.
 
 ## Assumptions
 
