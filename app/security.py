@@ -7,11 +7,13 @@ import time
 from collections import deque
 from threading import Lock
 
+# Radix Select renders one fixed <style> (it hides the list's scrollbar). Allowing exactly that
+# text by its hash keeps 'unsafe-inline' out; frontend/src/lib/csp.test.ts fails if Radix changes it.
+RADIX_SELECT_STYLE_HASH = "'sha256-441zG27rExd4/il+NvIqyL8zFx5XmyNQtE381kSkUJk='"
+
 SECURITY_HEADERS = {
-    # Inline styles are allowed for the landing page's "how it works" web component
-    # (frontend/public/hm/), which styles its shadow root inline. Scripts stay same-origin only.
     "Content-Security-Policy": (
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "
+        f"default-src 'self'; script-src 'self'; style-src 'self' {RADIX_SELECT_STYLE_HASH}; img-src 'self' data:; "
         "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     ),
     "X-Content-Type-Options": "nosniff",

@@ -86,6 +86,7 @@ def test_security_headers_on_static_and_api(client):
     for path in ("/", "/health"):
         headers = client.get(path).headers
         assert "default-src 'self'" in headers["content-security-policy"]
+        assert "'unsafe-inline'" not in headers["content-security-policy"]
         assert headers["x-content-type-options"] == "nosniff"
         assert headers["referrer-policy"] == "no-referrer"
 

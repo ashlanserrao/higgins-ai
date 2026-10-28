@@ -147,7 +147,7 @@ pip install -r requirements-dev.txt
 pytest                      # backend: 139 tests
 
 cd frontend
-npm test                    # frontend: 20 tests (Vitest)
+npm test                    # frontend: 21 tests (Vitest)
 npm run typecheck && npm run contrast
 ```
 
@@ -165,12 +165,13 @@ Everything runs offline and free: the OpenAI client is faked, and golden tests p
 - **`test_quote_extraction.py` (8):** a pasted quote becomes a checked draft or nothing, never an error; the quote text is fenced
 - **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
 
-**Frontend (Vitest, 20):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
+**Frontend (Vitest, 21):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
 
 - **`features/overview/next-step.test.ts` (7):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear
 - **`lib/share.test.ts` (5):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas are dropped
 - **`lib/storage.test.ts` (4):** save/load round trip, blocked or corrupt `localStorage` starts empty without crashing, v2 → v4 migration
 - **`lib/format.test.ts` (4):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months
+- **`lib/csp.test.ts` (1):** the CSP's hash for Radix Select's `<style>` still matches the installed Radix
 
 ## API types
 
@@ -193,7 +194,7 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 - Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 10 KB request cap. API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
 - **Prompt injection:** preferences are treated as untrusted data. Markup characters are stripped, the text is fenced in `<preferences>` tags, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
 - Everything (AI output, shared links) is rendered with `textContent`, never `innerHTML`. Shared ideas are checked for shape and size before display.
-- Security headers on every response: strict `Content-Security-Policy` (same-origin scripts only; styles are same-origin plus inline, for the landing page's animation), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
+- Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy`.
 - Per-IP rate limiting, strict for the AI endpoint and looser for the cheap rules endpoint (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
 - No personal data is stored on the server.
 
@@ -259,6 +260,10 @@ tests/                     pytest suite (offline, AI faked)
 
 frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
   openapi.json             The API schema, exported from FastAPI
+  how-it-works/            Source of the landing page's machine (a framework-free web component):
+                           src/, vendored kit/, build.mjs. npm run build:hm writes public/hm/;
+                           the posters are committed (see how-it-works/README.md)
+  public/hm/               Built machine: loader.js, machine.js, machine.css, poster.html, PNGs
   src/
     main.tsx, App.tsx      Entry and page routing
     state/
@@ -279,6 +284,7 @@ frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
       types.ts             Friendly names for the generated types, plus browser-only ones
       format.ts, share.ts, storage.ts, tasks.ts   Formatting, share links, localStorage, task badges
       guests.ts            Guest-list helpers (expected head count)
+      style-singleton.ts   CSP-safe stand-in for react-style-singleton (Radix scroll lock)
     **/*.test.ts           Vitest, next to the code it covers
   scripts/contrast.mjs     WCAG AA contrast check for every colour pair
 ```
