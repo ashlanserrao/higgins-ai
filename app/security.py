@@ -20,7 +20,8 @@ SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     # Plan inputs live in the URL query; never leak them to other sites.
     "Referrer-Policy": "no-referrer",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    # The microphone is for voice typing (the browser's speech recognition), on our own pages only.
+    "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
 }
 
 

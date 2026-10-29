@@ -1,4 +1,5 @@
 // The Overview's band: the greeting and the four numbers that matter, on the shared page band.
+// The numbers roll in like an odometer (odometer.tsx).
 
 import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
@@ -6,6 +7,7 @@ import { eventName, formatDate, greeting, inr, plural, untilNextGreeting, weekda
 import { useAuth } from "@/state/auth";
 import { usePlan } from "@/state/planner";
 import { PageBand } from "@/components/page-band";
+import { Odometer } from "./odometer";
 
 /** "12 days / To go", with the edges said in words. */
 function countdownStat(days: number): [value: string, label: string] {
@@ -54,21 +56,21 @@ export function OverviewBand() {
     >
       {/* Four across once the column has room for the longest figures (₹80,00,000), two by two before. */}
       <dl className="mt-5 grid grid-cols-2 gap-x-2.5 gap-y-4 @min-[900px]:grid-cols-4">
-        <BandStat value={days} label={daysLabel} />
-        <BandStat value={inr(inputs.budget_inr)} label="Total budget" />
+        <BandStat value={<Odometer value={days} />} label={daysLabel} />
+        <BandStat value={<Odometer value={inr(inputs.budget_inr)} />} label="Total budget" />
         <BandStat
-          value={inr(plan.per_guest_inr)}
+          value={<Odometer value={inr(plan.per_guest_inr)} />}
           label={tight ? <><AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Per guest, tight</> : "Per guest"}
         />
         {/* Over budget, the buffer is gone: the overspend takes its place, flagged in a warning chip
             (warning text on the band itself wouldn't be readable). */}
         {over ? (
           <BandStat
-            value={inr(over)}
+            value={<Odometer value={inr(over)} />}
             label={<span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning"><AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Over budget by</span>}
           />
         ) : (
-          <BandStat value={inr(buffer)} label="Buffer" />
+          <BandStat value={<Odometer value={inr(buffer)} />} label="Buffer" />
         )}
       </dl>
     </PageBand>

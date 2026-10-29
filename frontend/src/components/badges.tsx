@@ -1,4 +1,4 @@
-// Status badges and AI labels shared by every section. Status is never colour alone:
+// Status badges and the AI note shared by every section. Status is never colour alone:
 // each badge pairs an icon with a word.
 
 import type { ReactNode } from "react";
@@ -6,16 +6,15 @@ import { AlertTriangle, BadgeCheck, CheckCircle2, CircleDashed, Clock, Sparkles,
 import type { TaskTone } from "@/lib/tasks";
 import { cn } from "@/lib/utils";
 
-const TONES: Record<TaskTone | "ai", { box: string; icon: LucideIcon }> = {
+const TONES: Record<TaskTone, { box: string; icon: LucideIcon }> = {
   success: { box: "bg-success-soft text-success", icon: CheckCircle2 },
   warning: { box: "bg-warning-soft text-warning", icon: Clock },
   danger: { box: "bg-danger-soft text-danger", icon: AlertTriangle },
   neutral: { box: "bg-surface-soft text-muted-foreground", icon: CircleDashed },
-  ai: { box: "bg-ai-tint text-ai", icon: Sparkles },
 };
 
 export function StatusBadge({ tone, children, icon, className }: {
-  tone: TaskTone | "ai"; children: ReactNode; icon?: LucideIcon; className?: string;
+  tone: TaskTone; children: ReactNode; icon?: LucideIcon; className?: string;
 }) {
   const { box, icon: Default } = TONES[tone];
   const Icon = icon ?? Default;
@@ -26,11 +25,6 @@ export function StatusBadge({ tone, children, icon, className }: {
     </span>
   );
 }
-
-/** Marks anything the AI wrote or read. AI output always needs a human check. */
-export const AiBadge = ({ children = "AI" }: { children?: ReactNode }) => (
-  <StatusBadge tone="ai">{children}</StatusBadge>
-);
 
 /** Estimate (typical cost) vs Confirmed (an accepted quote). */
 export function SourceBadge({ source }: { source: "estimate" | "confirmed" }) {

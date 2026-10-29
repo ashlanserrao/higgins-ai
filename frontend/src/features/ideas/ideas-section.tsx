@@ -1,10 +1,10 @@
-// AI ideas for themes, décor, food and entertainment. Always labelled as AI, and marked
+// AI ideas for themes, décor, food and entertainment. Shown in the AI colour with a note, and marked
 // stale when the plan changes after they were made.
 
 import { Lightbulb, Loader2, Palette, PartyPopper, RefreshCw, Sparkles, Utensils, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AiBadge, AiNote } from "@/components/badges";
+import { AiNote } from "@/components/badges";
 import { EmptyState, Panel } from "@/components/layout";
 import { IdeasStatusLine } from "@/components/app/ideas-status-line";
 import { PageBand } from "@/components/page-band";
@@ -58,7 +58,7 @@ export function IdeasSection() {
           )}
           {(loading || ideas) && <div className="grid gap-4 md:grid-cols-2">
             {CATEGORIES.map(({ key, label, icon }) => (
-              <Panel key={key} title={label} icon={icon} tone="ai" actions={<AiBadge />}>
+              <Panel key={key} title={label} icon={icon} tone="ai">
                 {loading && !ideas ? (
                   <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-12 w-full bg-ai-tint" />)}</div>
                 ) : ideas ? (

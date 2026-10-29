@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { FieldError } from "@/components/field-error";
+import { VoiceTextarea } from "@/components/voice-textarea";
 import type { EventType, Options } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Field } from "../fields";
@@ -29,12 +29,12 @@ export function PrioritiesStep({ values, set, err, describedBy, priorities }: St
         <FieldError>{err("priorities")}</FieldError>
       </fieldset>
       <Field id="must_haves" label="Must-haves (optional)" error={err("must_haves")} hint={`Things you won't give up. Ideas always include them. ${values.must_haves.length} / 300`}>
-        <Textarea id="must_haves" rows={2} maxLength={300} value={values.must_haves} placeholder="e.g. Jain food, live dhol, wheelchair access"
-          onChange={(e) => set("must_haves", e.target.value)} aria-describedby={describedBy("must_haves")} />
+        <VoiceTextarea id="must_haves" rows={2} maxLength={300} value={values.must_haves} placeholder="e.g. Jain food, live dhol, wheelchair access"
+          onValueChange={(text) => set("must_haves", text)} aria-describedby={describedBy("must_haves")} speakLabel="Speak your must-haves" />
       </Field>
       <Field id="preferences" label="Your taste and ideas (optional)" error={err("preferences")} hint={`${values.preferences.length} / 500`}>
-        <Textarea id="preferences" rows={3} maxLength={500} value={values.preferences} placeholder="e.g. Pastel colours, South Indian vegetarian menu"
-          onChange={(e) => set("preferences", e.target.value)} aria-describedby={describedBy("preferences")} />
+        <VoiceTextarea id="preferences" rows={3} maxLength={500} value={values.preferences} placeholder="e.g. Pastel colours, South Indian vegetarian menu"
+          onValueChange={(text) => set("preferences", text)} aria-describedby={describedBy("preferences")} speakLabel="Speak your taste and ideas" />
       </Field>
     </div>
   );

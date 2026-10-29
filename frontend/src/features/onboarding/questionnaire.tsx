@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, ArrowRight, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AiBadge, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
 import { ApiError } from "@/lib/api";
 import { EVENT_LABELS } from "@/lib/format";
@@ -184,7 +184,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
 
         {filled && (
           <div className="mb-5 space-y-2 rounded-lg bg-ai-soft p-4 text-sm ring-1 ring-ai-border" aria-live="polite">
-            <p className="flex flex-wrap items-center gap-2 font-medium"><AiBadge>Filled in by AI</AiBadge> Have a quick look, then carry on.</p>
+            <p className="font-medium">Filled in for you. Have a quick look, then carry on.</p>
             {filled.fields.length > 0 && <p>{filled.fields.map((f) => f.label).join(", ")}.</p>}
             {filled.missing.length > 0 && (
               <p className="text-danger">Still needed: {filled.missing.map((f) => FIELD_NAMES[f] ?? f).join(", ")}.</p>

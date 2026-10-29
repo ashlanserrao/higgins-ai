@@ -3,12 +3,12 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  BadgeCheck, ClipboardPaste, FileText, Loader2, MessageSquareText, PencilLine, ReceiptIndianRupee, Sparkles, Trash2, Undo2,
+  BadgeCheck, ClipboardPaste, Loader2, MessageSquareText, PencilLine, ReceiptIndianRupee, Sparkles, Trash2, Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
+import { VoiceTextarea } from "@/components/voice-textarea";
 import { EmptyState, Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
 import { MessageDialog } from "@/components/app/message-dialog";
@@ -63,12 +63,12 @@ function PasteQuote({ onDraft, onManual }: { onDraft: (quote: Quote) => void; on
   };
 
   return (
-    <Panel title="Add a quote" icon={ClipboardPaste} tone="ai" description="Paste the vendor's WhatsApp message, email or PDF text. AI copies the details, then you give them a quick check."
-      actions={<AiBadge />}>
+    <Panel title="Add a quote" icon={ClipboardPaste} tone="ai" description="Paste the vendor's WhatsApp message, email or PDF text. AI copies the details, then you give them a quick check.">
       <form onSubmit={read} className="space-y-2">
         <Label htmlFor="quote-text" className="sr-only">Quote text</Label>
-        <Textarea
-          ref={field} id="quote-text" rows={5} maxLength={3000} value={text} onChange={(e) => setText(e.target.value)} className="bg-card"
+        <VoiceTextarea
+          ref={field} id="quote-text" rows={5} maxLength={3000} value={text} onValueChange={setText} className="bg-card"
+          speakLabel="Read the quote out instead"
           placeholder="e.g. Shree Caterers: ₹2,200 per plate veg for 300 guests, includes service staff and crockery, GST extra, valid till 30 Nov"
           disabled={!aiAvailable} aria-describedby="quote-note"
         />
@@ -114,7 +114,6 @@ function QuoteCard({ quote, comparison, onEdit }: { quote: Quote; comparison: Qu
           {comparison.accepted && <StatusBadge tone="success" icon={BadgeCheck} className="mb-1.5">Accepted · Confirmed</StatusBadge>}
           <h4 className="font-display text-lg">{name}</h4>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            {quote.source === "ai_extracted" ? <AiBadge>Read by AI</AiBadge> : <StatusBadge tone="neutral" icon={FileText}>Typed in</StatusBadge>}
             {quote.verified ? <StatusBadge tone="success">Checked</StatusBadge> : <StatusBadge tone="warning">Needs your check</StatusBadge>}
             {comparison.expired && <StatusBadge tone="danger">Expired</StatusBadge>}
           </div>

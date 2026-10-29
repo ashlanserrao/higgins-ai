@@ -93,6 +93,8 @@ def test_security_headers_on_static_and_api(client):
         assert "'unsafe-inline'" not in headers["content-security-policy"]
         assert headers["x-content-type-options"] == "nosniff"
         assert headers["referrer-policy"] == "no-referrer"
+        # Voice typing needs the microphone; "microphone=()" would block it on our own pages too.
+        assert "microphone=(self)" in headers["permissions-policy"]
 
 
 def test_built_files_are_cached_by_how_they_are_named(tmp_path):

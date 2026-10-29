@@ -6,7 +6,7 @@ import {
   AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Compass, GitBranch, Info, Lightbulb, MessageSquareText, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AiBadge, AiNote, StatusBadge } from "@/components/badges";
+import { AiNote, StatusBadge } from "@/components/badges";
 import { Panel, Stat } from "@/components/layout";
 import { MessageDialog } from "@/components/app/message-dialog";
 import { formatDate, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
@@ -154,7 +154,7 @@ export function NextSteps() {
       )}
       {plan.triage.active && ideas?.triage_advice && ideasStatus === "ready" && (
         <div className="mt-5 rounded-lg bg-ai-soft p-4 text-sm ring-1 ring-ai-border">
-          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><AiBadge>A thought from AI</AiBadge><AiNote /></div>
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><p className="font-medium">A thought for you</p><AiNote /></div>
           <p>{ideas.triage_advice}</p>
         </div>
       )}
@@ -217,7 +217,7 @@ export function IdeasTeaser() {
   const { ideas, ideasStatus, loadIdeas } = usePlan();
   const { go } = useNav();
   return (
-    <Panel title="Ideas for you" icon={Lightbulb} tone="ai" actions={<AiBadge />}>
+    <Panel title="Ideas for you" icon={Lightbulb} tone="ai">
       {ideasStatus === "unavailable" ? (
         <p className="text-sm text-muted-foreground">Ideas need the AI, which isn't set up here. Everything else works without it.</p>
       ) : ideasStatus === "loading" && !ideas ? (

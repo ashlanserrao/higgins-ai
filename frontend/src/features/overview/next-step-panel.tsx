@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 import { ArrowRight, CalendarClock, CheckCircle2, Clock, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AiBadge, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
 import { MessageDialog } from "@/components/app/message-dialog";
 import { useChangePreview } from "@/components/app/use-change-preview";
 import { EVENT_LABELS, formatShortDate, inr, plural } from "@/lib/format";
@@ -234,7 +234,7 @@ function NotesDrawer({ open, onOpenChange, attention }: { open: boolean; onOpenC
         {plan.warnings.length > 0 && group("Notes on your plan", (
           <ul className="list-disc space-y-1.5 pl-5 text-sm text-muted-foreground">{plan.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
         ))}
-        {advice && group("A thought from AI", <div className="space-y-1.5 text-sm"><AiBadge /><p>{advice}</p></div>)}
+        {advice && group("A thought from AI", <p className="text-sm">{advice}</p>)}
         {group(`Recent changes (${recent.length})`, recent.length ? (
           <ul className="space-y-1.5 text-sm">
             {recent.map((change, i) => <li key={i}><span className="font-medium">{change.label}</span>{change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary.join(" ")}</span>}</li>)}

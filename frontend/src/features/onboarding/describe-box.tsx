@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, AiNote } from "@/components/badges";
+import { AiNote } from "@/components/badges";
+import { VoiceTextarea } from "@/components/voice-textarea";
 import { api } from "@/lib/api";
 import type { UnderstandResponse } from "@/lib/types";
 
@@ -64,15 +64,12 @@ export function DescribeBox({ initialText, active, onFilled, onTyping }: {
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-ai-border bg-ai-soft p-5 md:p-7">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <Label htmlFor="describe" className="font-display text-lg font-normal">Tell me about it in your own words</Label>
-        <AiBadge />
-      </div>
-      <Textarea
-        id="describe" value={text} maxLength={500} rows={3} onKeyDown={onKeyDown}
-        onChange={(e) => {
-          setText(e.target.value);
-          onTyping(Boolean(e.target.value.trim()));
+      <Label htmlFor="describe" className="mb-2 font-display text-lg font-normal">Tell me about it in your own words</Label>
+      <VoiceTextarea
+        id="describe" value={text} maxLength={500} rows={3} onKeyDown={onKeyDown} speakLabel="Say it instead of typing"
+        onValueChange={(next) => {
+          setText(next);
+          onTyping(Boolean(next.trim()));
         }}
         placeholder="e.g. Wedding for 300 in Jaipur on 14 Feb 2027, about 25 lakh, the venue does food"
         className="bg-card" aria-describedby="describe-note"

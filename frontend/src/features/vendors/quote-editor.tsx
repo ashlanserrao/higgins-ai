@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { AiBadge, AiNote } from "@/components/badges";
+import { AiNote } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
 import type { Quote } from "@/lib/types";
 import { usePlan } from "@/state/planner";
@@ -91,10 +91,7 @@ export function QuoteEditor({ quote, onClose }: { quote: Quote | null; onClose: 
       <DialogContent className="max-h-[90vh] scroll-area overflow-y-auto sm:max-w-2xl">
         <form onSubmit={submit} className="grid gap-4" noValidate>
           <DialogHeader>
-            <DialogTitle className="flex flex-wrap items-center gap-2">
-              {fromAi ? "Check what the AI read" : isNew ? "Add a quote" : "Edit the quote"}
-              {fromAi && <AiBadge>Read by AI</AiBadge>}
-            </DialogTitle>
+            <DialogTitle>{fromAi ? "Check what the AI read" : isNew ? "Add a quote" : "Edit the quote"}</DialogTitle>
             <DialogDescription>
               {fromAi
                 ? "Compare each field with the vendor's message. Blank means the quote didn't say, so nothing has been guessed."

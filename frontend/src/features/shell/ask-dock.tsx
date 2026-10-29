@@ -59,6 +59,10 @@ export function AskDock() {
   const dock = useRef<HTMLDivElement>(null);
   const circle = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
+  const examples = useRef<HTMLUListElement>(null);
+  // The examples show while the cursor is in the empty field (or on an example), until Esc.
+  const [focusHere, setFocusHere] = useState(false);
+  const [examplesHidden, setExamplesHidden] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const fieldId = useId();
   const hintId = useId();
@@ -189,7 +193,8 @@ export function AskDock() {
 
   // Esc steps back one level: listening, then the review card, then the bar.
   const onKeyDown = (event: KeyboardEvent) => {
-    if (event.key !== "Escape" || !open) return;
+    // Handled already when Esc only closed the examples.
+    if (event.key !== "Escape" || !open || event.defaultPrevented) return;
     event.preventDefault();
     if (speech.listening) speech.stop();
     else if (stage === "review") backToField();
@@ -197,7 +202,13 @@ export function AskDock() {
   };
 
   const onFieldKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (showExamples && event.key === "ArrowUp") {
+      event.preventDefault();
+      exampleButtons().at(-1)?.focus();
+    } else if (showExamples && event.key === "Escape") {
+      event.preventDefault();
+      setExamplesHidden(true);
+    } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       void send(text);
     }
@@ -206,6 +217,26 @@ export function AskDock() {
   const message = aiAvailable ? speech.message : null;
   const chips = open && stage === "open" && aiAvailable && !text.trim() && !speech.listening && !busy
     ? suggestions(inputs, plan.rebalance?.over_budget_inr ?? 0) : [];
+  const showExamples = chips.length > 0 && focusHere && !examplesHidden;
+
+  const inExamples = (node: EventTarget | null) => node instanceof Node && (node === field.current || Boolean(examples.current?.contains(node)));
+  const exampleButtons = () => [...(examples.current?.querySelectorAll("button") ?? [])];
+  const pick = (example: string) => {
+    setText(example);
+    void send(example);
+  };
+  // Up and down move through the examples; down from the last goes back to the field.
+  const onExampleKey = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const buttons = exampleButtons();
+    const at = buttons.indexOf(event.currentTarget);
+    if (event.key === "ArrowUp") buttons[Math.max(0, at - 1)].focus();
+    else if (event.key === "ArrowDown") (buttons[at + 1] ?? field.current)?.focus();
+    else if (event.key === "Escape") {
+      setExamplesHidden(true);
+      field.current?.focus();
+    } else return;
+    event.preventDefault();
+  };
 
   return (
     <div
@@ -234,19 +265,21 @@ export function AskDock() {
         </section>
       )}
 
-      {chips.length > 0 && (
-        <ul aria-label="Try one of these" className="pointer-events-auto mb-2 flex max-w-full gap-2 max-md:w-full max-md:scroll-area max-md:overflow-x-auto md:flex-wrap md:justify-end">
+      {/* Examples to try: a menu that drops up from the bar while its field is empty and has
+          the cursor. Pressing on one keeps the cursor in the field (no blur), then sends it. */}
+      {showExamples && (
+        <ul
+          ref={examples} aria-label="Examples to try"
+          onBlur={(e) => !inExamples(e.relatedTarget) && setFocusHere(false)}
+          className="pointer-events-auto mb-2 min-w-56 rounded-xl border bg-popover p-1.5 max-md:w-full [[data-theme=dark]_&]:border-(--hairline-strong)"
+        >
           {chips.map(({ icon: Icon, text: example }) => (
-            <li key={example} className="shrink-0">
+            <li key={example}>
               <button
-                type="button"
-                onClick={() => {
-                  setText(example);
-                  void send(example);
-                }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border bg-popover px-3 text-[13px] whitespace-nowrap outline-none hover:bg-surface-soft focus-visible:ring-[3px] focus-visible:ring-ring/50 pointer-coarse:h-11"
+                type="button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(example)} onKeyDown={onExampleKey}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] outline-none hover:bg-accent focus-visible:bg-accent pointer-coarse:min-h-11"
               >
-                <Icon className="size-3.5 text-primary-text" aria-hidden="true" /> {example}
+                <Icon className="size-3.5 shrink-0 text-primary-text" aria-hidden="true" /> {example}
               </button>
             </li>
           ))}
@@ -296,6 +329,11 @@ export function AskDock() {
                   speech.clearError();
                 }}
                 onKeyDown={onFieldKey}
+                onFocus={(e) => {
+                  setFocusHere(true);
+                  if (!inExamples(e.relatedTarget)) setExamplesHidden(false);
+                }}
+                onBlur={(e) => !inExamples(e.relatedTarget) && setFocusHere(false)}
                 aria-describedby={hintId}
                 placeholder={!aiAvailable ? "Changes in your own words need the AI, which isn't set up here"
                   // The phone's 16px text (smaller makes iOS zoom in) fits only the short one.
@@ -303,7 +341,7 @@ export function AskDock() {
                 className="min-h-[38px] min-w-0 flex-1 scroll-area resize-none bg-transparent py-[9px] text-base leading-5 outline-none placeholder:text-muted-foreground placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap focus-visible:shadow-none disabled:cursor-not-allowed md:text-sm pointer-coarse:min-h-11 pointer-coarse:py-3"
               />
             )}
-            <span id={hintId} className="sr-only">Press Enter to see the change before anything is applied. Shift+Enter starts a new line.</span>
+            <span id={hintId} className="sr-only">Press Enter to see the change before anything is applied. Shift+Enter starts a new line. With the field empty, Up arrow goes to examples.</span>
             {speechSupported && aiAvailable && (
               <button
                 type="button" onClick={listen} aria-pressed={speech.listening} aria-label="Speak your change" title="Speak your change"

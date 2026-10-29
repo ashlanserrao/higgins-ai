@@ -28,6 +28,10 @@ const Speech = scope.SpeechRecognition ?? scope.webkitSpeechRecognition;
 
 export const speechSupported = Boolean(Speech);
 
+/** What's said goes after what's typed, never in place of it, cut to the field's limit. */
+export const addSpoken = (before: string, words: string, max = Infinity) =>
+  (before.trim() ? `${before.trim()} ${words}` : words).slice(0, max);
+
 /** Why listening ended without words. */
 type SpeechError = "no-speech" | "denied" | "failed";
 
