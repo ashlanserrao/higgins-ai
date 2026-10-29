@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { LogoFull } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
@@ -74,15 +75,10 @@ function useScrollState() {
   return state;
 }
 
-/** The H tile and the name, as in the app's sidebar. */
-function Brand({ small = false }: { small?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className={cn("font-display grid place-items-center rounded-[10px] bg-primary-soft text-primary-ink", small ? "size-8 text-base" : "size-10 text-xl")} aria-hidden="true">H</span>
-      <span className={cn("font-display text-foreground", small ? "text-base" : "text-lg")}>Higgins AI</span>
-    </span>
-  );
-}
+/** The logo, as in the app's sidebar. */
+const Brand = ({ small = false }: { small?: boolean }) => (
+  <span className="flex items-center"><LogoFull className={small ? "h-7" : undefined} /></span>
+);
 
 export function Landing() {
   const { events, activeId, returnTo, startNewEvent } = usePlanner();
@@ -156,7 +152,12 @@ export function Landing() {
           <CenterLine />
           <div className={cn("mx-auto w-full max-w-[520px] text-center min-[720px]:max-w-none min-[720px]:text-left", PAD)}>
           <h1 id="hero-title" className="headline text-5xl leading-[1.04] md:text-6xl xl:text-6xl">
-            {COPY.hero.title.map((line) => <span key={line} className="block">{line}</span>)}
+            {COPY.hero.title.map((line, index, lines) => (
+              <span key={line} className="block">
+                {/* The gradient spans the word, not the whole line. */}
+                {index === lines.length - 1 ? <span className="headline-accent">{line}</span> : line}
+              </span>
+            ))}
           </h1>
           <p className="lede mt-5 md:text-lg">{COPY.hero.body}</p>
 

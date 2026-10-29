@@ -1,8 +1,9 @@
 // The Overview's band: the greeting and the four numbers that matter, on the shared page band.
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
-import { eventName, formatDate, greeting, inr, plural, weekday } from "@/lib/format";
+import { eventName, formatDate, greeting, inr, plural, untilNextGreeting, weekday } from "@/lib/format";
+import { useAuth } from "@/state/auth";
 import { usePlan } from "@/state/planner";
 import { PageBand } from "@/components/page-band";
 
@@ -25,7 +26,19 @@ function BandStat({ value, label }: { value: ReactNode; label: ReactNode }) {
   );
 }
 
+/** "Good morning", kept in step with the clock while the page stays open. */
+function useGreeting() {
+  const [text, setText] = useState(() => greeting());
+  useEffect(() => {
+    const timer = window.setTimeout(() => setText(greeting()), untilNextGreeting() + 1000);
+    return () => window.clearTimeout(timer);
+  }, [text]);
+  return text;
+}
+
 export function OverviewBand() {
+  const { user } = useAuth();
+  const hello = useGreeting();
   const { plan, inputs, events, activeId } = usePlan();
   const current = events.find((event) => event.id === activeId);
   const [days, daysLabel] = countdownStat(plan.days_remaining);
@@ -36,7 +49,7 @@ export function OverviewBand() {
   return (
     <PageBand
       eyebrow={<>{eventName(current ?? { name: "", inputs })} · {weekday(inputs.event_date)}, {formatDate(inputs.event_date)}</>}
-      title={`${greeting()}.`}
+      title={user ? `${hello}, ${user}.` : `${hello}.`}
       description="Your plan, worked out from your numbers."
     >
       {/* Four across once the column has room for the longest figures (₹80,00,000), two by two before. */}

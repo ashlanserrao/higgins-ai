@@ -4,7 +4,7 @@
 import { useId } from "react";
 import { ArrowRight, PiggyBank } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { inr } from "@/lib/format";
+import { inr, shortInr } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
@@ -59,12 +59,13 @@ export function BudgetBlock() {
           <span key={part.label} className={cn("h-full min-w-[2px] basis-0", part.tone)} style={{ flexGrow: part.amount }} />
         ))}
       </div>
-      {/* Each figure is named in words: the colour only repeats it. */}
+      {/* Each figure is named in words: the colour only repeats it. Short figures (₹4.5K, ₹8.8L)
+          keep it light; the bar's label above reads the exact amounts out. */}
       <ul className="num mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-hidden="true">
         {parts.map((part) => (
           <li key={part.label} className="flex items-center gap-1.5">
             <span className={cn("size-2 shrink-0 rounded-[2px]", part.tone)} />
-            {part.label} {inr(part.amount)}
+            {part.label} {shortInr(part.amount)}
           </li>
         ))}
       </ul>

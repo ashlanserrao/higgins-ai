@@ -10,7 +10,7 @@ from starlette.types import Scope
 IMMUTABLE = "public, max-age=31536000, immutable"
 # The page names this build's assets: revalidate it every time, so a deploy shows up at once.
 REVALIDATE = "no-cache"
-# Unhashed names (hm/, the favicon, theme-init.js) keep their URL across deploys.
+# Unhashed names (hm/, brand/, theme-init.js) keep their URL across deploys.
 SHORT = "public, max-age=3600"
 
 

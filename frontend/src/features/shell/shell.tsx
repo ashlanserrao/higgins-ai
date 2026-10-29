@@ -7,6 +7,7 @@ import {
   AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine, Plus,
   Printer, ReceiptIndianRupee, Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
 } from "lucide-react";
+import { LogoFull, LogoMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -96,7 +97,6 @@ function AddMenu({ className, rail = false }: { className?: string; rail?: boole
   );
 }
 
-const MARK = "font-display grid size-10 shrink-0 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink";
 const COLLAPSED_KEY = "sidebar:collapsed";
 
 /** Folded or not, remembered in this browser (storage can be blocked: then it lasts the visit). */
@@ -130,13 +130,9 @@ function Logo({ toggleRef, onCollapse }: { toggleRef: Ref<HTMLButtonElement>; on
           e.preventDefault();
           go("overview");
         }}
-        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
+        className="flex min-w-0 flex-1 items-center rounded-lg"
       >
-        <span className={MARK} aria-hidden="true">H</span>
-        <div className="leading-tight">
-          <p className="font-display text-lg">Higgins AI</p>
-          <p className="text-xs text-muted-foreground">Event planner</p>
-        </div>
+        <LogoFull />
       </a>
       <Button
         ref={toggleRef} variant="ghost" size="icon-sm" onClick={onCollapse}
@@ -159,9 +155,9 @@ function RailLogo({ toggleRef, onExpand }: { toggleRef: Ref<HTMLButtonElement>; 
       onPointerEnter={() => setHinted(true)} onPointerLeave={() => setHinted(false)}
       onFocus={() => setHinted(true)} onBlur={() => setHinted(false)}
       aria-label="Expand sidebar" title="Expand sidebar" aria-expanded={false} aria-controls="sidebar"
-      className={MARK}
+      className="grid size-10 shrink-0 place-items-center rounded-[10px] text-muted-foreground hover:bg-surface"
     >
-      {hinted ? <PanelLeftOpen className="size-5" aria-hidden="true" /> : <span aria-hidden="true">H</span>}
+      {hinted ? <PanelLeftOpen className="size-5" aria-hidden="true" /> : <LogoMark className="size-9" />}
     </button>
   );
 }

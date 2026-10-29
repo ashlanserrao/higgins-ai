@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarCheck, PieChart, Share2, type LucideIcon } from "lucide-react";
+import { LogoFull } from "@/components/brand";
 import { Questionnaire } from "@/features/onboarding/questionnaire";
 import { ProfileMenu } from "@/features/shell/profile-menu";
 import { useNav } from "@/state/nav";
@@ -19,12 +20,7 @@ export function Onboarding() {
   const [initialText] = useState(draft);
   const canGoBack = events.some((e) => e.id === returnTo);
   useEffect(clearDraft, [clearDraft]);
-  const brand = (
-    <>
-      <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-      <span className="font-display text-lg">Higgins AI</span>
-    </>
-  );
+  const brand = <LogoFull />;
   return (
     <div className="min-h-screen px-4 py-10 md:py-16">
       <header className="mx-auto mb-8 max-w-3xl">
@@ -38,12 +34,12 @@ export function Onboarding() {
                 e.preventDefault();
                 cancelNewEvent();
               }}
-              className="inline-flex items-center gap-2.5 rounded-lg"
+              className="inline-flex items-center rounded-lg"
             >
               {brand}
             </a>
           ) : (
-            <p className="inline-flex items-center gap-2.5">{brand}</p>
+            <p className="inline-flex items-center">{brand}</p>
           )}
           {/* No sidebar here, so the account (and logging out) sits top right. */}
           <ProfileMenu variant="bar" />

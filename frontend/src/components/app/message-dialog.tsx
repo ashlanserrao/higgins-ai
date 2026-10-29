@@ -72,7 +72,7 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
           <DialogTitle>Message a vendor</DialogTitle>
           <DialogDescription>Written from your plan, ready to send. Copy it, or send it straight from WhatsApp.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="grid gap-1.5">
             <Label htmlFor="msg-task">Booking</Label>
             <Select value={task} onValueChange={setTask}>

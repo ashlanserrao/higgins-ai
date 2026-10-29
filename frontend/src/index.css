@@ -570,6 +570,20 @@ html,
     letter-spacing: -0.02em;
     line-height: 1.08;
   }
+  /* The hero's last word in a flat gradient: maroon into burnt orange (rose into peach in dark),
+     both ends at least 5.5:1 on the page. Printing and forced colours get the plain text. */
+  .headline-accent {
+    background-image: linear-gradient(90deg, var(--accent-text), var(--urgent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  @media print, (forced-colors: active) {
+    .headline-accent {
+      background-image: none;
+      color: inherit;
+    }
+  }
   .lede {
     font-size: 1rem;
     line-height: 1.6;

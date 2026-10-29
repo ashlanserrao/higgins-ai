@@ -132,7 +132,7 @@ function MoveMoney({ focusFirst }: { focusFirst: boolean }) {
   return (
     // Laid out by the card's own width (it shares a row with the chart on wide screens).
     <div className="@container">
-      <form onSubmit={submit} className="grid gap-3 @lg:grid-cols-[1fr_auto_1fr] @lg:items-end" noValidate>
+      <form onSubmit={submit} className="grid gap-3 @lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] @lg:items-end" noValidate>
         <div className="grid gap-1.5">
           <Label htmlFor="move-from">From</Label>
           <Select value={from} onValueChange={setFrom}>

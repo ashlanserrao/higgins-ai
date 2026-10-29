@@ -34,9 +34,18 @@ export function todayInIndia(): string {
 }
 
 /** "Good evening", by the clock in India. */
-export function greeting(): string {
-  const hour = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hourCycle: "h23" }).format(new Date()));
+/** By the visitor's own clock: morning until noon, afternoon until 5 pm, then evening. */
+export function greeting(now = new Date()): string {
+  const hour = now.getHours();
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
+/** When the greeting next changes (noon, 5 pm or midnight), in milliseconds from `now`. */
+export function untilNextGreeting(now = new Date()): number {
+  const next = new Date(now);
+  const hour = now.getHours();
+  next.setHours(hour < 12 ? 12 : hour < 17 ? 17 : 24, 0, 0, 0);
+  return next.getTime() - now.getTime();
 }
 
 export function addDays(iso: string, days: number): string {

@@ -5,6 +5,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
 import { AlertTriangle, ArrowUp, Loader2, Mic, Sparkles, X } from "lucide-react";
+import { LogoMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/field-error";
 import { api } from "@/lib/api";
@@ -267,7 +268,7 @@ export function AskDock() {
           "pointer-events-auto relative flex min-h-[52px] items-end overflow-hidden rounded-[26px] border",
           // One ring round the whole bar when its field or circle has focus, as the app's rings look.
           "outline-offset-2 outline-ring has-[[data-circle]:focus-visible]:outline-2 has-[textarea:focus-visible]:outline-2",
-          open ? "bg-popover" : "bg-primary-soft",
+          "bg-popover",
           // Grows leftwards from the circle: the right edge stays put.
           open ? (phone ? "w-full" : "w-[min(520px,100%)]") : "w-[52px]",
           !phone && "transition-[width,background-color] duration-280 ease-[cubic-bezier(0.16,1,0.3,1)]",
@@ -335,7 +336,7 @@ export function AskDock() {
             open ? "text-muted-foreground hover:text-foreground" : "text-primary-ink",
           )}
         >
-          <Sparkles className={cn("absolute size-[22px] transition-opacity duration-120", open && "opacity-0")} aria-hidden="true" />
+          <LogoMark className={cn("absolute size-[30px] transition-opacity duration-120", open && "opacity-0")} />
           <X className={cn("absolute size-5 transition-opacity duration-120", !open && "opacity-0")} aria-hidden="true" />
         </button>
       </div>

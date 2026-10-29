@@ -3,6 +3,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
+import { LogoFull } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,10 +72,9 @@ export function SignIn() {
             e.preventDefault();
             openPage("welcome");
           }}
-          className="mb-8 inline-flex items-center gap-2.5 rounded-lg"
+          className="mb-8 inline-flex items-center rounded-lg"
         >
-          <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-          <span className="font-display text-lg">Higgins AI</span>
+          <LogoFull />
         </a>
 
         <div className="rounded-2xl border bg-card p-6 md:p-7">
