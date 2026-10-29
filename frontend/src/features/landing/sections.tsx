@@ -5,6 +5,9 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Cake, Heart, Users, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { COPY } from "./copy";
+// Imported, so the build names it by its content: a new screenshot reaches visitors at once.
+// (public/sample-plan.webp is the same picture at a fixed address, for link previews.)
+import samplePlan from "./sample-plan.webp";
 import { Cell, CellGrid, Crosshair } from "./frame";
 
 /** Side padding for everything in the frame: 16px on phones, 24px on tablets, 48px on desktop. */
@@ -138,7 +141,7 @@ export function SamplePlan() {
           <Crosshair className="crosshair-bl" />
           <Crosshair className="crosshair-br" />
           <img
-            src="/sample-plan.webp" width={1280} height={800} loading="lazy" decoding="async" alt={COPY.sample.alt}
+            src={samplePlan} width={1280} height={800} loading="lazy" decoding="async" alt={COPY.sample.alt}
             className="h-auto w-full rounded-[14px] bg-surface"
           />
         </div>
