@@ -159,7 +159,7 @@ function QuoteCard({ quote, comparison, onEdit }: { quote: Quote; comparison: Qu
         <p className="mt-3 text-xs"><span className="font-medium text-warning">Worth asking:</span> {comparison.missing.join(", ")}</p>
       )}
 
-      <div className="no-print mt-auto flex flex-wrap gap-2 border-t pt-3">
+      <div className="mt-auto flex flex-wrap gap-2 border-t pt-3">
         {comparison.accepted ? (
           <Button size="sm" variant="outline" onClick={unaccept}><Undo2 aria-hidden="true" /> Un-accept</Button>
         ) : (

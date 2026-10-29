@@ -127,7 +127,7 @@ export function Toaster() {
     <div
       className={cn(
         // No gap here: with nothing showing the layer is 0px tall, so a toast arriving moves nothing.
-        "no-print pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center px-(--page-gutter)",
+        "pointer-events-none fixed inset-x-0 z-40 flex flex-col items-center px-(--page-gutter)",
         // At the top of the screen, clear of a notch, centred on the whole window.
         "top-[calc(env(safe-area-inset-top)+0.75rem)]",
       )}

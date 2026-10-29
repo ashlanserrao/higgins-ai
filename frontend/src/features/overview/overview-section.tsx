@@ -40,7 +40,7 @@ function ActionCard({ tone, badge, title, detail, children, footer }: {
       <h3 className="mt-3 text-lg">{title}</h3>
       {children && <p className="mt-1 text-sm text-muted-foreground">{children}</p>}
       {detail && <p className="mt-2 text-xs text-muted-foreground">{detail}</p>}
-      {footer && <div className="no-print mt-auto flex flex-wrap items-center gap-2 pt-5">{footer}</div>}
+      {footer && <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">{footer}</div>}
     </article>
   );
 }
@@ -206,7 +206,7 @@ export function WhatMoved() {
       )}
       <RebalanceNote />
       {knockOn.length > 0 && (
-        <Button size="sm" variant="link" className="no-print mt-3 px-0" onClick={() => go("tasks")}>See all bookings <ArrowRight aria-hidden="true" /></Button>
+        <Button size="sm" variant="link" className="mt-3 px-0" onClick={() => go("tasks")}>See all bookings <ArrowRight aria-hidden="true" /></Button>
       )}
     </Panel>
   );
@@ -235,7 +235,7 @@ export function IdeasTeaser() {
           </ul>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <AiNote />
-            <Button size="sm" variant="link" className="no-print px-0 text-ai" onClick={() => go("ideas")}>All ideas <ArrowRight aria-hidden="true" /></Button>
+            <Button size="sm" variant="link" className="px-0 text-ai" onClick={() => go("ideas")}>All ideas <ArrowRight aria-hidden="true" /></Button>
           </div>
         </div>
       ) : (

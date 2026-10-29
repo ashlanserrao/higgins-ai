@@ -62,13 +62,13 @@ function TaskRow({ item, onBook, onMessage, onClear }: {
           {celebrate && <Sparkle className="animate-sparkle absolute -top-2 -right-2 size-4 fill-marigold text-marigold" aria-hidden="true" />}
         </span>
         {!item.done && (
-          <Button size="sm" variant="outline" onClick={() => onBook({ taskId: item.id, state: "booked" })} className="no-print">
+          <Button size="sm" variant="outline" onClick={() => onBook({ taskId: item.id, state: "booked" })}>
             <CheckCircle2 aria-hidden="true" /> Mark booked
           </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="icon-sm" variant="ghost" aria-label={`More for ${item.label}`} className="no-print"><MoreHorizontal aria-hidden="true" /></Button>
+            <Button size="icon-sm" variant="ghost" aria-label={`More for ${item.label}`}><MoreHorizontal aria-hidden="true" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             {!item.done && <DropdownMenuItem onSelect={() => onBook({ taskId: item.id, state: "delayed" })}><CalendarClock aria-hidden="true" /> Vendor needs more time…</DropdownMenuItem>}

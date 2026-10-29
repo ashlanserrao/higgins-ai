@@ -24,7 +24,7 @@ export function Panel({ title, icon: Icon, description, actions, children, class
               {description && <div className="mt-1 text-sm text-muted-foreground">{description}</div>}
             </div>
           </div>
-          {actions && <div className="no-print flex flex-wrap gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
         </div>
       )}
       {children}

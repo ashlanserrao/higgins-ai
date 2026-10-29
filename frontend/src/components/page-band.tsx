@@ -26,7 +26,7 @@ export function PageBand({ eyebrow, title, description, actions, children }: {
           {description && <p className="mt-1.5 max-w-3xl text-[13px] text-primary-foreground/85">{description}</p>}
         </div>
         {(tools || actions) && (
-          <div className="no-print flex shrink-0 flex-col items-start gap-3 md:items-end md:justify-between">
+          <div className="flex shrink-0 flex-col items-start gap-3 md:items-end md:justify-between">
             {tools && <div className="flex items-center gap-2">{tools}</div>}
             {actions && <div className="flex flex-wrap gap-2 md:justify-end">{actions}</div>}
           </div>

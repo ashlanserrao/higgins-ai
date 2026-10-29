@@ -675,17 +675,6 @@ higgins-how-it-works {
   position: relative;
   z-index: 1;
 }
-@media print {
-  /* Printers drop backgrounds, so the band prints as ordinary dark text. */
-  .page-band {
-    margin-bottom: 0;
-    background: none;
-  }
-  .page-band,
-  .page-band * {
-    color: var(--text-primary) !important;
-  }
-}
 
 /* The "what you get" drawings (iso-scenes.tsx), coloured from the page's own tokens: faces lit
    from above, lines in ink, the accent only on what's being shown. In dark the surfaces lighten
@@ -716,10 +705,34 @@ higgins-how-it-works {
 }
 
 @media print {
-  .no-print {
-    display: none !important;
-  }
   body {
     background: var(--bg-surface);
+  }
+}
+
+/* Print sheet (features/print/print-sheet.tsx). On screen it waits off the page at the printed
+   width (A4 less the margins), so it can be measured; --sheet-zoom shrinks a long one to one
+   page, widened by the same factor so it still fills the line. Printing shows it alone. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+.print-sheet {
+  width: calc(186mm / var(--sheet-zoom, 1));
+  zoom: var(--sheet-zoom, 1);
+  background: var(--bg-surface);
+}
+@media screen {
+  .print-sheet {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+@media print {
+  body:has(> .print-sheet) > :not(.print-sheet) {
+    display: none !important;
   }
 }

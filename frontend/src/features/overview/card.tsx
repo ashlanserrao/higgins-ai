@@ -62,7 +62,7 @@ export function OverviewCard({ next, nextBadge }: { next: ReactNode; nextBadge?:
       <TabsPrimitive.Root value={tab} onValueChange={choose}>
         {/* Flat pills: the chosen one takes the event's soft tint, so the filled action button
             below stays the only solid one. */}
-        <TabsPrimitive.List className="no-print flex flex-wrap gap-1.5">
+        <TabsPrimitive.List className="flex flex-wrap gap-1.5">
           {TABS.map(({ id, label, short }) => (
             <TabsPrimitive.Trigger
               key={id} value={id}
@@ -78,16 +78,16 @@ export function OverviewCard({ next, nextBadge }: { next: ReactNode; nextBadge?:
           ))}
         </TabsPrimitive.List>
         {/* Each panel is as tall as its own content, so the card shrinks to fit the tab. Inactive
-            panels stay mounted but hidden, so a print shows all three, one after another. */}
+            panels stay mounted but hidden. */}
         {TABS.map(({ id, label }) => (
           <TabsPrimitive.Content
             key={id} value={id} forceMount
             className={cn(
               "pt-4 outline-none data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150",
-              "data-[state=inactive]:hidden print:data-[state=inactive]:!block",
+              "data-[state=inactive]:hidden",
             )}
           >
-            <h2 className="sr-only print:not-sr-only print:mb-2 print:text-lg">{label}</h2>
+            <h2 className="sr-only">{label}</h2>
             {id === "next" ? next : id === "soon" ? <ComingUp /> : <IdeasPanel />}
           </TabsPrimitive.Content>
         ))}
@@ -139,7 +139,7 @@ function ComingUp() {
       </ol>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         {restOnTrack ? <p className="text-success">Everything else is on track</p> : <span />}
-        <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("tasks")}>
+        <Button size="sm" variant="link" className="h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("tasks")}>
           Full timeline <ArrowRight aria-hidden="true" />
         </Button>
       </div>
@@ -194,7 +194,7 @@ function IdeasPanel() {
       </ul>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
         <p className="text-tertiary">Suggested by AI. Give it a quick check.</p>
-        <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("ideas")}>
+        <Button size="sm" variant="link" className="h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("ideas")}>
           All ideas <ArrowRight aria-hidden="true" />
         </Button>
       </div>

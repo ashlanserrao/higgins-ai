@@ -211,7 +211,7 @@ export function AskDock() {
     <div
       ref={dock} role="region" aria-label="Ask Higgins" onKeyDown={onKeyDown}
       className={cn(
-        "no-print fixed z-40 flex flex-col items-end",
+        "fixed z-40 flex flex-col items-end",
         open && phone
           // A sheet across the foot of a phone, over the bottom navigation.
           ? "inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom)+var(--ask-kb,0px))] rounded-2xl border bg-popover p-2 [[data-theme=dark]_&]:border-(--hairline-strong)"

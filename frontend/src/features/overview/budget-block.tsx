@@ -46,7 +46,7 @@ export function BudgetBlock() {
           <h2 id={titleId} className="font-sans text-base font-semibold">Budget breakdown</h2>
           <p className="mt-0.5 text-[13px] text-muted-foreground">Where your {inr(inputs.budget_inr)} goes</p>
         </div>
-        <Button size="sm" variant="link" className="no-print h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("budget")}>
+        <Button size="sm" variant="link" className="h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("budget")}>
           Open budget <ArrowRight aria-hidden="true" />
         </Button>
       </div>

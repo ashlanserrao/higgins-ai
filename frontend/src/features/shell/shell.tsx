@@ -338,7 +338,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         Skip to content
       </a>
 
-      <aside id="sidebar" className="no-print sticky top-0 hidden h-screen flex-col bg-surface-soft lg:flex">
+      <aside id="sidebar" className="sticky top-0 hidden h-screen flex-col bg-surface-soft lg:flex">
         {/* Everything but the account scrolls; the account stays at the foot. */}
         <div
           className={cn(
@@ -368,7 +368,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
       </aside>
 
       <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
-        {!desktop && <header className="no-print sticky top-0 z-30 bg-background/85 backdrop-blur">
+        {!desktop && <header className="sticky top-0 z-30 bg-background/85 backdrop-blur">
           <div className="page-pad flex flex-wrap items-center gap-2 py-3 lg:flex-nowrap">
             <EventSwitcher withAppearance className="flex-1 px-2 py-1.5 hover:bg-surface data-[state=open]:bg-surface lg:hidden" />
             <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
@@ -384,7 +384,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         {/* Room at the foot for the Ask Higgins circle, so the last content scrolls clear of it. */}
         <main id="main" className="page-pad w-full flex-1 space-y-6 pb-24">
           {shared && (
-            <div className="no-print mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm md:mt-6">
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm md:mt-6">
               <Download className="size-4 text-info" aria-hidden="true" />
               <span className="flex-1">Someone shared this plan with you. Keep it to add it to your events. Your own plans stay as they are.</span>
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
@@ -394,7 +394,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         </main>
       </div>
 
-      <nav aria-label="Sections" className="no-print fixed inset-x-0 bottom-0 z-30 flex border-t bg-surface lg:hidden">
+      <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-30 flex border-t bg-surface lg:hidden">
         {NAV.map((item) => navLink(item, true))}
       </nav>
       {/* A fresh dock per event, so a half-typed change never applies to another one. */}

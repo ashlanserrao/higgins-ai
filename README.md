@@ -59,7 +59,7 @@ The plan is on screen as soon as the rules engine returns. The ideas card shows 
 - **No accounts, no database.** The latest plan and checklist ticks are kept in the browser's `localStorage`.
 - **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
 - **What if…:** guest and budget sliders (¼× to 2× her own numbers) re-run the rules engine as she drags, with no AI call, so "what if we invite 150 instead of 200?" is answered instantly. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
-- **Download as PDF:** a print stylesheet, so the browser's "Save as PDF" gives a clean document.
+- **Print or save as PDF:** a one-page A4 summary for the family (key figures, what needs attention, budget, bookings, key dates, vendors, guests, ideas and notes), safe in black and white; a big event scales down to stay on one page.
 
 ## Demo scenarios
 

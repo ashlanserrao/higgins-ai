@@ -47,7 +47,7 @@ function TaskActions({ item, primary, onBook, onMessage }: {
   if (!primary)
     return <Button size="sm" variant="link" className={LINK} onClick={() => onBook(item.id)}>Mark booked</Button>;
   return (
-    <div className="no-print mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
       {canMessage(item.id) ? (
         <>
           <Button className={PRIMARY} onClick={() => onMessage(item.id)}><MessageSquareText aria-hidden="true" /> Draft an enquiry (2 min)</Button>
@@ -112,7 +112,7 @@ function Lead({ lead, onBook, onMessage }: { lead: Lead; onBook: (id: string) =>
             : "Nothing else waits on it, so the rest of your plan stays as it is."}
           {item.at_risk && <> It's after the usual book-by date of {formatShortDate(item.book_by)}.</>}
         </p>
-        <div className="no-print mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
           {canMessage(item.id) && (
             <Button className={PRIMARY} onClick={() => onMessage(item.id)}><MessageSquareText aria-hidden="true" /> Message the vendor</Button>
           )}
@@ -130,7 +130,7 @@ function Lead({ lead, onBook, onMessage }: { lead: Lead; onBook: (id: string) =>
         <StatusBadge tone="success">All booked</StatusBadge>
         <h3 className="mt-3 text-[19px] leading-snug">You're all set</h3>
         <p className="mt-1 text-[13px] text-muted-foreground">Every booking is done. The timeline shows what's left on the day.</p>
-        <div className="no-print mt-4"><Button className={PRIMARY} onClick={() => go("tasks")}>See the timeline <ArrowRight aria-hidden="true" /></Button></div>
+        <div className="mt-4"><Button className={PRIMARY} onClick={() => go("tasks")}>See the timeline <ArrowRight aria-hidden="true" /></Button></div>
       </div>
     );
 
@@ -167,7 +167,7 @@ function Money() {
         <StatusBadge tone="danger">Over budget</StatusBadge>
         <h3 className="mt-3 text-[19px] leading-snug">Confirmed costs are {inr(over)} over budget</h3>
         <p className="mt-1 text-[13px] text-muted-foreground">The buffer is used up, and other lines are trimmed as far as they sensibly go.</p>
-        <div className="no-print mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" className={chip} onClick={() => raiseTo(inputs.budget_inr + over)}>Raise the budget to {inr(inputs.budget_inr + over)}</Button>
           <Button size="sm" variant="link" className={LINK} onClick={() => go("budget")}>Swap a quote <ArrowRight aria-hidden="true" /></Button>
         </div>
@@ -186,7 +186,7 @@ function Money() {
         <p className="num mt-1.5 flex justify-between text-xs text-muted-foreground">
           <span>{inr(plan.per_guest_inr)} now</span><span>{inr(floor)} realistic</span>
         </p>
-        <div className="no-print mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2">
           {fits >= 1 && fits < inputs.guests && (
             <Button size="sm" variant="outline" className={chip}
               onClick={() => preview({ title: `Plan for ${fits} guests`, label: `${fits} guests`, changes: { guests: fits } })}>
@@ -267,7 +267,7 @@ export function NextStepPanel({ lead, attention }: { lead: Lead; attention: Atte
           <Money />
         </div>
       </div>
-      <div className="no-print flex flex-wrap items-center justify-between gap-2 pt-4 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-4 text-xs">
         {more > 0
           ? <Button size="sm" variant="link" className={`${LINK} text-warning`} onClick={() => setNotesOpen(true)}>+{more} more need you</Button>
           : <span />}
