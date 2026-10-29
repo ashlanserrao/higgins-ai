@@ -1,14 +1,15 @@
 // The open event and section live in the URL hash (#/event/3f9c2a1b/budget), so the back
 // button, bookmarks and links work. An "intent" opens a specific tool when arriving from
 // the Add menu. Old links (#budget) and shared plans (no event yet) use the section alone.
-// Two pages sit outside any event: the landing page (#/welcome) and a new event (#/new).
+// Three pages sit outside any event: the landing page (#/welcome), signing in (#/signin) and a
+// new event (#/new).
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
 export const SECTIONS = ["overview", "budget", "tasks", "vendors", "guests", "ideas"] as const;
 export type Section = (typeof SECTIONS)[number];
 export type Intent = "add-quote" | "add-guest" | "move-money" | "mark-booking" | null;
-export type Page = "welcome" | "new";
+export type Page = "welcome" | "signin" | "new";
 
 interface Route {
   eventId: string | null;
@@ -17,7 +18,7 @@ interface Route {
 }
 
 export function readRoute(hash = location.hash): Route {
-  if (hash === "#/welcome" || hash === "#/new") return { eventId: null, section: "overview", page: hash.slice(2) as Page };
+  if (hash === "#/welcome" || hash === "#/signin" || hash === "#/new") return { eventId: null, section: "overview", page: hash.slice(2) as Page };
   const match = hash.match(/^#\/event\/([\w-]+)(?:\/(\w+))?$/);
   const name = match ? match[2] : hash.slice(1);
   const section = (SECTIONS as readonly string[]).includes(name) ? (name as Section) : "overview";

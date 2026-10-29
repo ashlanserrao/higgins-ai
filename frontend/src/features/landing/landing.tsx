@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlanner } from "@/state/planner";
-import { CONTACT_HREF, COPY, SIGN_IN_ROUTE } from "./copy";
+import { CONTACT_HREF, COPY } from "./copy";
 import { Cell, CellGrid, CenterLine, Frame, SectionRule } from "./frame";
 import { PlanInput } from "./plan-input";
 import { useReveal } from "./reveal";
@@ -89,7 +88,6 @@ export function Landing() {
   const { events, activeId, returnTo, startNewEvent } = usePlanner();
   const { openPage, openEvent } = useNav();
   const [text, setText] = useState("");
-  const [signIn, setSignIn] = useState(false);
   const lastEvent = activeId ?? returnTo ?? events.at(-1)?.id ?? null;
   const { scrolled, active } = useScrollState();
 
@@ -143,7 +141,7 @@ export function Landing() {
           </nav>
           <Button
             variant="outline" size="sm" className="ml-auto h-11 rounded-full px-4 md:ml-0 md:h-9 md:justify-self-end md:pointer-coarse:h-11"
-            onClick={() => (SIGN_IN_ROUTE ? location.assign(SIGN_IN_ROUTE) : setSignIn(true))}
+            onClick={() => openPage("signin")}
           >
             {COPY.nav.signIn}
           </Button>
@@ -157,7 +155,9 @@ export function Landing() {
         <section aria-labelledby="hero-title" className="relative grid items-center gap-y-10 pt-10 pb-16 md:pt-16 md:pb-20 min-[720px]:grid-cols-2">
           <CenterLine />
           <div className={cn("mx-auto w-full max-w-[520px] text-center min-[720px]:max-w-none min-[720px]:text-left", PAD)}>
-          <h1 id="hero-title" className="headline text-4xl leading-[1.08] md:text-5xl lg:text-[3.5rem]">{COPY.hero.title}</h1>
+          <h1 id="hero-title" className="headline text-5xl leading-[1.04] md:text-6xl xl:text-6xl">
+            {COPY.hero.title.map((line) => <span key={line} className="block">{line}</span>)}
+          </h1>
           <p className="lede mt-5 md:text-lg">{COPY.hero.body}</p>
 
           <div className="mt-8">
@@ -249,17 +249,6 @@ export function Landing() {
       </footer>
       </Frame>
 
-      <Dialog open={signIn} onOpenChange={setSignIn}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{COPY.signIn.title}</DialogTitle>
-            <DialogDescription>{COPY.signIn.body}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setSignIn(false)}>{COPY.signIn.close}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

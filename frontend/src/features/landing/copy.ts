@@ -1,9 +1,6 @@
 // Every string on the landing page, in one place so it's easy to review and translate.
 // Answers describe what the app does today; anything not decided yet is a TODO, not a claim.
 
-/** Where "Sign in" goes once accounts exist. TODO(v4 accounts): set this to the sign-in route. */
-export const SIGN_IN_ROUTE: string | null = null;
-
 /** TODO: a contact address or page. The footer link appears once this is set. */
 export const CONTACT_HREF: string | null = null;
 
@@ -15,14 +12,11 @@ export const COPY = {
     signIn: "Sign in",
     continuePlanning: "Continue planning",
   },
-  signIn: {
-    title: "Accounts are coming later",
-    body: "Today everything works without one. Your plans are saved in this browser, so they stay on this device.",
-    close: "Got it",
-  },
   hero: {
-    title: "Plan your celebration, calmly",
-    body: "Weddings, birthdays and community events. A realistic budget, book-by dates and a plan to share with family, in about a minute.",
+    // The headline sells the feeling, one phrase a line; the body says what Higgins does, with
+    // events people recognise.
+    title: ["Celebrations", "without the", "chaos"],
+    body: "From a 300-guest shaadi to a 5th birthday and the society Diwali party, Higgins works out what everything should cost and when to book it, in about a minute.",
     label: "Tell me about your event",
     placeholder: "Tell me about it. e.g. Wedding for 300 in Jaipur, about 25 lakh",
     helper: "Edit anything after",
@@ -86,7 +80,7 @@ export const COPY = {
       {
         id: "faq-account",
         question: "Do I need an account?",
-        answer: "No. Everything works without one. Because your plans live in this browser, they don't move to another device on their own.",
+        answer: "Yes, a username and a password, made in a few seconds. To look around first, sign in with test / test. Accounts and plans are kept in this browser only, so they don't move to another device on their own.",
       },
       {
         id: "faq-events",

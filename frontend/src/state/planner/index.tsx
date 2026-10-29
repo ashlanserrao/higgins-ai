@@ -15,14 +15,14 @@ export { orderEvents } from "./events";
 export type { IdeasStatus } from "./ideas";
 export type { DeletedEvent, LastChange, RecentChange } from "./store";
 
-function usePlannerState() {
+function usePlannerState(owner: string | null) {
   const store = useStore();
   const { state, message, announce, fail, dismissFailure } = store;
   const { fetchIdeas, loadIdeas, ideasStatus } = useIdeas(store);
   const { recalculate, makePlan, applyChange, updateProgress, undo, setGuests } = usePlanActions(store, fetchIdeas);
   const events = useEvents(store, recalculate);
-  useBoot(store, recalculate);
-  useSave(state);
+  useBoot(store, recalculate, owner);
+  useSave(state, owner);
 
   return {
     ...state, events: allEvents(state), ideasStatus, message,
@@ -35,8 +35,10 @@ export type Planner = ReturnType<typeof usePlannerState>;
 
 const PlannerContext = createContext<Planner | null>(null);
 
-export function PlannerProvider({ children }: { children: ReactNode }) {
-  const planner = usePlannerState();
+/** `owner`: the signed-in account, whose events load and save; null when signed out. Mount it
+ *  once per account (a `key`), so switching accounts starts from that account's events. */
+export function PlannerProvider({ owner, children }: { owner: string | null; children: ReactNode }) {
+  const planner = usePlannerState(owner);
   return <PlannerContext.Provider value={planner}>{children}</PlannerContext.Provider>;
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CalendarCheck, PieChart, Share2, type LucideIcon } from "lucide-react";
 import { Questionnaire } from "@/features/onboarding/questionnaire";
+import { ProfileMenu } from "@/features/shell/profile-menu";
 import { useNav } from "@/state/nav";
 import { usePlanner } from "@/state/planner";
 
@@ -14,24 +15,39 @@ const YOU_GET: { icon: LucideIcon; label: string }[] = [
 
 export function Onboarding() {
   const { returnTo, events, cancelNewEvent } = usePlanner();
-  const { draft, clearDraft, openPage } = useNav();
+  const { draft, clearDraft } = useNav();
   const [initialText] = useState(draft);
   const canGoBack = events.some((e) => e.id === returnTo);
   useEffect(clearDraft, [clearDraft]);
+  const brand = (
+    <>
+      <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
+      <span className="font-display text-lg">Higgins AI</span>
+    </>
+  );
   return (
     <div className="min-h-screen px-4 py-10 md:py-16">
       <header className="mx-auto mb-8 max-w-3xl">
-        <a
-          href="#/welcome"
-          onClick={(e) => {
-            e.preventDefault();
-            openPage("welcome");
-          }}
-          className="mb-8 inline-flex items-center gap-2.5 rounded-lg"
-        >
-          <span className="font-display grid size-10 place-items-center rounded-[10px] bg-primary-soft text-xl text-primary-ink" aria-hidden="true">H</span>
-          <span className="font-display text-lg">Higgins AI</span>
-        </a>
+        {/* Signed in, the landing page is behind you: the logo goes back to the event you came
+            from, and is only a logo on a first event. */}
+        <div className="mb-8 flex items-center justify-between gap-3">
+          {canGoBack ? (
+            <a
+              href={`#/event/${returnTo}/overview`}
+              onClick={(e) => {
+                e.preventDefault();
+                cancelNewEvent();
+              }}
+              className="inline-flex items-center gap-2.5 rounded-lg"
+            >
+              {brand}
+            </a>
+          ) : (
+            <p className="inline-flex items-center gap-2.5">{brand}</p>
+          )}
+          {/* No sidebar here, so the account (and logging out) sits top right. */}
+          <ProfileMenu variant="bar" />
+        </div>
         <h1 className="text-3xl md:text-[2.75rem] md:leading-tight">Let's plan your celebration, calmly</h1>
         <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
           Weddings, birthdays and community events. In about a minute you'll have a realistic budget, book-by dates and a

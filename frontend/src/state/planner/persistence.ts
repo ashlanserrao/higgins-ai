@@ -12,7 +12,7 @@ import type { Recalculate } from "./plan-actions";
 import { allEvents, opened, type State, type Store } from "./store";
 
 /** Start: options, then a shared link, the event in the URL or the last one open, or nothing. */
-export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Recalculate) {
+export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Recalculate, owner: string | null) {
   /** A closed event's plan, worked out again for today. Its saved plan stays if that fails. */
   const refreshEvent = useCallback(async (event: SavedEvent) => {
     try {
@@ -33,7 +33,7 @@ export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Rec
         return;
       }
       const shared = readSharedInputs();
-      const saved = storage.load();
+      const saved = storage.load(owner);
       const wanted = readRoute().eventId;
       const open = saved.events.find((e) => e.id === wanted) ?? saved.events.find((e) => e.id === saved.activeEventId) ?? saved.events[0];
       patch({ options, events: saved.events });
@@ -63,13 +63,13 @@ export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Rec
         if (event.id !== stateRef.current.activeId && event.savedOn !== today) void refreshEvent(event);
       }
     })();
-  }, [patch, recalculate, refreshEvent, stateRef]);
+  }, [patch, recalculate, refreshEvent, stateRef, owner]);
 }
 
-/** Save on every change. A shared plan isn't saved until it's kept. */
-export function useSave(state: State) {
+/** Save on every change, under the signed-in account. A shared plan isn't saved until it's kept. */
+export function useSave(state: State, owner: string | null) {
   useEffect(() => {
     if (state.booting) return;
-    storage.save({ activeEventId: state.activeId ?? state.returnTo, events: allEvents(state) });
-  }, [state]);
+    storage.save(owner, { activeEventId: state.activeId ?? state.returnTo, events: allEvents(state) });
+  }, [state, owner]);
 }

@@ -24,6 +24,7 @@ import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { AskDock } from "./ask-dock";
 import { EventSwitcher } from "./event-switcher";
+import { ProfileMenu } from "./profile-menu";
 import { AppearanceControl } from "./theme-control";
 
 // Each section's icon sits on its own soft chip in the sidebar, tinted from the semantic tokens
@@ -118,15 +119,16 @@ function useCollapsed() {
   return [collapsed, toggle] as const;
 }
 
+/** The brand, which opens the event's overview (signed in, the landing page is behind you). */
 function Logo({ toggleRef, onCollapse }: { toggleRef: Ref<HTMLButtonElement>; onCollapse: () => void }) {
-  const { openPage } = useNav();
+  const { eventId, go } = useNav();
   return (
     <div className="flex items-center gap-2">
       <a
-        href="#/welcome"
+        href={routeHash({ eventId, section: "overview" })}
         onClick={(e) => {
           e.preventDefault();
-          openPage("welcome");
+          go("overview");
         }}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg"
       >
@@ -340,28 +342,33 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         Skip to content
       </a>
 
-      <aside
-        id="sidebar"
-        className={cn(
-          "no-print sticky top-0 hidden h-screen flex-col gap-5 overflow-x-hidden overflow-y-auto bg-surface-soft lg:flex",
-          // The rail still scrolls on a very short window, without a scrollbar beside its icons.
-          collapsed ? "items-center px-3 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "scroll-area p-5",
-        )}
-      >
-        {collapsed ? <RailLogo toggleRef={toggleButton} onExpand={toggle} /> : <Logo toggleRef={toggleButton} onCollapse={toggle} />}
-        <EventCard rail={collapsed} />
-        <AddMenu rail={collapsed} className={collapsed ? "size-10" : "w-full"} />
-        <nav aria-label="Sections" className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>{NAV.map((item) => navLink(item))}</nav>
-        {/* Editing the event and the theme wait for the full sidebar. */}
-        {!collapsed && (
-          <div className="mt-auto space-y-0.5 border-t pt-3">
-            <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
-              <PencilLine className="size-4" aria-hidden="true" /> Edit event details
-            </button>
-            <AppearanceControl />
-            <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
-          </div>
-        )}
+      <aside id="sidebar" className="no-print sticky top-0 hidden h-screen flex-col bg-surface-soft lg:flex">
+        {/* Everything but the account scrolls; the account stays at the foot. */}
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto",
+            // The rail still scrolls on a very short window, without a scrollbar beside its icons.
+            collapsed ? "items-center px-3 py-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" : "scroll-area p-5",
+          )}
+        >
+          {collapsed ? <RailLogo toggleRef={toggleButton} onExpand={toggle} /> : <Logo toggleRef={toggleButton} onCollapse={toggle} />}
+          <EventCard rail={collapsed} />
+          <AddMenu rail={collapsed} className={collapsed ? "size-10" : "w-full"} />
+          <nav aria-label="Sections" className={cn("flex flex-col", collapsed ? "gap-1" : "gap-0.5")}>{NAV.map((item) => navLink(item))}</nav>
+          {/* Editing the event and the theme wait for the full sidebar. */}
+          {!collapsed && (
+            <div className="mt-auto space-y-0.5 border-t pt-3">
+              <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
+                <PencilLine className="size-4" aria-hidden="true" /> Edit event details
+              </button>
+              <AppearanceControl />
+              <p className="px-3 pt-2 text-xs text-muted-foreground">Saved in this browser only. Our server doesn't keep a copy.</p>
+            </div>
+          )}
+        </div>
+        <div className={cn("shrink-0 border-t", collapsed ? "flex justify-center p-3" : "px-3 py-2.5")}>
+          <ProfileMenu variant={collapsed ? "rail" : "sidebar"} />
+        </div>
       </aside>
 
       <div className="@container flex min-w-0 flex-col pb-20 lg:pb-0">
@@ -373,6 +380,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
               <Button variant="ghost" size="icon" onClick={onEdit} className="lg:hidden" aria-label="Edit event details" title="Edit event details"><PencilLine aria-hidden="true" /></Button>
               <ShareButton />
               <Button variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"><Printer aria-hidden="true" /></Button>
+              <ProfileMenu variant="bar" />
             </div>
           </div>
         </header>}

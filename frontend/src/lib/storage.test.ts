@@ -31,31 +31,47 @@ const event: SavedEvent = {
 };
 
 describe("storage", () => {
-  it("loads what it saved", () => {
+  it("loads what it saved, for that account only", () => {
     fakeStorage();
-    expect(storage.save({ activeEventId: event.id, events: [event] })).toBe(true);
-    expect(storage.load()).toEqual({ activeEventId: event.id, events: [event] });
+    expect(storage.save("Asha", { activeEventId: event.id, events: [event] })).toBe(true);
+    expect(storage.load("asha")).toEqual({ activeEventId: event.id, events: [event] });
+    expect(storage.load("ravi")).toEqual({ activeEventId: null, events: [] });
+  });
+
+  it("keeps nothing while signed out", () => {
+    const data = fakeStorage();
+    expect(storage.save(null, { activeEventId: event.id, events: [event] })).toBe(false);
+    expect(storage.load(null)).toEqual({ activeEventId: null, events: [] });
+    expect(data.size).toBe(0);
   });
 
   it("starts empty instead of crashing when storage is blocked", () => {
     fakeStorage({}, true);
-    expect(storage.load()).toEqual({ activeEventId: null, events: [] });
-    expect(storage.save({ activeEventId: null, events: [event] })).toBe(false);
+    expect(storage.load("asha")).toEqual({ activeEventId: null, events: [] });
+    expect(storage.save("asha", { activeEventId: null, events: [event] })).toBe(false);
   });
 
   it("starts empty when the saved copy is corrupt", () => {
-    fakeStorage({ "eventPlanner:v4": "{not json" });
-    expect(storage.load()).toEqual({ activeEventId: null, events: [] });
+    fakeStorage({ "eventPlanner:v4:asha": "{not json" });
+    expect(storage.load("asha")).toEqual({ activeEventId: null, events: [] });
+  });
+
+  it("gives events saved before accounts to the first account that loads", () => {
+    const earlier = { activeEventId: event.id, events: [event] };
+    const data = fakeStorage({ "eventPlanner:v4": JSON.stringify(earlier) });
+    expect(storage.load("asha")).toEqual(earlier);
+    expect([...data.keys()]).toEqual(["eventPlanner:v4:asha"]);
+    expect(storage.load("ravi")).toEqual({ activeEventId: null, events: [] });
   });
 
   it("moves a v2 plan into v4, keeping ticked items as bookings, then removes the old copy", () => {
     const { must_haves: _m, progress: _p, ...oldInputs } = inputs;
     const v2 = { inputs: oldInputs, plan: null, aiAvailable: true, ideas: null, ideasFor: "x", plannedOn: "2026-09-01", checked: ["cake"] };
     const data = fakeStorage({ "eventPlanner:v2": JSON.stringify(v2) });
-    const { activeEventId, events: [moved] } = storage.load();
+    const { activeEventId, events: [moved] } = storage.load("asha");
     expect(activeEventId).toBe(moved.id);
     expect(moved.inputs.progress.tasks).toEqual({ cake: { state: "booked", on: "2026-09-01" } });
     expect(moved.ideasFor).toBeNull();
-    expect([...data.keys()]).toEqual(["eventPlanner:v4"]);
+    expect([...data.keys()]).toEqual(["eventPlanner:v4:asha"]);
   });
 });
