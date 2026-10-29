@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.frontend import FrontendFiles
-from app.main import ai_limiter, app, plan_limiter
+from app.main import ai_limiter, ai_total_limiter, app, plan_limiter
 from tests.conftest import TODAY
 
 
@@ -86,6 +86,14 @@ def test_ai_limit_does_not_block_plans(client, diwali_request, monkeypatch):
     assert client.post("/api/plan", json=payload).status_code == 200
 
 
+def test_total_ai_limit_caps_every_visitor_together(client, diwali_request, monkeypatch):
+    monkeypatch.setattr(ai_total_limiter, "limit", 2)
+    payload = as_json(diwali_request)
+    statuses = [client.post("/api/ideas", json=payload).status_code for _ in range(3)]
+    assert statuses == [200, 200, 429]  # well under the per-IP limit of 20
+    assert client.post("/api/plan", json=payload).status_code == 200
+
+
 def test_security_headers_on_static_and_api(client):
     for path in ("/", "/health"):
         headers = client.get(path).headers
@@ -95,6 +103,13 @@ def test_security_headers_on_static_and_api(client):
         assert headers["referrer-policy"] == "no-referrer"
         # Voice typing needs the microphone; "microphone=()" would block it on our own pages too.
         assert "microphone=(self)" in headers["permissions-policy"]
+        assert headers["cross-origin-opener-policy"] == "same-origin"
+        assert "strict-transport-security" not in headers
+
+
+def test_hsts_only_over_https(client):
+    https = TestClient(app, base_url="https://testserver")
+    assert https.get("/health").headers["strict-transport-security"] == "max-age=31536000"
 
 
 def test_built_files_are_cached_by_how_they_are_named(tmp_path):

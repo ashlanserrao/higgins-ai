@@ -9,6 +9,7 @@
     "typecheck": "tsc -b",
     "contrast": "node scripts/contrast.mjs",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "build:hm": "node how-it-works/build.mjs",
     "gen:types": "npx --yes -p typescript@5.9.3 -p openapi-typescript@7.13.0 openapi-typescript openapi.json -o src/lib/api-types.ts",
     "preview": "vite preview"
@@ -27,6 +28,7 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",

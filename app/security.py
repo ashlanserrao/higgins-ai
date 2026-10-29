@@ -22,7 +22,11 @@ SECURITY_HEADERS = {
     "Referrer-Policy": "no-referrer",
     # The microphone is for voice typing (the browser's speech recognition), on our own pages only.
     "Permissions-Policy": "camera=(), microphone=(self), geolocation=()",
+    # The WhatsApp link opens with noopener, so nothing needs a handle back to this window.
+    "Cross-Origin-Opener-Policy": "same-origin",
 }
+# Sent only over HTTPS: browsers ignore it on plain HTTP, and localhost stays usable.
+HSTS = "max-age=31536000"
 
 
 class RateLimiter:

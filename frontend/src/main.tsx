@@ -1,6 +1,7 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { ErrorBoundary } from "./components/error-boundary";
 import { initTheme } from "./lib/theme";
 import { AuthProvider, useAuth } from "./state/auth";
 import { NavProvider } from "./state/nav";
@@ -18,12 +19,14 @@ function AccountPlanner({ children }: { children: ReactNode }) {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <NavProvider>
-        <AccountPlanner>
-          <App />
-        </AccountPlanner>
-      </NavProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <NavProvider>
+          <AccountPlanner>
+            <App />
+          </AccountPlanner>
+        </NavProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

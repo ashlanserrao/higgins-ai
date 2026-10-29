@@ -10,7 +10,8 @@ from app.ai.quotes import QuoteExtractor
 from app.ai.understand import PlanInterpreter
 from app.config import Settings
 from app.main import (
-    RATE_LIMITERS, ai, app, get_ideas_generator, get_plan_interpreter, get_quote_extractor, today_in_india,
+    RATE_LIMITERS, ai, ai_total_limiter, app, get_ideas_generator, get_plan_interpreter, get_quote_extractor,
+    today_in_india,
 )
 from app.models import PlanRequest
 
@@ -92,7 +93,7 @@ def client():
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
     app.dependency_overrides[get_quote_extractor] = lambda: make_extractor()
     app.dependency_overrides[get_plan_interpreter] = lambda: make_interpreter()
-    for limiter in RATE_LIMITERS.values():
+    for limiter in [*RATE_LIMITERS.values(), ai_total_limiter]:
         limiter.reset()
     yield TestClient(app)
     app.dependency_overrides.clear()

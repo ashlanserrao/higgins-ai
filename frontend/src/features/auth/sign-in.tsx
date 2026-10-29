@@ -134,7 +134,7 @@ export function SignIn() {
             Fill it in
           </Button>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Accounts and events are kept in this browser only. Our server doesn't keep a copy.</p>
+        <p className="mt-4 text-xs text-muted-foreground">This is a demo sign-in. It keeps each account's events apart in this browser, but it isn't a secure login: anyone using this browser can open them. Our server doesn't keep a copy.</p>
       </main>
     </div>
   );

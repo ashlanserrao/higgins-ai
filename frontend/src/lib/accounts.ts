@@ -1,5 +1,6 @@
 // Accounts for the demo, kept in this browser like everything else: there is no server-side
-// login (see plans/project_spec.md, out of scope). Passwords are never stored as typed, only
+// login (see the README's Security section). It keeps events apart; it isn't a secure login,
+// since anyone with this browser can read its storage. Passwords are never stored as typed, only
 // as a salted PBKDF2 hash. An account exists only in the browser it was made in. The demo
 // account (test / test) is created on first use.
 

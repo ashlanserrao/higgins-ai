@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.tsbuildinfo
 how-it-works/demo/
+test-results/
+playwright-report/

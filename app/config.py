@@ -23,6 +23,8 @@ class Settings:
     rate_limit_per_minute: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
     # Rules-only plan requests (including "what if" slider updates) per IP per minute.
     plan_rate_limit_per_minute: int = int(os.getenv("PLAN_RATE_LIMIT_PER_MINUTE", "120"))
+    # AI requests per hour from all visitors together: caps spend even across many IPs.
+    ai_total_limit_per_hour: int = int(os.getenv("AI_TOTAL_LIMIT_PER_HOUR", "200"))
     # Plans carry the progress held in the browser: bookings and up to 20 quotes.
     max_body_bytes: int = 64_000
 

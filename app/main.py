@@ -25,7 +25,7 @@ from app.models import CompareRequest, MessageRequest, PlanRequest, QuoteExtract
 from app.responses import (
     CompareResponse, IdeasResponse, MessageResponse, PlanResponse, QuoteExtractResponse, UnderstandResponse,
 )
-from app.security import SECURITY_HEADERS, RateLimiter
+from app.security import HSTS, SECURITY_HEADERS, RateLimiter
 from app.services.understand import understand_message
 from app.validation_messages import field_errors
 
@@ -42,6 +42,8 @@ RATE_LIMITERS = {
     "/api/plan": plan_limiter, "/api/compare": plan_limiter, "/api/messages": plan_limiter,
     "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter, "/api/understand": ai_limiter,
 }
+# One shared bucket for every visitor's AI calls, so many IPs together can't run up the bill.
+ai_total_limiter = RateLimiter(settings.ai_total_limit_per_hour, window=3600)
 ai = StructuredAI(settings)
 ideas_generator = IdeasGenerator(ai)
 quote_extractor = QuoteExtractor(ai)
@@ -89,11 +91,20 @@ async def guard_requests(request: Request, call_next):
             and not limiter.allow(request.client.host if request.client else "unknown")
         ):
             response = _error(429, "Too many requests. Please wait a minute and try again.")
+        elif (
+            request.method == "POST"
+            and RATE_LIMITERS.get(request.url.path) is ai_limiter
+            and not ai_total_limiter.allow("all")
+        ):
+            response = _error(429, "The AI helper is busy right now. Please try again in a few minutes.")
         else:
             response = await call_next(request)
     else:
         response = await call_next(request)
     response.headers.update(SECURITY_HEADERS)
+    # Behind a proxy, the scheme is the visitor's only with --proxy-headers (see README > Deploying).
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = HSTS
     return response
 
 

@@ -1,6 +1,16 @@
-# Event Planning Assistant
+# Higgins AI: event planning assistant
 
 A GenAI-powered planning assistant that helps people organise **weddings, birthdays and community events** with a budget split, a timeline worked backward from the date, a vendor checklist with "book by" dates, a triage mode for late planners, and personalised theme, décor and food ideas.
+
+![The Overview of a sample wedding plan: days to go, the budget breakdown and the next booking to make](frontend/public/sample-plan.webp)
+
+**Quick start** (Python 3.11+, Node 22; details in [Running it](#running-it)):
+
+```bash
+pip install -r requirements.txt
+cd frontend && npm ci && npm run build && cd ..
+uvicorn app.main:app        # open http://127.0.0.1:8000 and sign in with test / test
+```
 
 ## Chosen vertical
 
@@ -53,14 +63,29 @@ validate (Pydantic) → rules engine     validate → rules engine → cache hit
 
 The plan is on screen as soon as the rules engine returns. The ideas card shows a loading placeholder and fills in a few seconds later.
 
-- **Backend:** Python + FastAPI. `POST /api/plan` returns the rules-only `{plan, ai_available}` in milliseconds. `POST /api/ideas` takes the same inputs and returns `{ideas, ai_available}`. `ai_available` means an API key is configured; if one AI call fails, `ideas` is null and the page offers "Try again". `GET /api/options` lists the priority choices, so the form never duplicates the rules. `GET /health` is a health check.
+### Routes
+
+Every route validates its input with Pydantic, and every number comes from the rules engine. The three AI routes return `null` instead of an error when the AI fails, and the page always has a non-AI path.
+
+| Route | AI | What it does |
+|---|---|---|
+| `POST /api/plan` | No | The rules-only `{plan, ai_available}`, in milliseconds |
+| `POST /api/ideas` | Yes | Ideas for the same inputs, `{ideas, ai_available}`. If the call fails, `ideas` is null and the page offers "Try again" |
+| `POST /api/compare` | No | The before/after of a change (what-if, money move, typed revision). Nothing is saved |
+| `POST /api/messages` | No | A ready-to-send enquiry, follow-up or confirmation for one booking, filled from the plan. The budget is left out unless asked for |
+| `POST /api/quotes/extract` | Yes | A pasted vendor quote read into a draft. It is marked AI-extracted and can't be accepted until the organiser checks it |
+| `POST /api/understand` | Yes | Plain language ("wedding for 300 in Jaipur", "add 40 guests") into form values or a proposed revision with its before/after. The AI reports the change; the server does the maths |
+| `GET /api/options` | No | Priority choices per event type, so the form never duplicates the rules |
+| `GET /health` | No | Health check |
+
+- **Backend:** Python + FastAPI, with the routes above. `ai_available` means an API key is configured.
 - **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. The model name comes from `.env`, so it can be swapped.
-- **Frontend (`static/`):** plain HTML/CSS/JS modules, no build step, no third-party scripts.
-- **No accounts, no database.** The latest plan and checklist ticks are kept in the browser's `localStorage`.
-- **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
+- **Frontend (`frontend/`):** React 19, TypeScript, Vite, Tailwind and shadcn/ui. It is built to `frontend/dist` and served by FastAPI from the same origin, with no third-party scripts or CDNs.
+- **No server-side accounts, no database.** Events, progress and guests are kept in the browser's `localStorage`. A demo sign-in (`test` / `test`, or make your own) keeps each account's events apart in that browser. It is not a secure login: anyone using the browser can read its storage. Passwords are kept only as a salted PBKDF2 hash.
+- **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. The query string does reach the server, like any URL, so it can appear in access logs; it holds only numbers, a date, a city and choices. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
 - **What if…:** guest and budget sliders (¼× to 2× her own numbers) re-run the rules engine as she drags, with no AI call, so "what if we invite 150 instead of 200?" is answered instantly. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
 - **Print or save as PDF:** a one-page A4 summary for the family (key figures, what needs attention, budget, bookings, key dates, vendors, guests, ideas and notes), safe in black and white; a big event scales down to stay on one page.
-- **Voice typing:** a mic on the longer text boxes (the plan box on the landing page and during setup, must-haves, taste and ideas, a pasted vendor quote, and Ask Higgins). It uses the browser's own speech recognition (Indian English), so there is no library; what is said is added after what is typed, ready to edit, and never sent by itself. Firefox has no speech recognition, so the mic is hidden there.
+- **Voice typing:** a mic on the longer text boxes (the plan box on the landing page and during setup, must-haves, taste and ideas, a pasted vendor quote, and Ask Higgins). It uses the browser's own speech recognition (Indian English), so there is no library; what is said is added after what is typed, ready to edit, and never sent by itself. Firefox has no speech recognition, so the mic is hidden there. Chrome and Edge send the audio to their maker's speech service to turn it into text; nothing reaches our server until the text is sent.
 - **Rolling figures:** the Overview's four headline numbers roll in like an odometer, each digit a wheel, in two seconds: when the Overview opens, and from old to new digits when a figure changes. Plain CSS transforms, no library; with reduced motion they are simply shown, and screen readers get the plain number.
 
 ## Demo scenarios
@@ -111,17 +136,25 @@ Bengaluru · outdoor · 500 attendees · 120 households · ₹1,50,000 · 8 Nov 
 
 ## Running it
 
-Requires Python 3.11+.
+Requires Python 3.11+ and Node 22.
 
 ```bash
 python -m venv venv
 # Windows: venv\Scripts\activate    macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # optional: add OPENAI_API_KEY for AI ideas
+
+cd frontend
+npm ci
+npm run build               # writes frontend/dist, which FastAPI serves
+cd ..
+
 uvicorn app.main:app
 ```
 
-Open http://127.0.0.1:8000. **No API key? It still works.** You get the full rules-based plan, and the ideas section says ideas are unavailable.
+Open http://127.0.0.1:8000 and sign in with `test` / `test`, or create an account. Without the build step the API still runs, but there is no page to open. **No API key? It still works.** You get the full rules-based plan, and the ideas section says ideas are unavailable.
+
+For frontend work, `npm run dev` in `frontend/` serves the page with hot reload and forwards `/api` to the uvicorn server on port 8000.
 
 | Variable | Default | Purpose |
 |---|---|---|
@@ -131,6 +164,7 @@ Open http://127.0.0.1:8000. **No API key? It still works.** You get the full rul
 | `AI_TIMEOUT_SECONDS` | `15` | One attempt, no retries |
 | `RATE_LIMIT_PER_MINUTE` | `20` | AI idea requests per IP per minute |
 | `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including slider updates) per IP per minute |
+| `AI_TOTAL_LIMIT_PER_HOUR` | `200` | AI requests per hour from all visitors together, a cap on spend |
 
 ## Deploying
 
@@ -140,25 +174,26 @@ Behind a hosting proxy (Render, Cloud Run, a load balancer), tell uvicorn to tru
 uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
 ```
 
-Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. Set `OPENAI_API_KEY` as a platform secret, not in a committed file.
+Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. The same flags let the app see that the visitor used HTTPS, which is when it sends `Strict-Transport-Security`. Set `OPENAI_API_KEY` as a platform secret, not in a committed file, and give the OpenAI project a monthly usage limit as a second cap behind `AI_TOTAL_LIMIT_PER_HOUR`.
 
 ## Testing
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                      # backend: 139 tests
+pytest                      # backend: 142 tests
 
 cd frontend
-npm test                    # frontend: 21 tests (Vitest)
+npm test                    # frontend: 32 tests (Vitest)
 npm run typecheck && npm run contrast
+npm run build && npm run test:e2e   # end to end: 2 tests (Playwright, your installed Chrome)
 ```
 
-Everything runs offline and free: the OpenAI client is faked, and golden tests pin today to 21 Oct 2026.
+Everything runs offline and free: the OpenAI client is faked, golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with an empty API key. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
 
-**Backend (pytest, 139):**
+**Backend (pytest, 142):**
 
 - **`test_engine.py` (17):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
-- **`test_api.py` (25):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint (the AI limit never blocks plans), security headers, options, and `openapi.json` matching the API (with docs not served)
+- **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
 - **`test_understand.py` (28):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates and cities only when named, missing fields, invalid revisions, no event-type changes
 - **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
 - **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
@@ -167,13 +202,18 @@ Everything runs offline and free: the OpenAI client is faked, and golden tests p
 - **`test_quote_extraction.py` (8):** a pasted quote becomes a checked draft or nothing, never an error; the quote text is fenced
 - **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
 
-**Frontend (Vitest, 21):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
+**Frontend (Vitest, 32):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
 
 - **`features/overview/next-step.test.ts` (7):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear
+- **`lib/storage.test.ts` (6):** save/load per account, nothing kept while signed out, blocked or corrupt `localStorage` starts empty without crashing, events saved before accounts, v2 → v4 migration
+- **`lib/format.test.ts` (6):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months, the time-of-day greeting
 - **`lib/share.test.ts` (5):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas are dropped
-- **`lib/storage.test.ts` (4):** save/load round trip, blocked or corrupt `localStorage` starts empty without crashing, v2 → v4 migration
-- **`lib/format.test.ts` (4):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months
+- **`lib/accounts.test.ts` (3):** the demo sign-in, one message for a wrong password or an unknown username, usernames unique whatever their case
+- **`features/print/sheet-data.test.ts` (3):** the printed sheet's booking order, its ten-booking cap, and key dates kept when milestones are trimmed
 - **`lib/csp.test.ts` (1):** the CSP's hash for Radix Select's `<style>` still matches the installed Radix
+- **`lib/use-speech.test.ts` (1):** spoken text is added after what's typed, never in its place, within the field's limit
+
+**End to end (Playwright, 2):** `e2e/plan.spec.ts` runs the built app on the real backend with AI off. The landing page loads, and a shared plan opens in the dashboard after signing in with the demo account.
 
 ## API types
 
@@ -193,12 +233,13 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 ## Security
 
 - The OpenAI key lives only in the server's `.env` (git-ignored). The browser never calls OpenAI.
-- Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 10 KB request cap. API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
-- **Prompt injection:** preferences are treated as untrusted data. Markup characters are stripped, the text is fenced in `<preferences>` tags, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
-- Everything (AI output, shared links) is rendered with `textContent`, never `innerHTML`. Shared ideas are checked for shape and size before display.
-- Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy` (no camera or location; the microphone only for our own pages, for voice typing).
-- Per-IP rate limiting, strict for the AI endpoint and looser for the cheap rules endpoint (behind a proxy, see [Deploying](#deploying)). Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
+- Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 64 KB request cap (a plan carries the progress kept in the browser: bookings and up to 20 quotes). API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
+- **Prompt injection:** everything the organiser types or pastes (preferences, must-haves, vendor quotes, Ask Higgins messages) is treated as untrusted data. Markup characters are stripped, the text is fenced in tags such as `<preferences>` or `<quote>`, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
+- Everything (AI output, shared links) is rendered as text by React, never as HTML: there is no `dangerouslySetInnerHTML` anywhere. Shared ideas are checked for shape and size before display.
+- Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy` (no camera or location; the microphone only for our own pages, for voice typing), `Cross-Origin-Opener-Policy: same-origin`, and `Strict-Transport-Security` whenever the page was reached over HTTPS.
+- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
 - No personal data is stored on the server.
+- **Sign-in is a demo, not a security boundary.** Accounts live in the browser, so they keep events apart but don't protect them from someone using the same browser. Real accounts would need a server and a database (see [Future improvements](#future-improvements)).
 
 ## Efficiency
 
@@ -246,10 +287,10 @@ Mobile performance varies by about ten points between runs. What remains there i
 
 ## Future improvements
 
-- Accounts and saved plan history
+- Server-side accounts, so plans follow the organiser across devices and can be shared for editing
 - Live deployment (Render / Cloud Run) with a shared rate-limit store
 - Regional cost data per city and vendor category, and verified benchmarks for birthdays and community events
-- Multiple events per organiser, and expense tracking against the plan
+- Expense tracking against the plan
 - Vendor contact lists and WhatsApp reminders for book-by dates
 
 ## Project structure
@@ -274,6 +315,7 @@ app/                       FastAPI + Pydantic v2
     prompt.py, untrusted.py, schema.py   Prompts, fencing of typed text, strict output schemas
 scripts/export_openapi.py  Writes frontend/openapi.json for the generated types
 tests/                     pytest suite (offline, AI faked)
+.github/workflows/ci.yml   Backend tests, frontend typecheck, tests, contrast and build, then end to end
 
 frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
   openapi.json             The API schema, exported from FastAPI
@@ -285,14 +327,15 @@ frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
     main.tsx, App.tsx      Entry and page routing; each page is a lazy-loaded chunk
     pages/                 onboarding.tsx and dashboard.tsx (the shell and every section, one chunk)
     state/
+      auth.tsx             Who is signed in; the planner is mounted once per account
       nav.tsx              Open event and section, kept in the URL hash
       planner/             App state: store (state, request tickets), events, ideas,
                            plan-actions, persistence; index.tsx composes them
-    features/<domain>/     overview, budget, tasks, vendors, guests, ideas, shell, landing,
-                           onboarding (questionnaire container, steps/, pure form.ts).
+    features/<domain>/     overview, budget, tasks, vendors, guests, ideas, shell, landing, auth,
+                           print, onboarding (questionnaire container, steps/, pure form.ts).
                            A feature never imports another; only App.tsx and pages/ import features
     components/            State-free building blocks: badges, layout (Panel, Stat, EmptyState),
-                           field-error, page-band
+                           field-error, page-band, error-boundary (a crash shows a reload, not a blank page)
       app/                 Shared pieces that read planner state or call the API: dialogs
                            (booking, change, message), toaster, rebalance note, ideas status
       ui/                  shadcn primitives
@@ -302,7 +345,14 @@ frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
       types.ts             Friendly names for the generated types, plus browser-only ones
       format.ts, share.ts, storage.ts, tasks.ts   Formatting, share links, localStorage, task badges
       guests.ts            Guest-list helpers (expected head count)
+      accounts.ts          Demo accounts in this browser (salted PBKDF2 hashes)
+      use-speech.ts        Voice typing through the browser's speech recognition
       style-singleton.ts   CSP-safe stand-in for react-style-singleton (Radix scroll lock)
     **/*.test.ts           Vitest, next to the code it covers
+  e2e/, playwright.config.ts   End-to-end test of the built app on the real backend, AI off
   scripts/contrast.mjs     WCAG AA contrast check for every colour pair
 ```
+
+## License
+
+[MIT](LICENSE)

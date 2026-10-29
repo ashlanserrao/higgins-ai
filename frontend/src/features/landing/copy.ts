@@ -1,7 +1,7 @@
 // Every string on the landing page, in one place so it's easy to review and translate.
-// Answers describe what the app does today; anything not decided yet is a TODO, not a claim.
+// Answers describe what the app does today; anything not decided yet stays hidden, not claimed.
 
-/** TODO: a contact address or page. The footer link appears once this is set. */
+/** A contact address or page. The footer link appears once this is set. */
 export const CONTACT_HREF: string | null = null;
 
 export const COPY = {
@@ -69,7 +69,7 @@ export const COPY = {
   faq: {
     title: "Questions people ask",
     items: [
-      // TODO: decide pricing before launch; the question stays hidden until it has an answer.
+      // Hidden until pricing is decided: a question shows only once it has an answer.
       { id: "faq-free", question: "Is it free?", answer: null },
       {
         id: "faq-data",
@@ -80,7 +80,7 @@ export const COPY = {
       {
         id: "faq-account",
         question: "Do I need an account?",
-        answer: "Yes, a username and a password, made in a few seconds. To look around first, sign in with test / test. Accounts and plans are kept in this browser only, so they don't move to another device on their own.",
+        answer: "Yes, a username and a password, made in a few seconds. To look around first, sign in with test / test. Accounts and plans are kept in this browser only, so they don't move to another device on their own. It's a demo sign-in that keeps events apart, not a secure login.",
       },
       {
         id: "faq-events",

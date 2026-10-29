@@ -1,0 +1,40 @@
+# Every push and pull request: backend tests, then the frontend's typecheck, tests, contrast
+# check and build, then the end-to-end test against the built app. No OpenAI key is used.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run contrast
+          npm run build
+      # The runner's own Chrome; the app is served by uvicorn from the Python setup above.
+      - name: End-to-end
+        working-directory: frontend
+        run: npm run test:e2e
