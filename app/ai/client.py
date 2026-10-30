@@ -3,9 +3,10 @@
 A call sends fixed instructions plus an input, asks for a strict JSON schema, and checks the
 reply again with Pydantic. Providers are tried in order (Groq first when its key is set, then
 OpenAI) inside one time budget: a provider that times out, errors or sends a reply that fails
-the check hands over to the next. If none answers, the call returns None, never an error:
-every feature has a non-AI path. Prompts, replies and keys are never logged; one line per
-call records the task, provider, model, time taken and outcome.
+the check hands over to the next. If none answers, the call returns None: every feature has a
+non-AI path. The one error is AIBusyError, when the hourly cap shared by every visitor is used
+up. Prompts, replies and keys are never logged; one line per call records the task, provider,
+model, time taken and outcome.
 """
 
 import asyncio
@@ -21,6 +22,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.ai.cache import TTLCache
 from app.config import Settings
+from app.security import RateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,10 @@ MIN_BACKUP_SECONDS = 2.0
 # After a 429, a provider rests for its retry-after time, capped here (default when not given).
 MAX_REST_SECONDS = 60.0
 DEFAULT_REST_SECONDS = 10.0
+
+
+class AIBusyError(Exception):
+    """The hourly cap on provider calls, shared by every visitor, is used up."""
 
 
 class Provider:
@@ -104,6 +110,9 @@ class GroqProvider(Provider):
             timeout=timeout,
             **options,
         )
+        # No choices at all fails validation like any other bad reply, so the backup gets a turn.
+        if not response.choices:
+            return ""
         return response.choices[0].message.content or ""
 
 
@@ -120,9 +129,12 @@ def default_providers(settings: Settings) -> list[Provider]:
 
 
 class StructuredAI:
-    def __init__(self, settings: Settings, providers: list[Provider] | None = None) -> None:
+    def __init__(
+        self, settings: Settings, providers: list[Provider] | None = None, hourly_cap: RateLimiter | None = None,
+    ) -> None:
         self.settings = settings
         self.providers = default_providers(settings) if providers is None else providers
+        self.hourly_cap = hourly_cap
         self._cache: TTLCache[BaseModel] = TTLCache()
 
     @property
@@ -142,6 +154,10 @@ class StructuredAI:
         if (cached := self._cache.get(cache_key)) is not None:
             logger.info("AI %s: cached", task)
             return cast(M, cached)  # the key holds the task, and each task has one output type
+        # Counted after the cache, so only calls that reach a provider use up the cap.
+        if self.hourly_cap and not self.hourly_cap.allow("all"):
+            logger.warning("AI %s: hourly cap reached", task)
+            raise AIBusyError
 
         deadline = time.monotonic() + self.settings.ai_timeout_seconds
         for attempt, provider in enumerate(self.providers):

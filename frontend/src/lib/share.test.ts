@@ -36,7 +36,7 @@ describe("share links", () => {
     for (const text of ["secret", "Jain", "booked", "from_key", "preferences", "must_haves", "progress"]) {
       expect(decodeURIComponent(link)).not.toContain(text);
     }
-    expect(readSharedInputs(new URL(link).search)?.inputs).toMatchObject({ preferences: "", must_haves: "", progress: emptyProgress() });
+    expect(readSharedInputs(new URL(link).search)).toMatchObject({ inputs: { preferences: "", must_haves: "", progress: emptyProgress() } });
   });
 
   it("carry ideas compressed in the #fragment", async () => {
@@ -56,5 +56,17 @@ describe("share links", () => {
 
   it("are only links that name an event type", () => {
     expect(readSharedInputs("?guests=10")).toBeNull();
+  });
+
+  it("that were edited into something no plan has are broken, not shown", () => {
+    for (const search of ["?event_type=party", "?event_type=wedding&venue_type=beach", "?event_type=wedding&city_tier=7", "?event_type=wedding&guests=lots"])
+      expect(readSharedInputs(search)).toBe("broken");
+  });
+
+  it("drop ideas that quote a price", async () => {
+    const priced = { ...ideas, decor: [...ideas.decor, { title: "Fairy lights", detail: "Rs 2,000 from the market." }] };
+    expect((await readSharedIdeas(new URL(await buildShareUrl(inputs, "2026-10-21", priced)).hash))?.decor).toEqual(ideas.decor);
+    const onlyPriced = { ...ideas, food: [{ title: "Biryani", detail: "Pay ₹50,000 to this UPI number." }] };
+    expect(await readSharedIdeas(new URL(await buildShareUrl(inputs, "2026-10-21", onlyPriced)).hash)).toBeNull();
   });
 });

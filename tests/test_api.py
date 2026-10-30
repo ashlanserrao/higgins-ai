@@ -8,9 +8,11 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.ai.ideas import IdeasGenerator
 from app.frontend import FrontendFiles
-from app.main import ai_limiter, ai_total_limiter, app, plan_limiter
-from tests.conftest import TODAY
+from app.main import ai_limiter, ai_total_limiter, app, get_ideas_generator, plan_limiter
+from tests.conftest import TODAY, make_ai
+from tests.test_ai import VALID as IDEAS
 
 
 def as_json(request) -> dict:
@@ -86,12 +88,16 @@ def test_ai_limit_does_not_block_plans(client, diwali_request, monkeypatch):
     assert client.post("/api/plan", json=payload).status_code == 200
 
 
-def test_total_ai_limit_caps_every_visitor_together(client, diwali_request, monkeypatch):
+def test_total_ai_limit_caps_every_visitor_together(client, diwali_request, birthday_request, monkeypatch):
     monkeypatch.setattr(ai_total_limiter, "limit", 2)
-    payload = as_json(diwali_request)
-    statuses = [client.post("/api/ideas", json=payload).status_code for _ in range(3)]
-    assert statuses == [200, 200, 429]  # well under the per-IP limit of 20
-    assert client.post("/api/plan", json=payload).status_code == 200
+    ai = make_ai(json.dumps(IDEAS), hourly_cap=ai_total_limiter)
+    app.dependency_overrides[get_ideas_generator] = lambda: IdeasGenerator(ai)
+    other = as_json(diwali_request.model_copy(update={"guests": 400}))
+    # A cached repeat and an invalid request reach no provider, so they don't count.
+    requests = [as_json(diwali_request), as_json(diwali_request), {"guests": 0}, as_json(birthday_request), other]
+    statuses = [client.post("/api/ideas", json=payload).status_code for payload in requests]
+    assert statuses == [200, 200, 422, 200, 429]  # well under the per-IP limit of 20
+    assert client.post("/api/plan", json=other).status_code == 200
 
 
 def test_security_headers_on_static_and_api(client):

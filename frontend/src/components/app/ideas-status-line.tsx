@@ -1,4 +1,5 @@
 import { RefreshCw } from "lucide-react";
+import { AiNote } from "@/components/badges";
 import { Button } from "@/components/ui/button";
 import { usePlan } from "@/state/planner";
 
@@ -20,4 +21,11 @@ export function IdeasStatusLine() {
       </div>
     );
   return null;
+}
+
+/** Who the ideas are from: the AI, or, on someone's shared link, whoever made the link. */
+export function IdeasNote({ short = false }: { short?: boolean }) {
+  const { shared } = usePlan();
+  if (shared) return <AiNote>From the shared link, not from Higgins. Check them before using.</AiNote>;
+  return <AiNote>{short ? "Suggested by AI. Give it a quick check." : undefined}</AiNote>;
 }

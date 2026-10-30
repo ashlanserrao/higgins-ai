@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 
 from app.ai.client import StructuredAI, default_providers
-from app.ai.ideas import IdeasGenerator
+from app.ai.ideas import PRICES, IdeasGenerator
 from app.ai.quotes import QuoteExtractor
 from app.ai.understand import PlanInterpreter
 from app.config import Settings
@@ -46,8 +46,6 @@ PLANS = {
         venue_type="outdoor", households=120,
     ),
 }
-# Price talk in ideas: the plan's numbers come from the rules engine, never the AI.
-PRICES = re.compile(r"₹|\brs\.?\s*\d|\binr\b|\d[\d,]*\s*(?:rupees|lakh|k\b)", re.IGNORECASE)
 LAVISH = re.compile(r"\b(?:luxury|luxurious|lavish|premium|designer|imported|extravagant)\b", re.IGNORECASE)
 
 

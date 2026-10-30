@@ -26,7 +26,9 @@ const SLIP_WINDOW_DAYS = 7; // a slip leads when it moves a date within a week
 const HEADS_UP_DAYS = 3; // the tab flags anything due within three days
 
 const open = (item: ChecklistItem) => !item.done;
-const ready = (item: ChecklistItem) => open(item) && !item.waiting_on.length;
+// Bookable now: not waiting on a prerequisite or on a delay (the engine's is_actionable).
+const readyOn = (today: string) => (item: ChecklistItem) =>
+  open(item) && !item.waiting_on.length && (!item.expected_on || item.expected_on <= today);
 const byDate = (a: ChecklistItem, b: ChecklistItem) => a.book_by.localeCompare(b.book_by);
 
 /** A booking that slipped (its own delay, not a knock-on), and what else it moves. */
@@ -42,6 +44,7 @@ export function dueLabel(item: ChecklistItem, days: number) {
 }
 
 export function leadFor(plan: Plan): Lead {
+  const ready = readyOn(plan.today);
   if (plan.triage.active) {
     const today = plan.triage.book_today.map((id) => plan.checklist.find((item) => item.id === id)).filter((item): item is ChecklistItem => Boolean(item && open(item)));
     if (today.length)
@@ -72,6 +75,7 @@ export function leadFor(plan: Plan): Lead {
 
 /** Everything that needs the organiser now, most pressing kinds first, each listed once. */
 export function attentionFor(plan: Plan): Attention[] {
+  const ready = readyOn(plan.today);
   const list: Attention[] = [];
   const add = (entry: Attention) => {
     if (!list.some((e) => e.id === entry.id)) list.push(entry);

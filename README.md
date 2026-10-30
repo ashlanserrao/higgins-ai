@@ -53,7 +53,7 @@ The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, to
 ## How the solution works
 
 ```
-Browser (form, what-if sliders, localStorage, share links)
+Browser (form, change previews, localStorage, share links)
    │ 1. POST /api/plan  (milliseconds)        │ 2. POST /api/ideas  (seconds, in background)
    ▼                                          ▼
 validate (Pydantic) → rules engine     validate → rules engine → cache hit?
@@ -72,7 +72,7 @@ Every AI call goes through one class, `StructuredAI` in `app/ai/client.py`, whic
 - **Each provider through its stable API.** OpenAI through its Responses API with `store=False`; Groq through Chat Completions, where strict JSON schemas are documented (its Responses API is in beta). Both use the official `openai` SDK; Groq only needs its `base_url`.
 - **Rate limits respected.** After a 429, a provider rests for its `retry-after` time (at most 60 s), so a burst goes straight to the backup without first waiting for a refusal.
 - **Per-task models in config.** `GROQ_MODEL_IDEAS`, `GROQ_MODEL_QUOTES` or `GROQ_MODEL_UNDERSTAND` swap the model for one task without touching code.
-- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. Amounts are read by code too: "1.5L" is ₹1,50,000 whatever the model says, a quote's total must be written in the quote, and "GST extra" or "+ 18% GST" means tax isn't included. So both providers give the same numbers and dates.
+- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. Amounts are read by code too: "1.5L" is ₹1,50,000 whatever the model says, a quote's total must be written in the quote, and "GST extra" or "+ 18% GST" means tax isn't included. Ideas never carry prices: one that quotes a price is dropped. So both providers give the same numbers and dates.
 - **One log line per call:** task, provider, model, time taken and outcome (`ok`, `cached`, `timeout`, `429`, `auth`, `bad_request`, `invalid_json`). Never the prompt, the reply or a key.
 
 #### Evals: why Groq goes first
@@ -111,15 +111,15 @@ Every route validates its input with Pydantic, and every number comes from the r
 - **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. See [AI providers and guardrails](#ai-providers-and-guardrails).
 - **Frontend (`frontend/`):** React 19, TypeScript, Vite, Tailwind and shadcn/ui. It is built to `frontend/dist` and served by FastAPI from the same origin, with no third-party scripts or CDNs.
 - **No server-side accounts, no database.** Events, progress and guests are kept in the browser's `localStorage`. A demo sign-in (`test` / `test`, or make your own) keeps each account's events apart in that browser. It is not a secure login: anyone using the browser can read its storage. Passwords are kept only as a salted PBKDF2 hash.
-- **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. The query string does reach the server, like any URL, so it can appear in access logs; it holds only numbers, a date, a city and choices. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
-- **What if…:** guest and budget sliders (¼× to 2× her own numbers) re-run the rules engine as she drags, with no AI call, so "what if we invite 150 instead of 200?" is answered instantly. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
+- **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. Ideas that arrive in a link are labelled as coming from the link, not from the AI, and any that quote a price are dropped. A link cut short or edited into something no plan has (an unknown event type, say) opens the app with a notice instead. The query string does reach the server, like any URL, so it can appear in access logs; it holds only numbers, a date, a city and choices. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
+- **What if…:** one-tap changes (25 more guests, a bigger budget, a new date) and typed ones in Ask Higgins ("what if we invite 150 instead of 200?") are shown as a before/after from the rules engine before anything is applied. A one-tap change makes no AI call. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
 - **Print or save as PDF:** a one-page A4 summary for the family (key figures, what needs attention, budget, bookings, key dates, vendors, guests, ideas and notes), safe in black and white; a big event scales down to stay on one page.
 - **Voice typing:** a mic on the longer text boxes (the plan box on the landing page and during setup, must-haves, taste and ideas, a pasted vendor quote, and Ask Higgins). It uses the browser's own speech recognition (Indian English), so there is no library; what is said is added after what is typed, ready to edit, and never sent by itself. Firefox has no speech recognition, so the mic is hidden there. Chrome and Edge send the audio to their maker's speech service to turn it into text; nothing reaches our server until the text is sent.
 - **Rolling figures:** the Overview's four headline numbers roll in like an odometer, each digit a wheel, in two seconds: when the Overview opens, and from old to new digits when a figure changes. Plain CSS transforms, no library; with reduced motion they are simply shown, and screen readers get the plain number.
 
 ## Demo scenarios
 
-These are real engine output with `today = 2026-10-21`. Each is also a golden test in `tests/test_engine.py`.
+These are real engine output with `today = 2026-10-21`; opened on a later day, the countdown and booking statuses move with the date. Each is also a golden test in `tests/test_engine.py`.
 
 ### 1. Happy path: cousin's wedding
 Bengaluru (metro) · 250 guests · ₹15,00,000 · 12 Dec 2027 · venue includes catering · priorities: food, photography
@@ -181,7 +181,7 @@ cd ..
 uvicorn app.main:app
 ```
 
-Open http://127.0.0.1:8000 and sign in with `test` / `test`, or create an account. Without the build step the API still runs, but there is no page to open. **No API key? It still works.** You get the full rules-based plan, and the ideas section says ideas are unavailable.
+Open http://127.0.0.1:8000 and press **Use the demo account** on the sign-in page (it is `test` / `test`), or create an account. Without the build step the API still runs, but there is no page to open. **No API key?** The plan itself works in full: the questionnaire, budget, bookings, quotes typed in, vendor messages and one-tap changes. The parts that read free text need a key: the "describe your event" box, Ask Higgins, reading a pasted quote, and the ideas. Without one they say so, and the form or manual entry takes over.
 
 For frontend work, `npm run dev` in `frontend/` serves the page with hot reload and forwards `/api` to the uvicorn server on port 8000.
 
@@ -197,7 +197,7 @@ For frontend work, `npm run dev` in `frontend/` serves the page with hot reload 
 | `OPENAI_REASONING_EFFORT` | `minimal` | Keeps reasoning models fast. Leave empty for non-reasoning models |
 | `AI_TIMEOUT_SECONDS` | `15` | The whole time one AI call may take, backup included. No retries on the same provider |
 | `RATE_LIMIT_PER_MINUTE` | `20` | AI idea requests per IP per minute |
-| `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including slider updates) per IP per minute |
+| `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including change previews) per IP per minute |
 | `AI_TOTAL_LIMIT_PER_HOUR` | `200` | AI requests per hour from all visitors together, a cap on spend |
 
 ## Deploying
@@ -215,44 +215,44 @@ Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through th
 ```bash
 pip install -r requirements-dev.txt
 ruff check && mypy          # backend lint and types
-pytest                      # backend: 163 tests
+pytest                      # backend: 164 tests
 
 cd frontend
 npm run lint                # Biome, lint only
-npm test                    # frontend: 32 tests (Vitest)
+npm test                    # frontend: 35 tests (Vitest)
 npm run typecheck && npm run contrast
-npm run build && npm run test:e2e   # end to end: 2 tests (Playwright, your installed Chrome)
+npm run build && npm run test:e2e   # end to end: 3 tests (Playwright, your installed Chrome)
 ```
 
 Everything runs offline and free: both AI providers are faked (a guard blocks the real ones even with keys in `.env`), golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with empty API keys. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
 
 **Lint.** Python uses ruff (pyflakes, pycodestyle, bugbear, pyupgrade) and mypy with the Pydantic plugin, set up in `pyproject.toml`. The frontend uses Biome's recommended rules (`frontend/biome.jsonc`), because typescript-eslint needs TypeScript's JS API, which TypeScript 7 doesn't ship. Both lint only and never reformat. Each rule switched off, and each hook whose dependencies are deliberate ("run once per opening", "read through a ref"), carries its reason next to it.
 
-**Backend (pytest, 163):**
+**Backend (pytest, 164):**
 
 - **`test_engine.py` (18):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting, reading amounts like "1.5L" and "8k"
-- **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
+- **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (counting only calls that reach a provider; the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
 - **`test_understand.py` (36):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates counted from today ("tomorrow", "in 2 weeks", "next Saturday"), budgets only as stated ("1.5L" is 1,50,000), dates and cities only when named, missing fields, invalid revisions, no event-type changes
 - **`test_routing.py` (9):** the provider chain. Groq answers first with a strict schema; OpenAI answers when Groq times out, is rate-limited, has a bad key or sends invalid JSON; a 429 makes Groq rest; a slow Groq hands over within the time budget; the log names the provider and outcome, never the prompt
 - **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
 - **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
 - **`test_compare.py` (12):** money moves between budget lines and the before/after of two plans
-- **`test_ai.py` (10):** ideas stay advisory. Bad JSON, extra fields, over-long text and timeouts give no ideas, never an error. Also: no API key, caching, preference fencing
+- **`test_ai.py` (11):** ideas stay advisory. Bad JSON, extra fields, over-long text and timeouts give no ideas, never an error; ideas that quote a price are dropped. Also: no API key, caching, preference fencing
 - **`test_quote_extraction.py` (11):** a pasted quote becomes a checked draft or nothing, never an error; amounts only as the quote states them, tax wording read by code; the quote text is fenced
 - **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
 
-**Frontend (Vitest, 32):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
+**Frontend (Vitest, 35):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
 
-- **`features/overview/next-step.test.ts` (7):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear
+- **`features/overview/next-step.test.ts` (8):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear; a booking a delay holds back never leads
 - **`lib/storage.test.ts` (6):** save/load per account, nothing kept while signed out, blocked or corrupt `localStorage` starts empty without crashing, events saved before accounts, v2 → v4 migration
 - **`lib/format.test.ts` (6):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months, the time-of-day greeting
-- **`lib/share.test.ts` (5):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas are dropped
+- **`lib/share.test.ts` (7):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas, and ideas that quote a price, are dropped; a link edited to an unknown event type, venue or tier is broken, not shown
 - **`lib/accounts.test.ts` (3):** the demo sign-in, one message for a wrong password or an unknown username, usernames unique whatever their case
 - **`features/print/sheet-data.test.ts` (3):** the printed sheet's booking order, its ten-booking cap, and key dates kept when milestones are trimmed
 - **`lib/csp.test.ts` (1):** the CSP's hash for Radix Select's `<style>` still matches the installed Radix
 - **`lib/use-speech.test.ts` (1):** spoken text is added after what's typed, never in its place, within the field's limit
 
-**End to end (Playwright, 2):** `e2e/plan.spec.ts` runs the built app on the real backend with AI off. The landing page loads, and a shared plan opens in the dashboard after signing in with the demo account.
+**End to end (Playwright, 3):** `e2e/plan.spec.ts` runs the built app on the real backend with AI off. The landing page loads; a shared plan opens in the dashboard after one click on the demo account; a share link edited to an unknown event type opens with a notice instead of crashing.
 
 ## API types
 
@@ -275,19 +275,19 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 - **What reaches an AI provider:** the plan summary and what the organiser types or pastes (preferences, must-haves, quotes, Ask Higgins messages) go to Groq, and to OpenAI when it answers as the backup. Never guest lists, accounts or progress. OpenAI calls use `store=False`. Groq offers Zero Data Retention in its Data Controls settings; turn it on for a deployment.
 - Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 64 KB request cap (a plan carries the progress kept in the browser: bookings and up to 20 quotes). API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
 - **Prompt injection:** everything the organiser types or pastes (preferences, must-haves, vendor quotes, Ask Higgins messages) is treated as untrusted data. Markup characters are stripped, the text is fenced in tags such as `<preferences>` or `<quote>`, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
-- Everything (AI output, shared links) is rendered as text by React, never as HTML: there is no `dangerouslySetInnerHTML` anywhere. Shared ideas are checked for shape and size before display.
+- Everything (AI output, shared links) is rendered as text by React, never as HTML: there is no `dangerouslySetInnerHTML` anywhere. The only `innerHTML` is in the landing page's animation, which sets its own built-in artwork and fixed example figures, never anything typed or generated. Shared ideas are checked for shape and size before display, and dropped if they quote a price.
 - Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy` (no camera or location; the microphone only for our own pages, for voice typing), `Cross-Origin-Opener-Policy: same-origin`, and `Strict-Transport-Security` whenever the page was reached over HTTPS.
-- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. Errors never expose stack traces or submitted values. Logs record one line per AI call (task, provider, model, time, outcome), never prompts, replies or keys.
+- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. It counts only calls that reach a provider: cached replies and requests that fail validation don't use it up. Errors never expose stack traces or submitted values. Logs record one line per AI call (task, provider, model, time, outcome), never prompts, replies or keys.
 - No personal data is stored on the server.
 - **Sign-in is a demo, not a security boundary.** Accounts live in the browser, so they keep events apart but don't protect them from someone using the same browser. Real accounts would need a server and a database (see [Future improvements](#future-improvements)).
 
 ## Efficiency
 
-- The rules engine runs in microseconds, so the plan appears immediately and the what-if sliders can re-run it freely (debounced, outdated responses discarded). Only the ideas need an AI call: one per plan, in the background. Groq answers first because it's fast; a failed provider hands over to the next instead of retrying.
+- The rules engine runs in microseconds, so the plan appears immediately and every change preview can re-run it freely (outdated responses discarded). Only the ideas need an AI call: one per plan, in the background. Groq answers first because it's fast; a failed provider hands over to the next instead of retrying.
 - An in-memory LRU cache (1 hour) means a repeated plan doesn't repeat the AI call. A shared link restores ideas from the URL instead of calling the AI again.
 - The cheapest suitable model, minimal reasoning effort and capped output tokens.
 - Every response over 1 KB is gzipped. Hashed build files are cached for a year and the page revalidates on every visit, so a deploy shows up at once.
-- Each page is its own chunk: a first visit to the landing page downloads about 113 KB of gzipped JavaScript, not the dashboard. No external requests: fonts and scripts are self-hosted.
+- Each page is its own chunk: a first visit to the landing page downloads about 100 KB of gzipped JavaScript, not the dashboard. Its animated "How it works" section (about 80 KB more) loads only on wider screens, as it scrolls into view; phones get a still image. No external requests: fonts and scripts are self-hosted.
 
 ## Accessibility
 

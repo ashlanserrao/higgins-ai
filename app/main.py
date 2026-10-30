@@ -10,7 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.ai.client import StructuredAI
+from app.ai.client import AIBusyError, StructuredAI
 from app.ai.ideas import IdeasGenerator
 from app.ai.quotes import QuoteExtractor
 from app.ai.understand import PlanInterpreter
@@ -49,8 +49,9 @@ RATE_LIMITERS = {
     "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter, "/api/understand": ai_limiter,
 }
 # One shared bucket for every visitor's AI calls, so many IPs together can't run up the bill.
+# StructuredAI counts it, so cached replies and requests that fail validation don't use it up.
 ai_total_limiter = RateLimiter(settings.ai_total_limit_per_hour, window=3600)
-ai = StructuredAI(settings)
+ai = StructuredAI(settings, hourly_cap=ai_total_limiter)
 ideas_generator = IdeasGenerator(ai)
 quote_extractor = QuoteExtractor(ai)
 plan_interpreter = PlanInterpreter(ai)
@@ -97,12 +98,6 @@ async def guard_requests(request: Request, call_next):
             and not limiter.allow(request.client.host if request.client else "unknown")
         ):
             response = _error(429, "Too many requests. Please wait a minute and try again.")
-        elif (
-            request.method == "POST"
-            and RATE_LIMITERS.get(request.url.path) is ai_limiter
-            and not ai_total_limiter.allow("all")
-        ):
-            response = _error(429, "The AI helper is busy right now. Please try again in a few minutes.")
         else:
             response = await call_next(request)
     else:
@@ -127,6 +122,11 @@ async def validation_error(_: Request, exc: RequestValidationError) -> JSONRespo
 @app.exception_handler(PlanInputError)
 async def plan_input_error(_: Request, exc: PlanInputError) -> JSONResponse:
     return _error(422, str(exc), [{"field": exc.field, "message": str(exc)}])
+
+
+@app.exception_handler(AIBusyError)
+async def ai_busy(_: Request, __: AIBusyError) -> JSONResponse:
+    return _error(429, "The AI helper is busy right now. Please try again in a few minutes.")
 
 
 @app.exception_handler(Exception)

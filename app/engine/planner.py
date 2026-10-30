@@ -153,23 +153,19 @@ def split_budget(request: PlanRequest) -> list[BudgetLine]:
 
     # Contingency is never a donor, so it never drops below MIN_CONTINGENCY_PERCENT.
     # Round each line down to ₹100; the leftover goes to contingency so lines sum exactly.
-    lines = []
-    allocated = 0
-    for key, percent in splits.items():
-        if key == "contingency":
-            continue
-        amount = int(request.budget_inr * percent / 100) // rules.ROUNDING_INR * rules.ROUNDING_INR
-        allocated += amount
-        lines.append(BudgetLine(
-            key=key, label=labels[key], percent=round(percent, 1),
+    # Each percent is of the rounded amount, so on a small budget it matches the rupees shown.
+    amounts = {
+        key: int(request.budget_inr * percent / 100) // rules.ROUNDING_INR * rules.ROUNDING_INR
+        for key, percent in splits.items() if key != "contingency"
+    }
+    amounts["contingency"] = request.budget_inr - sum(amounts.values())
+    return [
+        BudgetLine(
+            key=key, label=labels[key], percent=round(amount * 100 / request.budget_inr, 1),
             amount_inr=amount, estimate_inr=amount, boosted=key in boosted,
-        ))
-    contingency = request.budget_inr - allocated
-    lines.append(BudgetLine(
-        key="contingency", label=labels["contingency"],
-        percent=round(splits["contingency"], 1), amount_inr=contingency, estimate_inr=contingency,
-    ))
-    return lines
+        )
+        for key, amount in amounts.items()
+    ]
 
 
 def _priority_key(priority: str, splits: dict[str, float]) -> str | None:

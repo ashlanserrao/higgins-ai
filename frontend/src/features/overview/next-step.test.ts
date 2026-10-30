@@ -60,6 +60,13 @@ describe("leadFor ranks by how soon it hurts", () => {
     expect(lead).toMatchObject({ kind: "next", item: { id: "cake" }, days: 20 });
   });
 
+  it("doesn't lead with a booking a delay keeps waiting", () => {
+    // Due tomorrow, but the vendor can only confirm in two weeks.
+    const photo = item("photo", { delayed_by: "photo", expected_on: "2026-11-04", book_by: "2026-10-22", status: "tight" });
+    const lead = leadFor(plan([photo, item("cake", { book_by: "2026-11-10" })]));
+    expect(lead).toMatchObject({ kind: "next", item: { id: "cake" } });
+  });
+
   it("is clear when everything is booked", () => {
     expect(leadFor(plan([item("venue", { done: true })]))).toEqual({ kind: "clear" });
   });

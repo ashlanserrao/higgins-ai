@@ -42,18 +42,22 @@ export function SignIn() {
   const ids = { username: useId(), password: useId(), error: useId(), hint: useId() };
   const text = TEXT[mode];
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
+  const enter = async (action: typeof signIn, name: string, secret: string) => {
     setBusy(true);
     setError(null);
     try {
-      await (mode === "signin" ? signIn : createAccount)(username, password);
+      await action(name, secret);
       // From the sign-in page itself, into the app; from anywhere else, stay where they were going.
       if (page === "signin") go("overview");
     } catch (caught) {
       setError(caught instanceof AccountError ? caught : new AccountError("Something went wrong. Try again.", "form"));
       setBusy(false);
     }
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    void enter(mode === "signin" ? signIn : createAccount, username, password);
   };
 
   const switchMode = () => {
@@ -123,15 +127,10 @@ export function SignIn() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface-soft px-4 py-3 text-sm">
           <span>Just looking? Use <span className="font-medium">{DEMO.username}</span> / <span className="font-medium">{DEMO.password}</span></span>
           <Button
-            type="button" variant="outline" size="sm" className="rounded-full"
-            onClick={() => {
-              setMode("signin");
-              setUsername(DEMO.username);
-              setPassword(DEMO.password);
-              setError(null);
-            }}
+            type="button" variant="outline" size="sm" className="rounded-full" disabled={busy}
+            onClick={() => void enter(signIn, DEMO.username, DEMO.password)}
           >
-            Fill it in
+            Use the demo account
           </Button>
         </div>
         <p className="mt-4 text-xs text-muted-foreground">This is a demo sign-in. It keeps each account's events apart in this browser, but it isn't a secure login: anyone using this browser can open them. Our server doesn't keep a copy.</p>

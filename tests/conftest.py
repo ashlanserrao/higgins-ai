@@ -72,7 +72,7 @@ class FakeClient:
         self.chat = SimpleNamespace(completions=self.responses)
 
 
-def make_ai(outcome=None, groq=None, settings: Settings | None = None, groq_delay=0.0) -> StructuredAI:
+def make_ai(outcome=None, groq=None, settings: Settings | None = None, groq_delay=0.0, hourly_cap=None) -> StructuredAI:
     """An AI whose OpenAI replies are `outcome` and Groq replies are `groq` (Groq first).
     Neither given: no API key is configured."""
     settings = settings or Settings(openai_api_key="", groq_api_key="")
@@ -81,7 +81,7 @@ def make_ai(outcome=None, groq=None, settings: Settings | None = None, groq_dela
         providers.append(GroqProvider(settings, FakeClient(groq, groq_delay), settings.groq_timeout_seconds))
     if outcome is not None:
         providers.append(OpenAIProvider(settings, FakeClient(outcome), settings.ai_timeout_seconds))
-    return StructuredAI(settings, providers)
+    return StructuredAI(settings, providers, hourly_cap)
 
 
 def make_generator(outcome=None) -> IdeasGenerator:

@@ -12,7 +12,7 @@ import type { TimelineEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
-import { IdeasStatusLine } from "@/components/app/ideas-status-line";
+import { IdeasNote, IdeasStatusLine } from "@/components/app/ideas-status-line";
 
 export type OverviewTab = "next" | "soon" | "ideas";
 
@@ -151,7 +151,7 @@ function ComingUp() {
 const firstSentence = (text: string) => text.match(/^.*?[.!?](?=\s|$)/s)?.[0] ?? text;
 
 function IdeasPanel() {
-  const { ideas, ideasStatus, loadIdeas } = usePlan();
+  const { ideas, ideasStatus, loadIdeas, shared } = usePlan();
   const { go } = useNav();
 
   if (ideasStatus === "unavailable")
@@ -186,14 +186,14 @@ function IdeasPanel() {
           <li key={idea.title}>
             <p className="flex items-center gap-2 text-sm">
               {idea.title}
-              {index === 0 && <span className="rounded-full bg-surface-soft px-1.5 text-xs font-medium text-muted-foreground">AI</span>}
+              {index === 0 && !shared && <span className="rounded-full bg-surface-soft px-1.5 text-xs font-medium text-muted-foreground">AI</span>}
             </p>
             <p className="text-xs text-tertiary">{firstSentence(idea.detail)}</p>
           </li>
         ))}
       </ul>
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <p className="text-tertiary">Suggested by AI. Give it a quick check.</p>
+        <IdeasNote short />
         <Button size="sm" variant="link" className="h-auto px-0 max-md:min-h-11 pointer-coarse:min-h-11" onClick={() => go("ideas")}>
           All ideas <ArrowRight aria-hidden="true" />
         </Button>

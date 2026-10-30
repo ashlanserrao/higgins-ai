@@ -15,10 +15,17 @@ test("a shared plan opens after signing in with the demo account", async ({ page
   });
   await page.goto(`/?${query}`);
 
-  await page.getByRole("button", { name: "Fill it in" }).click();
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.getByRole("button", { name: "Use the demo account" }).click();
 
   // The plan comes from the rules engine over HTTP, rendered in the dashboard.
   await expect(page.getByText("Someone shared this plan with you")).toBeVisible();
   await expect(page.getByText("Budget breakdown")).toBeVisible();
+});
+
+test("a share link edited into something no plan has opens with a notice, not a crash", async ({ page }) => {
+  await page.goto(`/?event_type=party&event_date=${inDays(60)}&guests=40&budget_inr=50000&city=Mysuru`);
+
+  await expect(page.getByText("This shared link is incomplete or has been changed")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /Celebrations/ })).toBeVisible();
+  expect(new URL(page.url()).search).toBe("");
 });

@@ -12,7 +12,7 @@ import type { Recalculate } from "./plan-actions";
 import { allEvents, opened, type State, type Store } from "./store";
 
 /** Start: options, then a shared link, the event in the URL or the last one open, or nothing. */
-export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Recalculate, owner: string | null) {
+export function useBoot({ stateRef, patch, storeEvent, fail }: Store, recalculate: Recalculate, owner: string | null) {
   /** A closed event's plan, worked out again for today. Its saved plan stays if that fails. */
   const refreshEvent = useCallback(async (event: SavedEvent) => {
     try {
@@ -32,7 +32,13 @@ export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Rec
         patch({ booting: false, bootError: (error as Error).message });
         return;
       }
-      const shared = readSharedInputs();
+      let shared = readSharedInputs();
+      if (shared === "broken") {
+        // Opens as if there were no link, with a note that stays until it's closed.
+        history.replaceState(null, "", `${location.pathname}${location.hash}`);
+        fail("This shared link is incomplete or has been changed, so it can't be opened. Ask for a new link.");
+        shared = null;
+      }
       const saved = storage.load(owner);
       const wanted = readRoute().eventId;
       const open = saved.events.find((e) => e.id === wanted) ?? saved.events.find((e) => e.id === saved.activeEventId) ?? saved.events[0];
@@ -63,7 +69,7 @@ export function useBoot({ stateRef, patch, storeEvent }: Store, recalculate: Rec
         if (event.id !== stateRef.current.activeId && event.savedOn !== today) void refreshEvent(event);
       }
     })();
-  }, [patch, recalculate, refreshEvent, stateRef, owner]);
+  }, [patch, fail, recalculate, refreshEvent, stateRef, owner]);
 }
 
 /** Save on every change, under the signed-in account. A shared plan isn't saved until it's kept. */

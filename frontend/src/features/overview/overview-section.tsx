@@ -6,7 +6,7 @@ import {
   AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Compass, GitBranch, Info, Lightbulb, MessageSquareText, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AiNote, StatusBadge } from "@/components/badges";
+import { StatusBadge } from "@/components/badges";
 import { Panel, Stat } from "@/components/layout";
 import { MessageDialog } from "@/components/app/message-dialog";
 import { formatDate, inr, LEVEL_LABELS, plural, signedInr, weekday } from "@/lib/format";
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { RebalanceNote } from "@/components/app/rebalance-note";
-import { IdeasStatusLine } from "@/components/app/ideas-status-line";
+import { IdeasNote, IdeasStatusLine } from "@/components/app/ideas-status-line";
 import { BookingDialog, type BookingTarget } from "@/components/app/booking-dialog";
 import { OverviewBand } from "./band";
 import { BudgetBlock } from "./budget-block";
@@ -154,7 +154,7 @@ export function NextSteps() {
       )}
       {plan.triage.active && ideas?.triage_advice && ideasStatus === "ready" && (
         <div className="mt-5 rounded-lg bg-ai-soft p-4 text-sm ring-1 ring-ai-border">
-          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><p className="font-medium">A thought for you</p><AiNote /></div>
+          <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2"><p className="font-medium">A thought for you</p><IdeasNote /></div>
           <p>{ideas.triage_advice}</p>
         </div>
       )}
@@ -234,7 +234,7 @@ export function IdeasTeaser() {
             ))}
           </ul>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <AiNote />
+            <IdeasNote />
             <Button size="sm" variant="link" className="px-0 text-ai" onClick={() => go("ideas")}>All ideas <ArrowRight aria-hidden="true" /></Button>
           </div>
         </div>

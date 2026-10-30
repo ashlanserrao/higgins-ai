@@ -68,10 +68,11 @@ export function GuestsSection() {
         <Stat label="Maybe" value={count("maybe")} />
         <Stat label="Not replied" value={count("invited")} hint={`${count("no")} not coming`} />
       </div>
-      {guests.length > 0 && expected !== inputs.guests && (
+      {/* Only once someone is expected: a list of people not replied yet isn't a guest count. */}
+      {expected > 0 && expected !== inputs.guests && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl bg-info-soft px-4 py-3 text-sm">
           <span className="flex-1">Your plan is for <b>{inputs.guests}</b> guests, and your list expects <b>{expected}</b>. Want the plan to match?</span>
-          <Button size="sm" variant="outline" disabled={expected < 1}
+          <Button size="sm" variant="outline"
             onClick={() => preview({ title: `Plan for ${expected} guests`, label: `Planned for ${expected} guests from the guest list`, changes: { guests: expected } })}>
             Plan for {expected} guests
           </Button>

@@ -43,7 +43,9 @@ def test_golden_tight_birthday(birthday_request):
     assert plan.city_tier == 2
     assert "venue" not in lines
     assert lines["decor"].percent == 30  # 15 base + 10 from venue + 5 priority
-    assert lines["entertainment"].percent == 17
+    # A 17% share is ₹2,040, rounded down to ₹2,000: the percent shown is of the rupees shown.
+    assert (lines["entertainment"].amount_inr, lines["entertainment"].percent) == (2_000, 16.7)
+    assert lines["contingency"].percent == round(lines["contingency"].amount_inr * 100 / 12_000, 1)
     assert plan.budget_status == "tight" and plan.budget_level == "tight"
     assert (plan.per_guest_inr, plan.floor_per_guest_inr) == (300, 400)
     assert "₹300 per guest is below the ₹400 minimum" in plan.warnings[0]
