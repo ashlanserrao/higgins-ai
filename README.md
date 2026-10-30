@@ -1,5 +1,9 @@
 # Higgins AI: event planning assistant
 
+[![CI](https://github.com/ashlanserrao/higgins-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/ashlanserrao/higgins-ai/actions/workflows/ci.yml)
+
+**Live demo: [higgins-ai.vercel.app](https://higgins-ai.vercel.app)**. Press **Use the demo account** to sign in.
+
 A GenAI-powered planning assistant that helps people organise **weddings, birthdays and community events**. One short form gives you a budget split, a timeline worked backward from the date, a vendor checklist with "book by" dates, a triage mode for late planners, and personalised theme, décor and food ideas.
 
 ![The Overview of a sample wedding plan: days to go, the budget breakdown and the next booking to make](frontend/public/sample-plan.webp)
