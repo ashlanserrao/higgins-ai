@@ -1,0 +1,18 @@
+# Render blueprint for the API (New > Blueprint, then pick this repo). The website itself is on
+# Vercel (frontend/vercel.json), which forwards /api/* here, so the browser sees one origin.
+services:
+  - type: web
+    name: higgins-ai-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # Render's proxy is the only way in, so its X-Forwarded-For header is trusted: per-IP rate
+    # limits see the visitor's IP, and HSTS is sent because the visitor used HTTPS.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /health
+    envVars:
+      # Asked for when the blueprint is created; never committed.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
