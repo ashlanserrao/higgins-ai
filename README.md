@@ -1,10 +1,10 @@
 # Higgins AI: event planning assistant
 
-A GenAI-powered planning assistant that helps people organise **weddings, birthdays and community events** with a budget split, a timeline worked backward from the date, a vendor checklist with "book by" dates, a triage mode for late planners, and personalised theme, décor and food ideas.
+A GenAI-powered planning assistant that helps people organise **weddings, birthdays and community events**. One short form gives you a budget split, a timeline worked backward from the date, a vendor checklist with "book by" dates, a triage mode for late planners, and personalised theme, décor and food ideas.
 
 ![The Overview of a sample wedding plan: days to go, the budget breakdown and the next booking to make](frontend/public/sample-plan.webp)
 
-**Quick start** (Python 3.11+, Node 22; details in [Running it](#running-it)):
+**Quick start** (Python 3.11+, Node 22):
 
 ```bash
 pip install -r requirements.txt
@@ -12,22 +12,20 @@ cd frontend && npm ci && npm run build && cd ..
 uvicorn app.main:app        # open http://127.0.0.1:8000 and sign in with test / test
 ```
 
-## Chosen vertical
+No API key needed: the full rules-based plan works without one. Keys only switch on the AI parts (see [Running it](#running-it)).
 
-**Event planning assistant** for the persona we call *the default organizer*.
+## Who it's for
 
-Priya, 29, is a working professional in Bengaluru. She isn't a planner, but family, friends and her housing society keep handing her events: her cousin's wedding, her son's 5th birthday, the society's Diwali celebration. She has a date, a rough guest count and a fixed budget. She doesn't know how to price vendors or when to book them.
+**Priya, 29, a working professional in Bengaluru.** She isn't a planner, but family, friends and her housing society keep handing her events: her cousin's wedding, her son's 5th birthday, the society's Diwali celebration. She has a date, a rough guest count and a fixed budget, but doesn't know how to price vendors or when to book them.
 
 She opens the assistant at two moments:
 
-1. **The event was just decided.** "Where do I start, and can this budget actually work?" She wants a realistic plan in minutes that she can share with family or the committee the same day.
-2. **The event is 2–3 weeks away and she's behind.** "What's still possible, what do I cut, what do I book today?"
+1. **The event was just decided.** "Where do I start, and can this budget work?" She wants a realistic plan in minutes that she can share the same day.
+2. **The event is 2-3 weeks away and she's behind.** "What's still possible, what do I cut, what do I book today?"
 
-What she doesn't want is a chatbot she has to interrogate, or a tool that assumes she has a professional planner's knowledge. So the app is **one short form → one complete plan**.
+She doesn't want a chatbot to interrogate. So the app is **one short form → one complete plan**.
 
-## Approach and logic
-
-The core design decision: **rules decide, AI personalises.**
+## Approach: rules decide, AI personalises
 
 | Part of the plan | Who decides | Why |
 |---|---|---|
@@ -36,21 +34,19 @@ The core design decision: **rules decide, AI personalises.**
 | Themes, décor, food/menu, entertainment ideas | GenAI | Free-text taste ("pastel colours, my son loves dinosaurs") is what rules can't do well |
 | Wording of triage advice | GenAI | Turns the rules' decisions into friendly advice, but cannot change them |
 
-The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, today)`. The same inputs on the same day always give the same plan, which is what makes share links and golden tests possible.
+The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, today)`: the same inputs on the same day always give the same plan. That is what makes share links and golden tests possible.
 
-### Decision logic based on the user's context
+**How the rules work, in short:**
 
-1. **Base split per event type.** Each event type has its own category table (e.g. wedding: venue 20%, catering 30%, décor 12%, …).
-2. **Venue type.** *At home* drops the venue line and gives its share to food and décor. *Outdoor* adds a 5% "tent & weather backup" line, plus a monsoon backup task if the date falls in June–September. *Venue includes catering* merges venue and catering into one line, as many Indian venues price per plate.
-3. **Priorities (up to 3).** Each one gains +5 percentage points, taken proportionally from the non-priority categories. Contingency is never a donor, so it never drops below 5%.
-4. **Rupees.** Lines are rounded down to ₹100. The leftover goes to contingency, so lines always add up exactly to the budget.
-5. **Too-tight check.** Budget per guest is compared with a minimum per guest (metro: wedding ₹1,500, birthday ₹500, community ₹250), scaled by city size (metro ×1.0, tier-2 ×0.8, smaller town ×0.65). Below the floor, the plan warns and suggests cost-saving swaps.
-6. **Budget level.** Budget per guest ÷ floor gives *tight* (< 1), *modest* (< 2), *comfortable* (< 4) or *generous* (≥ 4). This tells the AI how ambitious its ideas may be.
-7. **Timeline.** Every vendor has an ideal lead time. Book-by date = event date − lead time. **Peak wedding season (Nov–Feb)** adds 60 days to the venue and photographer.
-8. **Triage in three stages.** Each booking is **on track** (the full lead time is left), **tight but doable** (inside the lead time, but at least half of it left: "Book this week"), or **book today** (less than half left). Only "book today" items switch the plan into triage, so a wedding planned 5 months ahead reads as tight, not as an emergency. Essentials (venue, permissions, caterer) are flagged, never cut. Other "book today" items get a cheaper alternative (e.g. hired performers → resident talent).
-9. **Community events.** If the number of households is given, the plan shows a per-flat contribution (budget ÷ households), which is how committees actually raise money.
+- **Budget split:** each event type has its own category table. *At home* moves the venue share to food and décor; *outdoor* adds a 5% tent and weather backup (plus a monsoon task for June-September); *venue includes catering* merges the two lines. Up to 3 priorities gain +5 points each, taken from non-priority lines. Contingency never drops below 5%, and lines always add up exactly to the budget.
+- **Too-tight check:** budget per guest is compared with a minimum (metro: wedding ₹1,500, birthday ₹500, community ₹250), scaled by city size. Below the floor, the plan warns and suggests cost-saving swaps. The same ratio sets a budget level (*tight* → *generous*) that tells the AI how ambitious its ideas may be.
+- **Timeline:** book-by date = event date − vendor lead time. Peak wedding season (Nov-Feb) adds 60 days to the venue and photographer.
+- **Triage in three stages:** *on track*, *tight but doable* ("book this week") and *book today*. Only "book today" items switch on triage. Essentials (venue, permissions, caterer) are flagged, never cut; other items get a cheaper alternative.
+- **Community events:** with a household count, the plan shows a per-flat contribution, which is how committees actually raise money.
 
-## How the solution works
+All heuristics are named, commented constants in `app/engine/rules.py`.
+
+## How it works
 
 ```
 Browser (form, change previews, localStorage, share links)
@@ -61,23 +57,33 @@ validate (Pydantic) → rules engine     validate → rules engine → cache hit
                                               ↳ no key / both fail → ideas: null
 ```
 
-The plan is on screen as soon as the rules engine returns. The ideas card shows a loading placeholder and fills in a few seconds later.
+The plan appears as soon as the rules engine returns; the ideas card fills in a few seconds later.
+
+**Stack:** FastAPI + Pydantic v2 backend; React 19, TypeScript, Vite, Tailwind and shadcn/ui frontend, served from the same origin with no third-party scripts or CDNs. No server-side accounts or database: events live in the browser's `localStorage`.
+
+**Features:**
+
+- **What if…:** one-tap or typed changes ("what if we invite 150 instead of 200?") show a before/after from the rules engine before anything is applied.
+- **Ask Higgins:** plain-language intake and revisions. The AI reports the change; the server does the maths.
+- **Vendor quotes:** paste a quote, get a checked draft that can't be accepted until the organiser verifies it.
+- **Vendor messages:** ready-to-send enquiry, follow-up or confirmation, filled from the plan.
+- **Share links:** inputs in the query string, ideas compressed in the `#fragment` (never sent to the server). Free-text preferences are never put in the link.
+- **Print / PDF:** a one-page A4 family summary, safe in black and white.
+- **Voice typing:** browser speech recognition on the longer text boxes.
 
 ### AI providers and guardrails
 
-Every AI call goes through one class, `StructuredAI` in `app/ai/client.py`, which tries a chain of providers within one time budget.
+Every AI call goes through one class, `StructuredAI` (`app/ai/client.py`), which tries a provider chain within one 15 s budget.
 
-- **Groq first, OpenAI as the backup.** Groq (`openai/gpt-oss-20b` by default) usually answers in about a second. If it times out after 5 s, returns an error (429, 5xx, a bad key, a rejected schema) or sends JSON that fails the Pydantic check, OpenAI gets the rest of the 15 s budget. With less than 2 s left, the call gives up and the feature's non-AI path takes over.
-- **The keys decide the chain.** Both keys: Groq, then OpenAI. One key: that provider alone. No key: AI is off, and the app still makes the full rules-based plan.
-- **Each provider through its stable API.** OpenAI through its Responses API with `store=False`; Groq through Chat Completions, where strict JSON schemas are documented (its Responses API is in beta). Both use the official `openai` SDK; Groq only needs its `base_url`.
-- **Rate limits respected.** After a 429, a provider rests for its `retry-after` time (at most 60 s), so a burst goes straight to the backup without first waiting for a refusal.
-- **Per-task models in config.** `GROQ_MODEL_IDEAS`, `GROQ_MODEL_QUOTES` or `GROQ_MODEL_UNDERSTAND` swap the model for one task without touching code.
-- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. Amounts are read by code too: "1.5L" is ₹1,50,000 whatever the model says, a quote's total must be written in the quote, and "GST extra" or "+ 18% GST" means tax isn't included. Ideas never carry prices: one that quotes a price is dropped. So both providers give the same numbers and dates.
-- **One log line per call:** task, provider, model, time taken and outcome (`ok`, `cached`, `timeout`, `429`, `auth`, `bad_request`, `invalid_json`). Never the prompt, the reply or a key.
+- **Groq first, OpenAI as backup.** Groq (`openai/gpt-oss-20b`) usually answers in about a second. On a timeout, error (429, 5xx, bad key, rejected schema) or invalid JSON, OpenAI gets the rest of the budget. No key means AI is off and the rules-based plan still works in full.
+- **The AI reports, code computes.** Relative changes ("add 40 guests"), dates counted from today ("in 2 weeks") and amounts ("1.5L" = ₹1,50,000) are worked out in code, and each reading is shown to the user. Vague dates are asked about, never guessed. Ideas never carry prices: one that quotes a price is dropped.
+- **Untrusted input:** everything the user types or pastes is stripped of markup, fenced in tags, and the model is told to ignore instructions inside it. Output must pass a strict schema and Pydantic validation.
+- **Graceful failure:** the three AI routes return `null`, not an error. The page always has a non-AI path.
+- **Logging:** one line per call (task, provider, model, time, outcome). Never prompts, replies or keys.
 
-#### Evals: why Groq goes first
+### Evals: why Groq goes first
 
-`evals/` holds 38 fixed cases: 20 typed requests (new events, revisions, vague dates, small talk, a prompt injection), 12 pasted quotes (per-plate prices, "1.2 lakh", Hinglish, a non-quote, an injection) and 6 ideas requests (scored on rules: must-haves mentioned, no prices, nothing lavish on a tight budget, triage advice when needed). `python -m evals.run --provider groq` runs them through the app's real path with one provider and saves a table to `evals/results/`. They make real API calls, so they run by hand, never in pytest or CI.
+`evals/` holds 38 fixed cases (20 typed requests, 12 pasted quotes, 6 ideas requests). They make real API calls, so they run by hand: `python -m evals.run --provider groq`.
 
 Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals/results/2026-10-30-openai.md)):
 
@@ -87,81 +93,22 @@ Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals
 | Quotes | 10/12 | 1.1 s | 9/12 | 3.4 s |
 | Ideas | 6/6 | 1.6 s | 6/6 | 5.0 s |
 
-- **Groq was as good or better on every task, at about a third of the time,** with no invalid JSON (OpenAI had one).
-- **The evals caught a bug in our code.** For "change it to next Sunday", OpenAI also sent a 7-day move, which overrode the Sunday the code had worked out. A named day now wins over a relative move, with a test.
-- **Groq's three misses became code checks.** It read "1.5L" as 15 lakh, multiplied "6 guards @ ₹900" despite being told not to, and took "+ 18% GST" as included. Now a budget must be an amount the message states (or its one lakh/k/crore amount), a quote's total and per-plate price must appear in the quote, and tax wording is read by code. Every correct answer in the eval set was replayed through the checks offline first (none changed), then only those three cases were rerun on Groq: all pass. gpt-5-nano's misses (two quote categories, a year rollover) remain.
-- **Groq's free tier is tight:** at one call every 2.5 s, about half the eval calls hit its 8,000 tokens-a-minute limit. In the app those calls rest Groq and go to OpenAI, so they still work; a paid Groq tier would keep more of them fast.
-
-### Routes
-
-Every route validates its input with Pydantic, and every number comes from the rules engine. The three AI routes return `null` instead of an error when the AI fails, and the page always has a non-AI path.
-
-| Route | AI | What it does |
-|---|---|---|
-| `POST /api/plan` | No | The rules-only `{plan, ai_available}`, in milliseconds |
-| `POST /api/ideas` | Yes | Ideas for the same inputs, `{ideas, ai_available}`. If the call fails, `ideas` is null and the page offers "Try again" |
-| `POST /api/compare` | No | The before/after of a change (what-if, money move, typed revision). Nothing is saved |
-| `POST /api/messages` | No | A ready-to-send enquiry, follow-up or confirmation for one booking, filled from the plan. The budget is left out unless asked for |
-| `POST /api/quotes/extract` | Yes | A pasted vendor quote read into a draft. It is marked AI-extracted and can't be accepted until the organiser checks it |
-| `POST /api/understand` | Yes | Plain language ("wedding for 300 in Jaipur", "add 40 guests") into form values or a proposed revision with its before/after. The AI reports the change; the server does the maths |
-| `GET /api/options` | No | Priority choices per event type, so the form never duplicates the rules |
-| `GET /health` | No | Health check |
-
-- **Backend:** Python + FastAPI, with the routes above. `ai_available` means at least one AI key is configured. The three AI routes are async, so a provider call waiting on the network doesn't hold a server thread.
-- **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. See [AI providers and guardrails](#ai-providers-and-guardrails).
-- **Frontend (`frontend/`):** React 19, TypeScript, Vite, Tailwind and shadcn/ui. It is built to `frontend/dist` and served by FastAPI from the same origin, with no third-party scripts or CDNs.
-- **No server-side accounts, no database.** Events, progress and guests are kept in the browser's `localStorage`. A demo sign-in (`test` / `test`, or make your own) keeps each account's events apart in that browser. It is not a secure login: anyone using the browser can read its storage. Passwords are kept only as a salted PBKDF2 hash.
-- **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. Ideas that arrive in a link are labelled as coming from the link, not from the AI, and any that quote a price are dropped. A link cut short or edited into something no plan has (an unknown event type, say) opens the app with a notice instead. The query string does reach the server, like any URL, so it can appear in access logs; it holds only numbers, a date, a city and choices. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
-- **What if…:** one-tap changes (25 more guests, a bigger budget, a new date) and typed ones in Ask Higgins ("what if we invite 150 instead of 200?") are shown as a before/after from the rules engine before anything is applied. A one-tap change makes no AI call. Ideas made for the old numbers are marked as such, with a "Refresh ideas" button.
-- **Print or save as PDF:** a one-page A4 summary for the family (key figures, what needs attention, budget, bookings, key dates, vendors, guests, ideas and notes), safe in black and white; a big event scales down to stay on one page.
-- **Voice typing:** a mic on the longer text boxes (the plan box on the landing page and during setup, must-haves, taste and ideas, a pasted vendor quote, and Ask Higgins). It uses the browser's own speech recognition (Indian English), so there is no library; what is said is added after what is typed, ready to edit, and never sent by itself. Firefox has no speech recognition, so the mic is hidden there. Chrome and Edge send the audio to their maker's speech service to turn it into text; nothing reaches our server until the text is sent.
-- **Rolling figures:** the Overview's four headline numbers roll in like an odometer, each digit a wheel, in two seconds: when the Overview opens, and from old to new digits when a figure changes. Plain CSS transforms, no library; with reduced motion they are simply shown, and screen readers get the plain number.
+- **Groq was as good or better on every task, at about a third of the time.**
+- **The evals caught a bug in our code:** for "change it to next Sunday", OpenAI also sent a 7-day move that overrode the computed Sunday. A named day now wins over a relative move, with a test.
+- **Groq's three misses became code checks** (budgets and quote totals must be stated in the text; tax wording is read by code). All three cases now pass.
 
 ## Demo scenarios
 
-These are real engine output with `today = 2026-10-21`; opened on a later day, the countdown and booking statuses move with the date. Each is also a golden test in `tests/test_engine.py`.
+Real engine output with `today = 2026-10-21`; each is also a golden test in `tests/test_engine.py`.
 
-### 1. Happy path: cousin's wedding
-Bengaluru (metro) · 250 guests · ₹15,00,000 · 12 Dec 2027 · venue includes catering · priorities: food, photography
+**1. Happy path: cousin's wedding.** Bengaluru · 250 guests · ₹15,00,000 · 12 Dec 2027 · venue includes catering · priorities: food, photography.
+417 days to go, ₹6,000 per guest, level *generous*. Venue & catering gets ₹8,25,000 (55%), photo & video ₹2,25,000 (15%). Because December is peak season, the venue is due by **16 Jan 2027** and the photographer by **15 Feb 2027**. No triage.
 
-**417 days to go · ₹6,000 per guest (floor ₹1,500) · budget OK · level: generous**
+**2. Tight budget: son's 5th birthday.** Mysuru (tier-2) · at home · 40 guests · ₹12,000 · 11 Nov 2026 · priorities: décor, activities.
+21 days to go, ₹300 per guest, level *tight*. The plan warns that this is below the ₹400 minimum and offers swaps (homemade snacks with a bakery cake, DIY décor, self-run games). The AI is told the budget is tight, so its ideas stay low-cost.
 
-| Line | Amount | Share |
-|---|---:|---:|
-| Venue & catering *(priority, merged)* | ₹8,25,000 | 55.0% |
-| Photo & video *(priority)* | ₹2,25,000 | 15.0% |
-| Décor | ₹1,28,500 | 8.6% |
-| Attire & styling | ₹1,07,100 | 7.1% |
-| Music & entertainment | ₹53,500 | 3.6% |
-| Invitations & gifts | ₹53,500 | 3.6% |
-| Logistics | ₹32,100 | 2.1% |
-| Contingency | ₹75,300 | 5.0% |
-
-Book the venue by **16 Jan 2027** and the photographer by **15 Feb 2027**. December is peak season, so both moved 60 days earlier. Then décor and makeup (Aug 2027), outfits and music (Sep 2027), invitations (Oct 2027). No triage.
-
-### 2. Tight budget: son's 5th birthday
-Mysuru (tier-2, not in the metro list) · at home · 40 guests · ₹12,000 · 11 Nov 2026 · priorities: décor, activities
-
-**21 days to go · ₹300 per guest · level: tight**
-
-> ⚠ ₹300 per guest is below the ₹400 minimum we suggest for a birthday party in a tier-2 city. Try the cost-saving swaps, a shorter guest list or a bigger budget.
-
-No venue line, because its 20% moved to food and décor: Food & cake ₹4,400 · Décor ₹3,600 (priority, 30%) · Entertainment & activities ₹2,000 (priority) · Return gifts ₹700 · Photography ₹400 · Contingency ₹900. The swaps include homemade snacks with a bakery cake, DIY décor and self-run games. The AI is told the budget level is *tight*, so its ideas stay low-cost.
-
-### 3. Triage: society Diwali celebration
-Bengaluru · outdoor · 500 attendees · 120 households · ₹1,50,000 · 8 Nov 2026
-
-**18 days to go · ₹300 per guest (above the ₹250 floor) · per-flat contribution ₹1,250**
-
-> ⚠ Your event is 18 days away. Less than half the usual lead time is left for 1 booking: book it today.
->
-> ⚠ 4 bookings are inside the usual lead time but still doable: book them this week.
-
-- **Book today:** venue (45-day lead time, only 18 days left)
-- **Book this week:** permissions, performers, sound & lighting, caterer (21–30-day lead times, at least half left)
-- **On track:** security & first aid, tent (by 25 Oct 2026)
-- **Cut or swap:** none, because the venue is an essential and is never suggested as a cut. Nine days out, performers and sound would also be "book today", and the plan would suggest resident talent and a basic PA package instead.
-- A "Tent & weather backup" line is added (outdoor). There's **no** monsoon task, because November is outside June–September.
+**3. Triage: society Diwali celebration.** Bengaluru · outdoor · 500 attendees · 120 households · ₹1,50,000 · 8 Nov 2026.
+18 days to go, per-flat contribution **₹1,250**. The venue is **book today** (45-day lead time, 18 days left); permissions, performers, sound & lighting and the caterer are **book this week**; security and the tent are on track. The venue is an essential, so it is never suggested as a cut.
 
 ## Running it
 
@@ -171,164 +118,72 @@ Requires Python 3.11+ and Node 22.
 python -m venv venv
 # Windows: venv\Scripts\activate    macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # optional: add GROQ_API_KEY and/or OPENAI_API_KEY for the AI parts
+cp .env.example .env        # optional: add GROQ_API_KEY and/or OPENAI_API_KEY
 
-cd frontend
-npm ci
-npm run build               # writes frontend/dist, which FastAPI serves
-cd ..
-
+cd frontend && npm ci && npm run build && cd ..
 uvicorn app.main:app
 ```
 
-Open http://127.0.0.1:8000 and press **Use the demo account** on the sign-in page (it is `test` / `test`), or create an account. Without the build step the API still runs, but there is no page to open. **No API key?** The plan itself works in full: the questionnaire, budget, bookings, quotes typed in, vendor messages and one-tap changes. The parts that read free text need a key: the "describe your event" box, Ask Higgins, reading a pasted quote, and the ideas. Without one they say so, and the form or manual entry takes over.
+Open http://127.0.0.1:8000 and press **Use the demo account** (`test` / `test`). For frontend work, `npm run dev` in `frontend/` gives hot reload and forwards `/api` to port 8000.
 
-For frontend work, `npm run dev` in `frontend/` serves the page with hot reload and forwards `/api` to the uvicorn server on port 8000.
+**Without an API key** the questionnaire, budget, bookings, typed-in quotes, vendor messages and one-tap changes all work. Features that read free text (the "describe your event" box, Ask Higgins, pasted quotes, ideas) need a key.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `GROQ_API_KEY` | *(empty)* | Enables Groq, tried first. Server-side only, never sent to the browser |
-| `OPENAI_API_KEY` | *(empty)* | Enables OpenAI, the backup (or the only provider without a Groq key). Server-side only |
-| `GROQ_MODEL` | `openai/gpt-oss-20b` | A Groq model with strict JSON schema support |
-| `GROQ_MODEL_IDEAS`, `_QUOTES`, `_UNDERSTAND` | *(empty)* | Optional model for one task |
-| `GROQ_REASONING_EFFORT` | `low` | Keeps Groq's reasoning short |
-| `GROQ_TIMEOUT_SECONDS` | `5` | Groq's share of the budget, so a slow reply leaves OpenAI time to answer |
+| `GROQ_API_KEY` | *(empty)* | Enables Groq, tried first. Server-side only |
+| `OPENAI_API_KEY` | *(empty)* | Enables OpenAI, the backup. Server-side only |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | Groq model with strict JSON schema support |
 | `OPENAI_MODEL` | `gpt-5-nano` | Cheapest current OpenAI model with Structured Outputs |
-| `OPENAI_REASONING_EFFORT` | `minimal` | Keeps reasoning models fast. Leave empty for non-reasoning models |
-| `AI_TIMEOUT_SECONDS` | `15` | The whole time one AI call may take, backup included. No retries on the same provider |
-| `RATE_LIMIT_PER_MINUTE` | `20` | AI idea requests per IP per minute |
-| `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including change previews) per IP per minute |
-| `AI_TOTAL_LIMIT_PER_HOUR` | `200` | AI requests per hour from all visitors together, a cap on spend |
+| `AI_TIMEOUT_SECONDS` | `15` | Total time per AI call, backup included |
+| `RATE_LIMIT_PER_MINUTE` | `20` | AI requests per IP per minute |
 
-## Deploying
+More options (per-task models, reasoning effort, hourly spend cap) are documented in `.env.example`.
 
-Behind a hosting proxy (Render, Cloud Run, a load balancer), tell uvicorn to trust the proxy's `X-Forwarded-For` header. Otherwise every visitor shares the proxy's IP and the per-IP rate limit applies to everyone together:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
-```
-
-Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. The same flags let the app see that the visitor used HTTPS, which is when it sends `Strict-Transport-Security`. Set `GROQ_API_KEY` and `OPENAI_API_KEY` as platform secrets, not in a committed file, and give the OpenAI project a monthly usage limit as a second cap behind `AI_TOTAL_LIMIT_PER_HOUR`.
+**Deploying behind a proxy** (Render, Cloud Run): run
+`uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
+so per-IP rate limits see real visitor IPs. Only use `"*"` when the app is reachable solely through that proxy. Set API keys as platform secrets.
 
 ## Testing
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check && mypy          # backend lint and types
-pytest                      # backend: 164 tests
+ruff check && mypy && pytest          # backend: 164 tests
 
 cd frontend
-npm run lint                # Biome, lint only
-npm test                    # frontend: 35 tests (Vitest)
+npm run lint && npm test              # frontend: 35 tests (Vitest)
 npm run typecheck && npm run contrast
-npm run build && npm run test:e2e   # end to end: 3 tests (Playwright, your installed Chrome)
+npm run build && npm run test:e2e     # end to end: 3 tests (Playwright)
 ```
 
-Everything runs offline and free: both AI providers are faked (a guard blocks the real ones even with keys in `.env`), golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with empty API keys. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
-
-**Lint.** Python uses ruff (pyflakes, pycodestyle, bugbear, pyupgrade) and mypy with the Pydantic plugin, set up in `pyproject.toml`. The frontend uses Biome's recommended rules (`frontend/biome.jsonc`), because typescript-eslint needs TypeScript's JS API, which TypeScript 7 doesn't ship. Both lint only and never reformat. Each rule switched off, and each hook whose dependencies are deliberate ("run once per opening", "read through a ref"), carries its reason next to it.
-
-**Backend (pytest, 164):**
-
-- **`test_engine.py` (18):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting, reading amounts like "1.5L" and "8k"
-- **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (counting only calls that reach a provider; the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
-- **`test_understand.py` (36):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates counted from today ("tomorrow", "in 2 weeks", "next Saturday"), budgets only as stated ("1.5L" is 1,50,000), dates and cities only when named, missing fields, invalid revisions, no event-type changes
-- **`test_routing.py` (9):** the provider chain. Groq answers first with a strict schema; OpenAI answers when Groq times out, is rate-limited, has a bad key or sends invalid JSON; a 429 makes Groq rest; a slow Groq hands over within the time budget; the log names the provider and outcome, never the prompt
-- **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
-- **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
-- **`test_compare.py` (12):** money moves between budget lines and the before/after of two plans
-- **`test_ai.py` (11):** ideas stay advisory. Bad JSON, extra fields, over-long text and timeouts give no ideas, never an error; ideas that quote a price are dropped. Also: no API key, caching, preference fencing
-- **`test_quote_extraction.py` (11):** a pasted quote becomes a checked draft or nothing, never an error; amounts only as the quote states them, tax wording read by code; the quote text is fenced
-- **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
-
-**Frontend (Vitest, 35):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
-
-- **`features/overview/next-step.test.ts` (8):** what the Next step panel leads with: triage, then the soonest slip or due booking, then the next booking, then all clear; a booking a delay holds back never leads
-- **`lib/storage.test.ts` (6):** save/load per account, nothing kept while signed out, blocked or corrupt `localStorage` starts empty without crashing, events saved before accounts, v2 → v4 migration
-- **`lib/format.test.ts` (6):** Indian grouping (₹1,50,000), lakh/crore short forms, the day turning over at midnight IST, day counts across months, the time-of-day greeting
-- **`lib/share.test.ts` (7):** inputs survive the link; preferences, must-haves and progress never go in it; ideas survive the compressed `#fragment`; tampered ideas, and ideas that quote a price, are dropped; a link edited to an unknown event type, venue or tier is broken, not shown
-- **`lib/accounts.test.ts` (3):** the demo sign-in, one message for a wrong password or an unknown username, usernames unique whatever their case
-- **`features/print/sheet-data.test.ts` (3):** the printed sheet's booking order, its ten-booking cap, and key dates kept when milestones are trimmed
-- **`lib/csp.test.ts` (1):** the CSP's hash for Radix Select's `<style>` still matches the installed Radix
-- **`lib/use-speech.test.ts` (1):** spoken text is added after what's typed, never in its place, within the field's limit
-
-**End to end (Playwright, 3):** `e2e/plan.spec.ts` runs the built app on the real backend with AI off. The landing page loads; a shared plan opens in the dashboard after one click on the demo account; a share link edited to an unknown event type opens with a notice instead of crashing.
-
-## API types
-
-The frontend's API types are generated from the backend's Pydantic models, so the two can't drift apart. After changing `app/models.py` or `app/responses.py`:
-
-```bash
-python scripts/export_openapi.py        # from the repo root: writes frontend/openapi.json
-cd frontend && npm run gen:types        # writes src/lib/api-types.ts
-```
-
-Both files are committed, so the frontend builds without Python. `src/lib/types.ts` re-exports them under friendly names (`Plan`, `PlanRequest`, …) and holds the few types the API doesn't describe: guests and `/api/options`. A backend test fails if `openapi.json` is out of date.
-
-- **Response types are complete.** API models extend `ApiModel`, which marks fields with defaults as required in output schemas, because responses always include them. A model used both ways gets an `-Input` and an `-Output` schema; the app works with `-Output`.
-- **`gen:types` runs through `npx`,** pinned to `openapi-typescript@7.13.0` with TypeScript 5.9. `openapi-typescript` needs TypeScript's JS compiler API, which TypeScript 7 (this project's compiler) doesn't ship, so it can't be a devDependency here.
-- The schema is only exported, never served: `/openapi.json` and `/docs` stay disabled.
+Everything runs offline and free: both AI providers are faked (a guard blocks real calls even with keys in `.env`), and golden tests pin today to 21 Oct 2026. GitHub Actions runs it all on every push.
 
 ## Security
 
-- The Groq and OpenAI keys live only in the server's `.env` (git-ignored). The browser never calls an AI provider.
-- **What reaches an AI provider:** the plan summary and what the organiser types or pastes (preferences, must-haves, quotes, Ask Higgins messages) go to Groq, and to OpenAI when it answers as the backup. Never guest lists, accounts or progress. OpenAI calls use `store=False`. Groq offers Zero Data Retention in its Data Controls settings; turn it on for a deployment.
-- Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 64 KB request cap (a plan carries the progress kept in the browser: bookings and up to 20 quotes). API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
-- **Prompt injection:** everything the organiser types or pastes (preferences, must-haves, vendor quotes, Ask Higgins messages) is treated as untrusted data. Markup characters are stripped, the text is fenced in tags such as `<preferences>` or `<quote>`, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
-- Everything (AI output, shared links) is rendered as text by React, never as HTML: there is no `dangerouslySetInnerHTML` anywhere. The only `innerHTML` is in the landing page's animation, which sets its own built-in artwork and fixed example figures, never anything typed or generated. Shared ideas are checked for shape and size before display, and dropped if they quote a price.
-- Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy` (no camera or location; the microphone only for our own pages, for voice typing), `Cross-Origin-Opener-Policy: same-origin`, and `Strict-Transport-Security` whenever the page was reached over HTTPS.
-- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. It counts only calls that reach a provider: cached replies and requests that fail validation don't use it up. Errors never expose stack traces or submitted values. Logs record one line per AI call (task, provider, model, time, outcome), never prompts, replies or keys.
-- No personal data is stored on the server.
-- **Sign-in is a demo, not a security boundary.** Accounts live in the browser, so they keep events apart but don't protect them from someone using the same browser. Real accounts would need a server and a database (see [Future improvements](#future-improvements)).
+- API keys live only in the server's `.env`. The browser never calls an AI provider.
+- Only the plan summary and what the user types or pastes reach an AI provider, never guest lists, accounts or progress. OpenAI calls use `store=False`.
+- Strict input validation: typed fields, ranges, length limits, unknown fields rejected, 64 KB request cap, plain-language errors that never echo input.
+- Untrusted text is fenced against prompt injection; AI output is schema-validated and rendered as text by React, never as HTML.
+- Strict CSP (no `'unsafe-inline'`), plus `X-Frame-Options`, `Referrer-Policy: no-referrer` and HSTS over HTTPS.
+- Per-IP rate limits, plus an hourly cap on total AI calls to limit spend.
+- No personal data is stored on the server. **The sign-in is a demo, not a security boundary:** accounts live in the browser to keep events apart, not to protect them.
 
-## Efficiency
+## Accessibility and performance
 
-- The rules engine runs in microseconds, so the plan appears immediately and every change preview can re-run it freely (outdated responses discarded). Only the ideas need an AI call: one per plan, in the background. Groq answers first because it's fast; a failed provider hands over to the next instead of retrying.
-- An in-memory LRU cache (1 hour) means a repeated plan doesn't repeat the AI call. A shared link restores ideas from the URL instead of calling the AI again.
-- The cheapest suitable model, minimal reasoning effort and capped output tokens.
-- Every response over 1 KB is gzipped. Hashed build files are cached for a year and the page revalidates on every visit, so a deploy shows up at once.
-- Each page is its own chunk: a first visit to the landing page downloads about 100 KB of gzipped JavaScript, not the dashboard. Its animated "How it works" section (about 80 KB more) loads only on wider screens, as it scrolls into view; phones get a still image. No external requests: fonts and scripts are self-hosted.
-
-## Accessibility
-
-- Every input has a `<label>`; radio and checkbox groups use `<fieldset>`/`<legend>`.
-- Fully keyboard-operable, with a visible focus ring and a skip link.
-- Results are announced through an `aria-live` status region, and focus moves to the plan heading.
-- Field errors are linked with `aria-describedby` and `aria-invalid`, and focus moves to the first invalid field.
-- Focus never drops to the page: dialogs return it to what opened them (or the menu's button, or the next sensible control). Toasts announce the Ctrl+Z undo shortcut, so undo is reachable before they leave.
-- Colors meet WCAG AA contrast in both light and dark mode. Status never relies on color alone ("Book today", "(overdue)", "priority" tags). Touch targets are at least 44 px, apart from the compact Light/Dark toggle in the sidebar (28 px) and the mic inside text boxes on wider screens (36 px), both above the 24 px minimum. The layout is phone-first.
-
-## Lighthouse
-
-Lighthouse 13.5.0 on the production build served by uvicorn (with its CSP), headless Chrome, median of 3 runs, 28 Oct 2026. Mobile is Lighthouse's default throttled phone (412 px wide, so the landing page shows the poster); desktop shows the live machine. The dashboard is opened from a share link.
-
-| Page | Device | Performance | Accessibility | Best Practices | SEO |
-|---|---|---|---|---|---|
-| Landing | Desktop | 98 | 100 | 100 | 100 |
-| Landing | Mobile | 85 | 100 | 100 | 100 |
-| Dashboard | Desktop | 99 | 100 | 100 | 100 |
-| Dashboard | Mobile | 78 | 100 | 100 | 100 |
-
-Mobile performance varies by about ten points between runs. What remains there is mostly React's first render on a slow phone.
+- Labelled inputs, full keyboard operation, visible focus, skip link, `aria-live` announcements, linked field errors.
+- WCAG AA contrast in light and dark mode; status never relies on colour alone; phone-first layout with 44 px touch targets.
+- Lighthouse (production build, 28 Oct 2026): **100 for Accessibility, Best Practices and SEO** on every page; Performance 98-99 on desktop, 78-85 on mobile.
 
 ## Assumptions
 
-- **Heuristics are planning guidance, not market quotes.** All of them are named constants with comments in `app/engine/rules.py`.
-- **Wedding numbers were checked** against Indian sources (Oct 2026):
-  - The planner-guide ranges for wedding budgets are venue 20–28%, catering 18–25%, décor 10–16% and photography 7–10% ([Samaro](https://samaro.ai/blogs/how-to-plan-a-wedding-budget-india-2025), [Panache](https://panachehautecouture.com/blogs/indian-weddings/ultimate-guide-to-budget-planning-for-an-indian-wedding-costs-savings-tips)).
-  - Bengaluru caterers list starting prices of about ₹200–500 per plate for veg and ₹300–650 for non-veg ([WedMeGood listings](https://www.wedmegood.com/profile/Kiran-Catering-Services-1979248)). That makes ₹1,500 per guest, with ₹450 per plate at 30%, a sensible floor.
-  - Planning guides suggest booking the venue 10–12 months ahead, the photographer about 10 months and the caterer 6–10 months ([Junebug](https://junebugweddings.com/vendors/india/), [The Knot](https://www.theknot.com/content/indian-brides-wedding-planning)).
-- **Birthday and community numbers are unverified assumptions.** No reliable published data was found. Only the constants would need to change.
-- **City size:** a small built-in metro list. Other cities default to tier-2, and the form lets the user override this.
-- **"Today" is India time** (Asia/Kolkata), so a plan made late at night doesn't shift by a day.
-- **Single process:** the rate limiter and cache are in memory. Running several server instances would need a shared store such as Redis.
-- **Shared plans are live:** they recalculate the countdown on the day they're opened.
-- Amounts are whole rupees. Budget ₹1,000 to ₹10 crore, 1–5,000 guests, events up to 3 years ahead.
+- **Heuristics are planning guidance, not market quotes.** Wedding numbers were checked against Indian planner guides and Bengaluru caterer listings (Oct 2026); birthday and community numbers are **unverified assumptions**, and only the constants would need to change.
+- "Today" is India time (Asia/Kolkata). Other cities default to tier-2, and the form lets the user override this.
+- The rate limiter and cache are in memory, so running several instances would need a shared store such as Redis.
+- Budget ₹1,000 to ₹10 crore, 1-5,000 guests, events up to 3 years ahead.
 
 ## Future improvements
 
 - Server-side accounts, so plans follow the organiser across devices and can be shared for editing
-- Live deployment (Render / Cloud Run) with a shared rate-limit store
+- Live deployment with a shared rate-limit store
 - Regional cost data per city and vendor category, and verified benchmarks for birthdays and community events
 - Expense tracking against the plan
 - Vendor contact lists and WhatsApp reminders for book-by dates
@@ -336,65 +191,18 @@ Mobile performance varies by about ten points between runs. What remains there i
 ## Project structure
 
 ```
-app/                       FastAPI + Pydantic v2
-  main.py                  App, routes, error handlers, security middleware
-  models.py                Request and plan schemas, input validation (ApiModel base)
-  responses.py             Response bodies for the routes
-  services/understand.py   /api/understand: typed request → form values or a revision with its before/after
-  validation_messages.py   Pydantic validation errors in plain language
-  config.py, security.py   Settings from .env; rate limiter and security headers
-  engine/                  Deterministic rules, no AI
-    rules.py               All planning heuristics as named, commented constants
-    planner.py             build_plan(request, today): same inputs, same plan
-    progress.py, moves.py, quotes.py   Bookings and delays, money moves, vendor quotes
-    diff.py, messages.py   Before/after of two plans; ready-to-send vendor messages
-    message_checks.py      Keeps only what a typed message actually says (dates, amounts, city, priorities, +/−)
-    quote_checks.py        The same for a pasted quote (stated amounts, GST wording)
-  ai/                      Every AI call (Groq, then OpenAI), all optional
-    client.py              The one place that talks to providers: the chain, time budget, rests, log
-    ideas.py, quotes.py, understand.py   Ideas, quote extraction, plain-language intake (prompt + caller)
-    prompt.py, untrusted.py, schema.py   Prompts, fencing of typed text, strict output schemas
-evals/                     Manual evals: cases/*.jsonl, run.py, results/ (real API calls, never in CI)
-scripts/export_openapi.py  Writes frontend/openapi.json for the generated types
-tests/                     pytest suite (offline, AI faked)
-.github/workflows/ci.yml   Lint and types, backend tests, frontend tests, contrast and build, then end to end
-pyproject.toml             ruff, mypy and pytest settings
-
-frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
-  openapi.json             The API schema, exported from FastAPI
-  how-it-works/            Source of the landing page's machine (a framework-free web component):
-                           src/, vendored kit/, build.mjs. npm run build:hm writes public/hm/;
-                           the posters are committed (see how-it-works/README.md)
-  public/hm/               Built machine: loader.js, machine.js, machine.css, poster.html, PNGs
-  src/
-    main.tsx, App.tsx      Entry and page routing; each page is a lazy-loaded chunk
-    pages/                 onboarding.tsx and dashboard.tsx (the shell and every section, one chunk)
-    state/
-      auth.tsx             Who is signed in; the planner is mounted once per account
-      nav.tsx              Open event and section, kept in the URL hash
-      planner/             App state: store (state, request tickets), events, ideas,
-                           plan-actions, persistence; index.tsx composes them
-    features/<domain>/     overview, budget, tasks, vendors, guests, ideas, shell, landing, auth,
-                           print, onboarding (questionnaire container, steps/, pure form.ts).
-                           A feature never imports another; only App.tsx and pages/ import features
-    components/            State-free building blocks: badges, layout (Panel, Stat, EmptyState),
-                           field-error, page-band, error-boundary (a crash shows a reload, not a blank page)
-      app/                 Shared pieces that read planner state or call the API: dialogs
-                           (booking, change, message), toaster, rebalance note, ideas status
-      ui/                  shadcn primitives
-    lib/
-      api.ts               Typed fetch wrappers
-      api-types.ts         Generated by npm run gen:types (don't edit)
-      types.ts             Friendly names for the generated types, plus browser-only ones
-      format.ts, share.ts, storage.ts, tasks.ts   Formatting, share links, localStorage, task badges
-      guests.ts            Guest-list helpers (expected head count)
-      accounts.ts          Demo accounts in this browser (salted PBKDF2 hashes)
-      use-speech.ts        Voice typing through the browser's speech recognition
-      style-singleton.ts   CSP-safe stand-in for react-style-singleton (Radix scroll lock)
-    **/*.test.ts           Vitest, next to the code it covers
-  e2e/, playwright.config.ts   End-to-end test of the built app on the real backend, AI off
-  scripts/contrast.mjs     WCAG AA contrast check for every colour pair
+app/          FastAPI + Pydantic v2
+  engine/     Deterministic rules, no AI (rules.py, planner.py, progress, quotes, diff, messages)
+  ai/         All AI calls: Groq, then OpenAI (client.py, ideas, quotes, understand, prompts)
+  services/   Plain-language intake and revisions
+evals/        Manual evals against real providers (cases, runner, saved results)
+tests/        pytest suite (offline, AI faked)
+frontend/     React + TypeScript + Vite + Tailwind + shadcn/ui
+  src/features/   One folder per domain (overview, budget, tasks, vendors, guests, ideas, print…)
+  e2e/            Playwright end-to-end test
 ```
+
+API types in the frontend are generated from the backend's Pydantic models (`python scripts/export_openapi.py`, then `npm run gen:types` in `frontend/`).
 
 ## License
 
