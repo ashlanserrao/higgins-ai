@@ -13,14 +13,14 @@ from app.responses import FieldChange, FieldError, UnderstandResponse
 from app.validation_messages import FIELD_LABELS, field_errors
 
 
-def understand_message(body: UnderstandRequest, interpreter: PlanInterpreter, today: date) -> UnderstandResponse:
+async def understand_message(body: UnderstandRequest, interpreter: PlanInterpreter, today: date) -> UnderstandResponse:
     """Nothing is saved or applied; the organiser confirms in the page."""
     current = body.current
     result = UnderstandResponse(
         ai_available=interpreter.available, understood=False, inputs={}, fields=[],
         missing=[], unclear=[], errors=[],
     )
-    interpretation = interpreter.interpret(body.message, current, today)
+    interpretation = await interpreter.interpret(body.message, current, today)
     if interpretation is None:
         return result
     values = interpretation.values

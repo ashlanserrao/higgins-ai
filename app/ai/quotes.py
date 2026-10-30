@@ -98,9 +98,10 @@ class QuoteExtractor:
     def available(self) -> bool:
         return self.ai.available
 
-    def extract(self, request: PlanRequest, plan: Plan, text: str, today: date) -> QuoteDraft | None:
+    async def extract(self, request: PlanRequest, plan: Plan, text: str, today: date) -> QuoteDraft | None:
         categories = {line.key: line.label for line in plan.budget_lines if line.key != "contingency"}
-        draft = self.ai.call(
+        draft = await self.ai.call(
+            task="quotes",
             instructions=INSTRUCTIONS,
             prompt_input=build_quote_input(request, categories, text, today),
             response_format=response_format(list(categories)),

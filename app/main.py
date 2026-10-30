@@ -30,6 +30,12 @@ from app.services.understand import understand_message
 from app.validation_messages import field_errors
 
 logger = logging.getLogger(__name__)
+# uvicorn sets up only its own loggers. Show the app's (one line per AI call) in the same style,
+# without turning on other libraries' INFO logs.
+_handler = logging.StreamHandler()
+_handler.setFormatter(logging.Formatter("%(levelname)s:     %(name)s %(message)s"))
+logging.getLogger("app").addHandler(_handler)
+logging.getLogger("app").setLevel(logging.INFO)
 
 # The React build (cd frontend && npm run build). The API works without it, e.g. in tests.
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
@@ -175,37 +181,41 @@ def create_message(body: MessageRequest, today: date = Depends(today_in_india)) 
     return MessageResponse(text=vendor_message(body.inputs, plan, body.task_id, body.kind, body.include_budget, today))
 
 
+# The AI routes are async: a provider call waits on the network for seconds, and awaiting it
+# frees the server for other requests instead of holding a worker thread.
+
+
 @app.post("/api/ideas", response_model=IdeasResponse)
-def create_ideas(
+async def create_ideas(
     request: PlanRequest,
     today: date = Depends(today_in_india),
     generator: IdeasGenerator = Depends(get_ideas_generator),
 ) -> IdeasResponse:
     """AI ideas for the same inputs, fetched after the plan is already on screen."""
-    ideas = generator.generate(request, build_plan(request, today))
+    ideas = await generator.generate(request, build_plan(request, today))
     return IdeasResponse(ideas=ideas, ai_available=generator.available)
 
 
 @app.post("/api/quotes/extract", response_model=QuoteExtractResponse)
-def extract_quote(
+async def extract_quote(
     body: QuoteExtractRequest,
     today: date = Depends(today_in_india),
     extractor: QuoteExtractor = Depends(get_quote_extractor),
 ) -> QuoteExtractResponse:
     """Read a pasted quote into a draft for the organiser to check. Nothing is saved."""
-    draft = extractor.extract(body.inputs, build_plan(body.inputs, today), body.text, today)
+    draft = await extractor.extract(body.inputs, build_plan(body.inputs, today), body.text, today)
     return QuoteExtractResponse(quote=draft, ai_available=extractor.available)
 
 
 @app.post("/api/understand", response_model=UnderstandResponse)
-def understand(
+async def understand(
     body: UnderstandRequest,
     today: date = Depends(today_in_india),
     interpreter: PlanInterpreter = Depends(get_plan_interpreter),
 ) -> UnderstandResponse:
     """Turn a typed request into form values (new event) or a proposed revision with its
     before/after. Nothing is saved or applied."""
-    return understand_message(body, interpreter, today)
+    return await understand_message(body, interpreter, today)
 
 
 if FRONTEND_DIR.is_dir():

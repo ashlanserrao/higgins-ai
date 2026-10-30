@@ -17,7 +17,7 @@ export default defineConfig({
     cwd: "..",
     url: `http://127.0.0.1:${PORT}/health`,
     reuseExistingServer: false,
-    // An empty key wins over .env, so the test never calls OpenAI.
-    env: { OPENAI_API_KEY: "" },
+    // Empty keys win over .env, so the test never calls Groq or OpenAI.
+    env: { OPENAI_API_KEY: "", GROQ_API_KEY: "" },
   },
 });

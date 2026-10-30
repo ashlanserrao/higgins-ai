@@ -57,11 +57,40 @@ Browser (form, what-if sliders, localStorage, share links)
    │ 1. POST /api/plan  (milliseconds)        │ 2. POST /api/ideas  (seconds, in background)
    ▼                                          ▼
 validate (Pydantic) → rules engine     validate → rules engine → cache hit?
-(pure, today in Asia/Kolkata) → plan        → OpenAI Structured Outputs (15 s timeout) → Pydantic
-                                              ↳ no key / timeout / invalid JSON → ideas: null
+(pure, today in Asia/Kolkata) → plan        → Groq (5 s) ─fails→ OpenAI (rest of 15 s) → Pydantic
+                                              ↳ no key / both fail → ideas: null
 ```
 
 The plan is on screen as soon as the rules engine returns. The ideas card shows a loading placeholder and fills in a few seconds later.
+
+### AI providers and guardrails
+
+Every AI call goes through one class, `StructuredAI` in `app/ai/client.py`, which tries a chain of providers within one time budget.
+
+- **Groq first, OpenAI as the backup.** Groq (`openai/gpt-oss-20b` by default) usually answers in about a second. If it times out after 5 s, returns an error (429, 5xx, a bad key, a rejected schema) or sends JSON that fails the Pydantic check, OpenAI gets the rest of the 15 s budget. With less than 2 s left, the call gives up and the feature's non-AI path takes over.
+- **The keys decide the chain.** Both keys: Groq, then OpenAI. One key: that provider alone. No key: AI is off, and the app still makes the full rules-based plan.
+- **Each provider through its stable API.** OpenAI through its Responses API with `store=False`; Groq through Chat Completions, where strict JSON schemas are documented (its Responses API is in beta). Both use the official `openai` SDK; Groq only needs its `base_url`.
+- **Rate limits respected.** After a 429, a provider rests for its `retry-after` time (at most 60 s), so a burst goes straight to the backup without first waiting for a refusal.
+- **Per-task models in config.** `GROQ_MODEL_IDEAS`, `GROQ_MODEL_QUOTES` or `GROQ_MODEL_UNDERSTAND` swap the model for one task without touching code.
+- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. So both providers give the same numbers and dates.
+- **One log line per call:** task, provider, model, time taken and outcome (`ok`, `cached`, `timeout`, `429`, `auth`, `bad_request`, `invalid_json`). Never the prompt, the reply or a key.
+
+#### Evals: why Groq goes first
+
+`evals/` holds 38 fixed cases: 20 typed requests (new events, revisions, vague dates, small talk, a prompt injection), 12 pasted quotes (per-plate prices, "1.2 lakh", Hinglish, a non-quote, an injection) and 6 ideas requests (scored on rules: must-haves mentioned, no prices, nothing lavish on a tight budget, triage advice when needed). `python -m evals.run --provider groq` runs them through the app's real path with one provider and saves a table to `evals/results/`. They make real API calls, so they run by hand, never in pytest or CI.
+
+Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals/results/2026-10-30-openai.md)):
+
+| Task | Groq `gpt-oss-20b` | Typical time | OpenAI `gpt-5-nano` | Typical time |
+|---|---:|---:|---:|---:|
+| Typed requests | 19/20 | 1.2 s | 16/20 | 3.1 s |
+| Quotes | 10/12 | 1.1 s | 9/12 | 3.4 s |
+| Ideas | 6/6 | 1.6 s | 6/6 | 5.0 s |
+
+- **Groq was as good or better on every task, at about a third of the time,** with no invalid JSON (OpenAI had one).
+- **The evals caught a bug in our code.** For "change it to next Sunday", OpenAI also sent a 7-day move, which overrode the Sunday the code had worked out. A named day now wins over a relative move, with a test.
+- **What's left for code checks:** Groq read "1.5L" as 15 lakh, multiplied "6 guards @ ₹900" despite being told not to, and took "+ 18% GST" as included. gpt-5-nano missed two quote categories and a year rollover.
+- **Groq's free tier is tight:** at one call every 2.5 s, about half the eval calls hit its 8,000 tokens-a-minute limit. In the app those calls rest Groq and go to OpenAI, so they still work; a paid Groq tier would keep more of them fast.
 
 ### Routes
 
@@ -78,8 +107,8 @@ Every route validates its input with Pydantic, and every number comes from the r
 | `GET /api/options` | No | Priority choices per event type, so the form never duplicates the rules |
 | `GET /health` | No | Health check |
 
-- **Backend:** Python + FastAPI, with the routes above. `ai_available` means an API key is configured.
-- **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. The model name comes from `.env`, so it can be swapped.
+- **Backend:** Python + FastAPI, with the routes above. `ai_available` means at least one AI key is configured. The three AI routes are async, so a provider call waiting on the network doesn't hold a server thread.
+- **AI layer (`app/ai/`):** the model gets the computed plan summary plus the organiser's preferences and must return JSON matching a strict schema. That JSON is then re-validated with Pydantic, including length limits. The plan's numbers are never taken from the AI. See [AI providers and guardrails](#ai-providers-and-guardrails).
 - **Frontend (`frontend/`):** React 19, TypeScript, Vite, Tailwind and shadcn/ui. It is built to `frontend/dist` and served by FastAPI from the same origin, with no third-party scripts or CDNs.
 - **No server-side accounts, no database.** Events, progress and guests are kept in the browser's `localStorage`. A demo sign-in (`test` / `test`, or make your own) keeps each account's events apart in that browser. It is not a secure login: anyone using the browser can read its storage. Passwords are kept only as a salted PBKDF2 hash.
 - **Sharing:** the link holds the plan inputs in the query string and the AI ideas, compressed, in the `#fragment`. Browsers never send the fragment to the server. Free-text preferences are never put in the link. The query string does reach the server, like any URL, so it can appear in access logs; it holds only numbers, a date, a city and choices. Whoever opens the link sees the same budget and the same ideas, with the countdown and triage recalculated for *their* today. A "Plan created on …" note shows the original date.
@@ -142,7 +171,7 @@ Requires Python 3.11+ and Node 22.
 python -m venv venv
 # Windows: venv\Scripts\activate    macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env        # optional: add OPENAI_API_KEY for AI ideas
+cp .env.example .env        # optional: add GROQ_API_KEY and/or OPENAI_API_KEY for the AI parts
 
 cd frontend
 npm ci
@@ -158,10 +187,15 @@ For frontend work, `npm run dev` in `frontend/` serves the page with hot reload 
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `OPENAI_API_KEY` | *(empty)* | Enables AI ideas. Server-side only, never sent to the browser |
+| `GROQ_API_KEY` | *(empty)* | Enables Groq, tried first. Server-side only, never sent to the browser |
+| `OPENAI_API_KEY` | *(empty)* | Enables OpenAI, the backup (or the only provider without a Groq key). Server-side only |
+| `GROQ_MODEL` | `openai/gpt-oss-20b` | A Groq model with strict JSON schema support |
+| `GROQ_MODEL_IDEAS`, `_QUOTES`, `_UNDERSTAND` | *(empty)* | Optional model for one task |
+| `GROQ_REASONING_EFFORT` | `low` | Keeps Groq's reasoning short |
+| `GROQ_TIMEOUT_SECONDS` | `5` | Groq's share of the budget, so a slow reply leaves OpenAI time to answer |
 | `OPENAI_MODEL` | `gpt-5-nano` | Cheapest current OpenAI model with Structured Outputs |
 | `OPENAI_REASONING_EFFORT` | `minimal` | Keeps reasoning models fast. Leave empty for non-reasoning models |
-| `AI_TIMEOUT_SECONDS` | `15` | One attempt, no retries |
+| `AI_TIMEOUT_SECONDS` | `15` | The whole time one AI call may take, backup included. No retries on the same provider |
 | `RATE_LIMIT_PER_MINUTE` | `20` | AI idea requests per IP per minute |
 | `PLAN_RATE_LIMIT_PER_MINUTE` | `120` | Rules-only plan requests (including slider updates) per IP per minute |
 | `AI_TOTAL_LIMIT_PER_HOUR` | `200` | AI requests per hour from all visitors together, a cap on spend |
@@ -174,13 +208,13 @@ Behind a hosting proxy (Render, Cloud Run, a load balancer), tell uvicorn to tru
 uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
 ```
 
-Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. The same flags let the app see that the visitor used HTTPS, which is when it sends `Strict-Transport-Security`. Set `OPENAI_API_KEY` as a platform secret, not in a committed file, and give the OpenAI project a monthly usage limit as a second cap behind `AI_TOTAL_LIMIT_PER_HOUR`.
+Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through that proxy; otherwise list the proxy's IPs. The same flags let the app see that the visitor used HTTPS, which is when it sends `Strict-Transport-Security`. Set `GROQ_API_KEY` and `OPENAI_API_KEY` as platform secrets, not in a committed file, and give the OpenAI project a monthly usage limit as a second cap behind `AI_TOTAL_LIMIT_PER_HOUR`.
 
 ## Testing
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                      # backend: 142 tests
+pytest                      # backend: 158 tests
 
 cd frontend
 npm test                    # frontend: 32 tests (Vitest)
@@ -188,13 +222,14 @@ npm run typecheck && npm run contrast
 npm run build && npm run test:e2e   # end to end: 2 tests (Playwright, your installed Chrome)
 ```
 
-Everything runs offline and free: the OpenAI client is faked, golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with an empty API key. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
+Everything runs offline and free: both AI providers are faked (a guard blocks the real ones even with keys in `.env`), golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with empty API keys. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
 
-**Backend (pytest, 142):**
+**Backend (pytest, 158):**
 
 - **`test_engine.py` (17):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
 - **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
-- **`test_understand.py` (28):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates and cities only when named, missing fields, invalid revisions, no event-type changes
+- **`test_understand.py` (35):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates counted from today ("tomorrow", "in 2 weeks", "next Saturday"), dates and cities only when named, missing fields, invalid revisions, no event-type changes
+- **`test_routing.py` (9):** the provider chain. Groq answers first with a strict schema; OpenAI answers when Groq times out, is rate-limited, has a bad key or sends invalid JSON; a 429 makes Groq rest; a slow Groq hands over within the time budget; the log names the provider and outcome, never the prompt
 - **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
 - **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
 - **`test_compare.py` (12):** money moves between budget lines and the before/after of two plans
@@ -232,18 +267,19 @@ Both files are committed, so the frontend builds without Python. `src/lib/types.
 
 ## Security
 
-- The OpenAI key lives only in the server's `.env` (git-ignored). The browser never calls OpenAI.
+- The Groq and OpenAI keys live only in the server's `.env` (git-ignored). The browser never calls an AI provider.
+- **What reaches an AI provider:** the plan summary and what the organiser types or pastes (preferences, must-haves, quotes, Ask Higgins messages) go to Groq, and to OpenAI when it answers as the backup. Never guest lists, accounts or progress. OpenAI calls use `store=False`. Groq offers Zero Data Retention in its Data Controls settings; turn it on for a deployment.
 - Strict input validation: typed fields, ranges, length limits, a city-name character check, unknown fields rejected, and a 64 KB request cap (a plan carries the progress kept in the browser: bookings and up to 20 quotes). API requests must declare `Content-Length`, so a chunked body can't bypass the cap. Validation errors are returned in plain language ("Please enter the event date.").
 - **Prompt injection:** everything the organiser types or pastes (preferences, must-haves, vendor quotes, Ask Higgins messages) is treated as untrusted data. Markup characters are stripped, the text is fenced in tags such as `<preferences>` or `<quote>`, and the model is told to ignore any instructions inside. Output must pass a strict schema and Pydantic validation. The plan's numbers never come from the AI.
 - Everything (AI output, shared links) is rendered as text by React, never as HTML: there is no `dangerouslySetInnerHTML` anywhere. Shared ideas are checked for shape and size before display.
 - Security headers on every response: strict `Content-Security-Policy`: same-origin scripts and styles only, never `'unsafe-inline'`. The landing page's machine links its stylesheet and sets the rest from script. Radix's scroll lock would inject a `<style>`, so `react-style-singleton` is aliased to `src/lib/style-singleton.ts`, which adopts a constructed stylesheet instead. Radix Select's one fixed `<style>` is allowed by its hash, and a test fails if Radix changes it. Checked in headless Chrome: no CSP violations on the landing page or across the app, in light and dark, `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` (plan inputs in the URL never leak to other sites), `Permissions-Policy` (no camera or location; the microphone only for our own pages, for voice typing), `Cross-Origin-Opener-Policy: same-origin`, and `Strict-Transport-Security` whenever the page was reached over HTTPS.
-- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. Errors never expose stack traces or submitted values. Logs record only the AI failure type, never prompts or keys.
+- Per-IP rate limiting, strict for the AI endpoints and looser for the cheap rules endpoints (behind a proxy, see [Deploying](#deploying)). A second limit caps AI calls from all visitors together per hour, so requests from many IPs can't run up the bill. Errors never expose stack traces or submitted values. Logs record one line per AI call (task, provider, model, time, outcome), never prompts, replies or keys.
 - No personal data is stored on the server.
 - **Sign-in is a demo, not a security boundary.** Accounts live in the browser, so they keep events apart but don't protect them from someone using the same browser. Real accounts would need a server and a database (see [Future improvements](#future-improvements)).
 
 ## Efficiency
 
-- The rules engine runs in microseconds, so the plan appears immediately and the what-if sliders can re-run it freely (debounced, outdated responses discarded). Only the ideas need an AI call: one per plan, in the background, with no retries.
+- The rules engine runs in microseconds, so the plan appears immediately and the what-if sliders can re-run it freely (debounced, outdated responses discarded). Only the ideas need an AI call: one per plan, in the background. Groq answers first because it's fast; a failed provider hands over to the next instead of retrying.
 - An in-memory LRU cache (1 hour) means a repeated plan doesn't repeat the AI call. A shared link restores ideas from the URL instead of calling the AI again.
 - The cheapest suitable model, minimal reasoning effort and capped output tokens.
 - Every response over 1 KB is gzipped. Hashed build files are cached for a year and the page revalidates on every visit, so a deploy shows up at once.
@@ -309,10 +345,11 @@ app/                       FastAPI + Pydantic v2
     progress.py, moves.py, quotes.py   Bookings and delays, money moves, vendor quotes
     diff.py, messages.py   Before/after of two plans; ready-to-send vendor messages
     message_checks.py      Keeps only what a typed message actually says (dates, city, priorities, +/−)
-  ai/                      Every OpenAI call, all optional
-    client.py              The one place that talks to the provider
+  ai/                      Every AI call (Groq, then OpenAI), all optional
+    client.py              The one place that talks to providers: the chain, time budget, rests, log
     ideas.py, quotes.py, understand.py   Ideas, quote extraction, plain-language intake (prompt + caller)
     prompt.py, untrusted.py, schema.py   Prompts, fencing of typed text, strict output schemas
+evals/                     Manual evals: cases/*.jsonl, run.py, results/ (real API calls, never in CI)
 scripts/export_openapi.py  Writes frontend/openapi.json for the generated types
 tests/                     pytest suite (offline, AI faked)
 .github/workflows/ci.yml   Backend tests, frontend typecheck, tests, contrast and build, then end to end

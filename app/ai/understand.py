@@ -16,7 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from app.ai.client import StructuredAI
 from app.ai.untrusted import fence, sanitize
 from app.engine import rules
-from app.engine.message_checks import keep_what_the_message_says, signs_from_the_message
+from app.engine.message_checks import date_from_today, keep_what_the_message_says, signs_from_the_message
 from app.models import EventType, PlanRequest, VenueType
 
 MAX_OUTPUT_TOKENS = 1500
@@ -151,6 +151,11 @@ def apply_patch(patch: PlanPatch, current: PlanRequest | None, message: str, tod
     base = current.model_dump() if current else {}
     # Models often send "" or [] for "not mentioned": treat them like null.
     values = {name: getattr(patch, name) for name in DIRECT_FIELDS if getattr(patch, name) not in (None, "", [])}
+    if patch.event_date_change_days and (counted := date_from_today(message, today)):
+        # "in 2 weeks" or "next Sunday" counts from today, not from the event date: a date, not a move.
+        # Seen in evals: "change it to next Sunday" also came back as a 7-day move.
+        values["event_date"] = counted[1]
+        patch = patch.model_copy(update={"event_date_change_days": None})
     unclear = list(patch.unclear) + keep_what_the_message_says(values, message, today)
     patch = patch.model_copy(update=signs_from_the_message(patch.model_dump(), message))
 
@@ -186,9 +191,9 @@ class PlanInterpreter:
     def available(self) -> bool:
         return self.ai.available
 
-    def interpret(self, message: str, current: PlanRequest | None, today: date) -> Interpretation | None:
-        patch = self.ai.call(
-            instructions=INSTRUCTIONS, prompt_input=build_understand_input(message, current, today),
+    async def interpret(self, message: str, current: PlanRequest | None, today: date) -> Interpretation | None:
+        patch = await self.ai.call(
+            task="understand", instructions=INSTRUCTIONS, prompt_input=build_understand_input(message, current, today),
             response_format=RESPONSE_FORMAT, output=PlanPatch, max_output_tokens=MAX_OUTPUT_TOKENS,
         )
         return apply_patch(patch, current, message, today) if patch else None

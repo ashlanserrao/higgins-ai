@@ -79,6 +79,7 @@ def test_blank_values_count_as_not_mentioned(diwali_request):
     ("on the 15th of November", "2026-11-15", True),
     ("tomorrow", "2026-10-22", True),
     ("for 15 guests next month", "2026-11-01", False),  # "month" once matched as Monday
+    ("wedding next week", "2026-10-28", False),  # names no day
 ])
 def test_dates_must_be_named_in_the_message(message, value, kept):
     result = resolve(message, event_date=value)
@@ -200,6 +201,29 @@ def test_next_weekday_is_worked_out_by_the_server():
     assert 'I took "next Saturday" as 24 Oct 2026.' in result.unclear
     on_a_saturday = apply_patch(PlanPatch(**patch()), None, "this sat", date(2026, 10, 24))
     assert on_a_saturday.values["event_date"] == date(2026, 10, 31)
+
+
+@pytest.mark.parametrize("message, given, expected", [
+    ("birthday tomorrow", "2026-10-25", date(2026, 10, 22)),  # TODAY is Wednesday 21 Oct
+    ("day after tomorrow for 20 kids", "2026-10-22", date(2026, 10, 23)),
+    ("in 2 weeks", "2026-11-02", date(2026, 11, 4)),
+    ("in three days", "2026-10-25", date(2026, 10, 24)),
+    ("budget today is 5 lakh, event on 15 Nov", "2026-11-15", date(2026, 11, 15)),  # the named day wins
+])
+def test_dates_counted_from_today_are_worked_out_by_the_server(message, given, expected):
+    result = resolve(message, event_date=given)
+    assert result.values["event_date"] == expected
+
+
+def test_counting_from_today_needs_a_date_and_is_not_a_move(diwali_request):
+    assert resolve("I'll confirm the venue tomorrow").values == {}  # the model set no date
+    counted = resolve("make it in 2 weeks", diwali_request, event_date_change_days=14)
+    assert counted.values["event_date"] == date(2026, 11, 4)  # today + 14
+    moved = resolve("push it back 2 weeks", diwali_request, event_date_change_days=14)
+    assert moved.values["event_date"] == date(2026, 11, 22)  # the event date (8 Nov) + 14
+    # Seen in evals: "next Sunday" also came back as a 7-day move from the event date.
+    sunday = resolve("change it to next Sunday", diwali_request, event_date_change_days=7)
+    assert sunday.values["event_date"] == date(2026, 10, 25)
 
 
 @pytest.mark.parametrize("message, given, expected", [

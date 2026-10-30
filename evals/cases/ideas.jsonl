@@ -1,0 +1,6 @@
+{"id": "tight-birthday", "plan": "birthday", "preferences": "Dinosaur theme, my son loves T-rex", "must_haves": "eggless cake", "mention": ["eggless"]}
+{"id": "generous-wedding", "plan": "wedding", "preferences": "Pastel colours, South Indian food", "must_haves": "live nadaswaram", "mention": ["nadaswaram"]}
+{"id": "triage-diwali", "plan": "diwali", "preferences": "Traditional, lots of diyas", "must_haves": "rangoli competition", "mention": ["rangoli"], "triage_advice": true}
+{"id": "jain-wedding", "plan": "wedding", "preferences": "Elegant, white and gold", "must_haves": "Jain food only", "mention": ["jain"]}
+{"id": "retro-birthday", "plan": "birthday", "preferences": "My dad's 60th, retro Bollywood", "must_haves": "antakshari", "mention": ["antakshari"]}
+{"id": "community-christmas", "plan": "diwali", "preferences": "Christmas evening for the society instead, cosy and warm", "must_haves": "carol singing", "mention": ["carol"]}

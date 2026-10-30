@@ -1,10 +1,11 @@
+import asyncio
 from datetime import date
 from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.ai.client import StructuredAI
+from app.ai.client import GroqProvider, OpenAIProvider, StructuredAI
 from app.ai.ideas import IdeasGenerator
 from app.ai.quotes import QuoteExtractor
 from app.ai.understand import PlanInterpreter
@@ -44,29 +45,43 @@ def diwali_request() -> PlanRequest:
     )
 
 
-class FakeResponses:
-    def __init__(self, outcome):
+class FakeEndpoint:
+    """Stands in for responses.create (OpenAI) or chat.completions.create (Groq)."""
+
+    def __init__(self, outcome, delay):
         self.outcome = outcome
+        self.delay = delay
         self.calls = []
 
-    def create(self, **kwargs):
+    async def create(self, **kwargs):
         self.calls.append(kwargs)
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if isinstance(self.outcome, Exception):
             raise self.outcome
-        return SimpleNamespace(output_text=self.outcome)
+        return SimpleNamespace(
+            output_text=self.outcome, choices=[SimpleNamespace(message=SimpleNamespace(content=self.outcome))],
+        )
 
 
-class FakeOpenAI:
-    """Stands in for openai.OpenAI: returns `outcome` as output_text, or raises it."""
+class FakeClient:
+    """Stands in for openai.AsyncOpenAI: returns `outcome` as the reply text, or raises it."""
 
-    def __init__(self, outcome):
-        self.responses = FakeResponses(outcome)
+    def __init__(self, outcome, delay=0.0):
+        self.responses = FakeEndpoint(outcome, delay)
+        self.chat = SimpleNamespace(completions=self.responses)
 
 
-def make_ai(outcome=None) -> StructuredAI:
-    """An AI client whose replies are `outcome`; outcome=None means no API key is configured."""
-    no_key = Settings(openai_api_key="")
-    return StructuredAI(no_key, client=FakeOpenAI(outcome) if outcome is not None else None)
+def make_ai(outcome=None, groq=None, settings: Settings | None = None, groq_delay=0.0) -> StructuredAI:
+    """An AI whose OpenAI replies are `outcome` and Groq replies are `groq` (Groq first).
+    Neither given: no API key is configured."""
+    settings = settings or Settings(openai_api_key="", groq_api_key="")
+    providers = []
+    if groq is not None:
+        providers.append(GroqProvider(settings, FakeClient(groq, groq_delay), settings.groq_timeout_seconds))
+    if outcome is not None:
+        providers.append(OpenAIProvider(settings, FakeClient(outcome), settings.ai_timeout_seconds))
+    return StructuredAI(settings, providers)
 
 
 def make_generator(outcome=None) -> IdeasGenerator:
@@ -81,9 +96,10 @@ def make_interpreter(outcome=None) -> PlanInterpreter:
     return PlanInterpreter(make_ai(outcome))
 
 
-def ai_calls(feature) -> list[dict]:
-    """The requests a fake-backed feature sent to the model."""
-    return feature.ai._client.responses.calls
+def ai_calls(feature, provider="openai") -> list[dict]:
+    """The requests a fake-backed feature (or StructuredAI) sent to one provider."""
+    ai = getattr(feature, "ai", feature)
+    return next(p for p in ai.providers if p.name == provider).client.responses.calls
 
 
 @pytest.fixture
@@ -101,5 +117,5 @@ def client():
 
 @pytest.fixture(autouse=True)
 def no_real_ai(monkeypatch):
-    """Tests never reach the real AI provider, even with a key in .env."""
-    monkeypatch.setattr(ai, "_client", None)
+    """Tests never reach a real AI provider (Groq or OpenAI), even with keys in .env."""
+    monkeypatch.setattr(ai, "providers", [])

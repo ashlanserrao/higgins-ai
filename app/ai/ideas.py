@@ -16,9 +16,9 @@ class IdeasGenerator:
     def available(self) -> bool:
         return self.ai.available
 
-    def generate(self, request: PlanRequest, plan: Plan) -> EventIdeas | None:
-        ideas = self.ai.call(
-            instructions=INSTRUCTIONS, prompt_input=build_prompt_input(request, plan),
+    async def generate(self, request: PlanRequest, plan: Plan) -> EventIdeas | None:
+        ideas = await self.ai.call(
+            task="ideas", instructions=INSTRUCTIONS, prompt_input=build_prompt_input(request, plan),
             response_format=RESPONSE_FORMAT, output=EventIdeas, max_output_tokens=MAX_OUTPUT_TOKENS,
         )
         if ideas and ideas.triage_advice and not plan.triage.active:

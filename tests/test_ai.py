@@ -62,17 +62,19 @@ def test_no_api_key_returns_full_plan(client, wedding_request, birthday_request,
         assert client.post("/api/ideas", json=payload).json() == {"ideas": None, "ai_available": False}
 
 
-def test_repeated_request_uses_cache(birthday_request):
+@pytest.mark.anyio
+async def test_repeated_request_uses_cache(birthday_request):
     generator = make_generator(json.dumps(VALID))
     plan = build_plan(birthday_request, TODAY)
-    generator.generate(birthday_request, plan)
-    generator.generate(birthday_request, plan)
+    await generator.generate(birthday_request, plan)
+    await generator.generate(birthday_request, plan)
     assert len(ai_calls(generator)) == 1
 
 
-def test_triage_advice_dropped_when_not_in_triage(birthday_request):
+@pytest.mark.anyio
+async def test_triage_advice_dropped_when_not_in_triage(birthday_request):
     generator = make_generator(json.dumps(VALID | {"triage_advice": "Book everything now!"}))
-    ideas = generator.generate(birthday_request, build_plan(birthday_request, TODAY))
+    ideas = await generator.generate(birthday_request, build_plan(birthday_request, TODAY))
     assert ideas.triage_advice == ""
 
 

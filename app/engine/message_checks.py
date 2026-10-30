@@ -20,6 +20,14 @@ _RELATIVE_WEEKDAY = re.compile(
     r"|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b",
     re.IGNORECASE,
 )
+_COUNT_WORDS = {"a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+                "eight": 8, "nine": 9, "ten": 10}
+_COUNT = rf"(\d{{1,3}}|{'|'.join(_COUNT_WORDS)})"
+# Dates counted from today. Vague ones ("next week", "next month") stay out: they name no day.
+_FROM_TODAY = re.compile(
+    rf"\b(?:day after tomorrow|tomorrow|today|in {_COUNT} (days?|weeks?)|{_COUNT} (days?|weeks?) from (?:today|now))\b",
+    re.IGNORECASE,
+)
 # Label words too generic to count as naming a category ("first" in "first aid").
 _LABEL_STOPWORDS = {"first"}
 # The model must not invent priorities: keep them only if the message talks about them.
@@ -51,6 +59,14 @@ def keep_what_the_message_says(values: dict[str, Any], message: str, today: date
         # "next Saturday" is resolved here, not by the model, and the reading is shown.
         values["event_date"] = _next_weekday(weekday.group(1)[:3], today)
         notes.append(f"I took \"{weekday.group(0)}\" as {day(values['event_date'])}.")
+    elif (
+        "event_date" in values and (counted := date_from_today(message, today))
+        and not _date_is_in_message(values["event_date"], message.replace(counted[0], " "), today)
+    ):
+        # Only when the model says the message sets the date ("I'll confirm tomorrow" doesn't),
+        # and no other day is named ("budget today is 5 lakh, event on 15 Nov" keeps the 15th).
+        phrase, values["event_date"] = counted
+        notes.append(f"I took \"{phrase}\" as {day(values['event_date'])}.")
     elif "event_date" in values and not _date_is_in_message(values["event_date"], message, today):
         del values["event_date"]  # e.g. "Feb 2027" came back as 1 Feb
         notes.append("Which day? Please give the exact date.")
@@ -64,6 +80,21 @@ def keep_what_the_message_says(values: dict[str, Any], message: str, today: date
         else:
             del values["priorities"]
     return notes
+
+
+def date_from_today(message: str, today: date) -> tuple[str, date] | None:
+    """A date the message counts from today ("next Saturday", "tomorrow", "in 2 weeks"), with the words used."""
+    if weekday := _RELATIVE_WEEKDAY.search(message):
+        return weekday.group(0), _next_weekday(weekday.group(1)[:3], today)
+    found = _FROM_TODAY.search(message)
+    if not found:
+        return None
+    phrase = found.group(0)
+    if (words := phrase.lower()) in ("today", "tomorrow", "day after tomorrow"):
+        return phrase, today + timedelta(days=("today", "tomorrow", "day after tomorrow").index(words))
+    count, unit = (found.group(1), found.group(2)) if found.group(1) else (found.group(3), found.group(4))
+    days = int(count) if count.isdigit() else _COUNT_WORDS[count.lower()]
+    return phrase, today + timedelta(days=days * (7 if unit.lower().startswith("week") else 1))
 
 
 def signs_from_the_message(changes: Mapping[str, Any], message: str) -> dict[str, float]:
