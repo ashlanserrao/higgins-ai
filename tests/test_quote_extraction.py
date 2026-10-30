@@ -36,7 +36,8 @@ def test_quote_is_read_into_a_draft(client, diwali_request):
 
     call = ai_calls(extractor)[0]
     categories = call["text"]["format"]["schema"]["properties"]["category"]["anyOf"][0]["enum"]
-    assert categories == [l.key for l in build_plan(diwali_request, TODAY).budget_lines if l.key != "contingency"]
+    lines = build_plan(diwali_request, TODAY).budget_lines
+    assert categories == [line.key for line in lines if line.key != "contingency"]
     assert "<quote>Annapoorna Caterers" in call["input"] and "Today: 2026-10-21" in call["input"]
 
 
@@ -65,6 +66,19 @@ def test_unreadable_replies_give_no_draft(client, diwali_request, outcome):
     assert response.json() == {"quote": None, "ai_available": True}
 
 
+@pytest.mark.parametrize("text, reply, expected", [
+    # Seen in evals: a total the quote never states, worked out by the model.
+    ("SafeGuard: 6 guards @ Rs 900 per guard, first aid included.", {"total_inr": 5_400}, {"total_inr": None}),
+    # Seen in evals: "+ 18% GST" read as tax included.
+    ("Pixel Stories: ₹1,85,000 + 18% GST.", {"total_inr": 185_000, "taxes_included": True}, {"taxes_included": False}),
+    ("Rs 45,000 all inclusive.", {"total_inr": 45_000, "taxes_included": None}, {"taxes_included": True}),
+])
+def test_amounts_and_tax_come_from_the_quote_text(client, diwali_request, text, reply, expected):
+    use(make_extractor(json.dumps(VALID | {"per_plate_inr": None} | reply)))
+    draft = extract(client, diwali_request, text).json()["quote"]
+    assert {name: draft[name] for name in expected} == expected
+
+
 def test_no_api_key_means_manual_entry(client, diwali_request):
     assert extract(client, diwali_request).json() == {"quote": None, "ai_available": False}
 
@@ -81,4 +95,5 @@ def test_text_without_quote_details_gives_no_draft(client, diwali_request):
     empty = VALID | {"category": "venue", "per_plate_inr": None, "guests_covered": None,
                      "inclusions": [], "exclusions": [], "taxes_included": None}
     use(make_extractor(json.dumps(empty)))
-    assert extract(client, diwali_request, "We'll send the quote tomorrow.").json() == {"quote": None, "ai_available": True}
+    body = extract(client, diwali_request, "We'll send the quote tomorrow.").json()
+    assert body == {"quote": None, "ai_available": True}

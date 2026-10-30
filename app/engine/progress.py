@@ -49,7 +49,7 @@ def apply_progress(
         changes: dict = {"waiting_on": [p.id for p in pres if not p.done]}
         if not item.done:
             update = tasks.get(task_id)
-            candidates = []
+            candidates: list[tuple[date, str | None]] = []
             if update and update.state == "delayed":
                 # A delay date that has passed means "still not booked": it's due today.
                 candidates.append((max(update.on, today), task_id))

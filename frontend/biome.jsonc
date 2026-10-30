@@ -1,0 +1,51 @@
+// Lint only (npm run lint). Biome parses TypeScript itself, so it works with TypeScript 7,
+// which has no JS compiler API for typescript-eslint. The formatter stays off: no reformatting.
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": ["src/**", "e2e/**", "scripts/**", "*.ts", "!src/lib/api-types.ts"]
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "css": { "parser": { "tailwindDirectives": true } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "style": {
+        // House style. tsc's verbatimModuleSyntax already requires `import type` where it matters.
+        "useImportType": "off",
+        // Used where the value is known to exist, e.g. the #root element in index.html.
+        "noNonNullAssertion": "off",
+        // Stylesheet order follows the page's sections, not selector specificity.
+        "noDescendingSpecificity": "off"
+      },
+      "a11y": {
+        // Hash-route links keep a real href (open in a new tab works) and handle the click in place.
+        "useValidAnchor": "off",
+        // Segmented toggles and card radio groups use ARIA roles on purpose (Lighthouse accessibility: 100).
+        "useSemanticElements": "off"
+      },
+      "suspicious": {
+        // Index keys only on lists that never reorder: iso tiles, digit wheels, table cells.
+        "noArrayIndexKey": "off"
+      },
+      "complexity": {
+        // Print styles must win over Tailwind's utilities.
+        "noImportantStyles": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Row receives its cells as a positional array and keys them itself.
+      "includes": ["src/features/print/print-sheet.tsx"],
+      "linter": { "rules": { "correctness": { "useJsxKeyInIterable": "off" } } }
+    },
+    {
+      // Compact one-line stubs in tests.
+      "includes": ["**/*.test.ts"],
+      "linter": { "rules": { "complexity": { "noCommaOperator": "off" } } }
+    }
+  ]
+}

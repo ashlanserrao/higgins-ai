@@ -217,7 +217,7 @@ class BudgetLine(ApiModel):
     source: Literal["estimate", "confirmed"] = "estimate"
     quote_id: str | None = None
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]  # the pattern Pydantic documents for mypy
     @property
     def change_inr(self) -> int:
         return self.amount_inr - self.estimate_inr

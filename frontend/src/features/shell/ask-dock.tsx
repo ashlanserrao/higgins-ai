@@ -88,16 +88,21 @@ export function AskDock() {
 
   // The field grows with its text, up to three lines, then scrolls. Measured again as the bar
   // widens, since it opens from the circle's width.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: text, stage and listening are triggers: each can change the field's height.
   useLayoutEffect(() => {
     const el = field.current;
     if (!el) return;
-    const fit = () => {
+    const fitHeight = () => {
       el.style.height = "auto";
       el.style.height = el.value ? `${Math.min(el.scrollHeight, 80)}px` : "";
     };
-    fit();
+    fitHeight();
     let width = el.offsetWidth;
-    const observer = new ResizeObserver(() => el.offsetWidth !== width && ((width = el.offsetWidth), fit()));
+    const observer = new ResizeObserver(() => {
+      if (el.offsetWidth === width) return;
+      width = el.offsetWidth;
+      fitHeight();
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, [text, stage, speech.listening]);
@@ -155,6 +160,7 @@ export function AskDock() {
   };
 
   // The card is announced by taking focus as it appears.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: outcome is a trigger: a retry's new card takes focus too.
   useEffect(() => {
     if (stage === "review") heading.current?.focus();
   }, [stage, outcome]);

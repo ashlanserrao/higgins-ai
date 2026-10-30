@@ -1,5 +1,8 @@
 """Turn Pydantic validation errors into plain-language messages for the form."""
 
+from collections.abc import Sequence
+from typing import Any
+
 from app.engine.money import format_inr
 
 FIELD_LABELS = {
@@ -26,7 +29,7 @@ REQUEST_WRAPPERS = {"body", "base", "changes", "inputs", "current"}
 PROGRESS_LABELS = {"tasks": "booking status", "quotes": "quote", "moves": "budget move"}
 
 
-def field_errors(errors: list[dict]) -> list[dict]:
+def field_errors(errors: Sequence[Any]) -> list[dict]:
     """Pydantic errors as [{field, message}], without echoing the submitted values back."""
     fields = []
     for err in errors:

@@ -16,7 +16,9 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from app.ai.client import StructuredAI
 from app.ai.untrusted import fence, sanitize
 from app.engine import rules
-from app.engine.message_checks import date_from_today, keep_what_the_message_says, signs_from_the_message
+from app.engine.message_checks import (
+    amounts_from_the_message, date_from_today, keep_what_the_message_says, signs_from_the_message,
+)
 from app.models import EventType, PlanRequest, VenueType
 
 MAX_OUTPUT_TOKENS = 1500
@@ -149,6 +151,7 @@ class Interpretation:
 def apply_patch(patch: PlanPatch, current: PlanRequest | None, message: str, today: date) -> Interpretation:
     """Resolve relative changes, and drop values the message doesn't support."""
     base = current.model_dump() if current else {}
+    patch = patch.model_copy(update=amounts_from_the_message(patch.model_dump(), message))
     # Models often send "" or [] for "not mentioned": treat them like null.
     values = {name: getattr(patch, name) for name in DIRECT_FIELDS if getattr(patch, name) not in (None, "", [])}
     if patch.event_date_change_days and (counted := date_from_today(message, today)):

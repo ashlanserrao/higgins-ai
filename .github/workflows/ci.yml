@@ -1,5 +1,6 @@
-# Every push and pull request: backend tests, then the frontend's typecheck, tests, contrast
-# check and build, then the end-to-end test against the built app. No OpenAI key is used.
+# Every push and pull request: backend lint, types and tests, then the frontend's lint,
+# typecheck, tests, contrast check and build, then the end-to-end test against the built app.
+# No AI key is used.
 name: CI
 
 on:
@@ -19,6 +20,8 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
+      - run: ruff check
+      - run: mypy
       - run: pytest
 
       - uses: actions/setup-node@v4
@@ -30,6 +33,7 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
+          npm run lint
           npm run typecheck
           npm test
           npm run contrast

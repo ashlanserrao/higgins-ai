@@ -31,6 +31,7 @@ export const stylesheetSingleton = () => {
 export const styleHookSingleton = () => {
   const sheet = stylesheetSingleton();
   return (styles: string, isDynamic?: boolean) => {
+    // biome-ignore lint/correctness/useExhaustiveDependencies: the same dependency as react-style-singleton, which this file stands in for.
     useEffect(() => {
       sheet.add(styles);
       return () => sheet.remove();
@@ -40,6 +41,7 @@ export const styleHookSingleton = () => {
 
 export const styleSingleton = () => {
   const useStyle = styleHookSingleton();
+  // biome-ignore lint/correctness/noComponentHookFactories: react-style-singleton's API, which Radix calls, is a factory.
   return function Sheet({ styles, dynamic }: { styles: string; dynamic?: boolean }) {
     useStyle(styles, dynamic);
     return null;

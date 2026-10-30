@@ -29,7 +29,7 @@ export function useReveal(root: RefObject<HTMLElement | null>) {
         observer.unobserve(el);
       }
     }, { rootMargin: "0px 0px -8% 0px" });
-    targets.forEach((el) => observer.observe(el));
+    for (const el of targets) observer.observe(el);
     return () => observer.disconnect();
   }, [root]);
 }

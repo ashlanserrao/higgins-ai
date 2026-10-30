@@ -44,6 +44,7 @@ function Toast({ tone, autoClose, onClose, children, actions }: {
   }, [autoClose, held, leaving, close]);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: hovering or focusing a toast only pauses its timer.
     <div
       onPointerEnter={() => setHeld(true)}
       onPointerLeave={() => setHeld(false)}

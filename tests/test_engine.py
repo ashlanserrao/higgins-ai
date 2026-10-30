@@ -6,8 +6,8 @@ import pytest
 from pydantic import ValidationError
 
 from app.engine import rules
-from app.engine.money import format_inr
 from app.engine.errors import PlanInputError
+from app.engine.money import amounts_in, format_inr
 from app.engine.planner import build_plan
 from app.models import PlanRequest
 from tests.conftest import TODAY
@@ -141,3 +141,10 @@ def test_unknown_city_defaults_to_tier_2_and_override_wins(birthday_request):
 ])
 def test_format_inr(amount, expected):
     assert format_inr(amount) == expected
+
+
+def test_amounts_are_read_the_indian_way():
+    text = "1.5L budget, ₹1,85,000 + 18% GST, 8k, 2 crore, 30 kids on the 5th"
+    assert [(a.rupees, a.unit) for a in amounts_in(text)] == [
+        (150_000, True), (185_000, False), (18, False), (8_000, True), (20_000_000, True), (30, False),
+    ]

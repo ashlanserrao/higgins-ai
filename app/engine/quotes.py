@@ -32,6 +32,14 @@ def effective_total(quote: Quote, guests: int) -> tuple[int | None, bool]:
     return None, False
 
 
+def _confirmed_total(quote: Quote, guests: int) -> int:
+    """An accepted quote's cost. The Quote model already refuses an accepted quote without a price."""
+    total, _ = effective_total(quote, guests)
+    if total is None:
+        raise PlanInputError("A quote needs a price before it can be accepted.", field="progress")
+    return total
+
+
 def compare_quotes(
     request: PlanRequest, quotes: list[Quote], lines: list[BudgetLine], today: date
 ) -> dict[str, list[QuoteComparison]]:
@@ -79,17 +87,18 @@ def apply_quotes(
         return lines, None
     labels = {line.key: line.label for line in lines}
     for key, quote in accepted.items():
-        if quote.accepted_on > today:
+        if quote.accepted_on and quote.accepted_on > today:  # always set here; narrows the type
             raise PlanInputError(
                 f"The {labels[key].lower()} quote can't be accepted on a future date.", field="progress",
             )
 
     amounts = {line.key: line.amount_inr for line in lines}
-    confirmed = {key: effective_total(quote, request.guests)[0] for key, quote in accepted.items()}
+    confirmed = {key: _confirmed_total(quote, request.guests) for key, quote in accepted.items()}
     change = sum(confirmed[key] - amounts[key] for key in confirmed)
     amounts |= confirmed
 
-    from_contingency, cuts, over_budget = 0, {}, 0
+    from_contingency, over_budget = 0, 0
+    cuts: dict[str, int] = {}
     if change <= 0:
         amounts["contingency"] -= change
     else:

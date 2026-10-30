@@ -25,6 +25,7 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: fills the date once per opening; a plan refresh must not reset what's being typed.
   useEffect(() => {
     if (!target) return;
     setError("");

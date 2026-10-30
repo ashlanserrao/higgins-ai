@@ -1,0 +1,25 @@
+# Tool settings only: the app is run with uvicorn and installed from requirements*.txt.
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["frontend", "venv"]
+
+[tool.ruff.lint]
+# Lint rules only, no formatter: pyflakes, pycodestyle, bugbear, pyupgrade. Import sorting is
+# left out: it would rewrite the compact wrapped imports this codebase uses, one name per line.
+select = ["F", "E", "W", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency injection is declared as a default argument by design.
+extend-immutable-calls = ["fastapi.Depends"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["app", "evals", "scripts"]
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

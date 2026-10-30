@@ -107,10 +107,10 @@ def check_ideas(case: dict, ideas, tight: bool) -> list[str]:
     text = " ".join(f"{i.title} {i.detail}" for cat in (ideas.themes, ideas.decor, ideas.food, ideas.entertainment)
                     for i in cat) + " " + ideas.triage_advice
     problems = [f"must-have not mentioned: {word}" for word in case["mention"] if word not in text.lower()]
-    if PRICES.search(text):
-        problems.append(f"mentions a price: {PRICES.search(text).group(0)!r}")
-    if tight and LAVISH.search(text):
-        problems.append(f"lavish on a tight budget: {LAVISH.search(text).group(0)!r}")
+    if price := PRICES.search(text):
+        problems.append(f"mentions a price: {price.group(0)!r}")
+    if tight and (lavish := LAVISH.search(text)):
+        problems.append(f"lavish on a tight budget: {lavish.group(0)!r}")
     if case.get("triage_advice") and not ideas.triage_advice:
         problems.append("triage advice missing")
     return problems
@@ -143,10 +143,10 @@ def runner(task: str, ai: StructuredAI) -> Callable:
     return ideas
 
 
-async def run_task(task: str, provider: str, attempts: Attempts, limit: int | None) -> list[Result]:
+async def run_task(task: str, provider: str, attempts: Attempts, limit: int | None, only: list[str]) -> list[Result]:
     cases = [json.loads(line) for line in (HERE / "cases" / f"{task}.jsonl").read_text(encoding="utf-8").splitlines()]
     results = []
-    for case in cases[:limit]:
+    for case in [c for c in cases if not only or c["id"] in only][:limit]:
         for _ in range(MAX_TRIES):
             # A fresh chain per case: no cache, and a 429 rest from the last case doesn't carry over.
             settings = Settings()
@@ -193,7 +193,9 @@ async def main() -> None:
     parser.add_argument("--provider", choices=["groq", "openai"], required=True)
     parser.add_argument("--task", choices=["understand", "quotes", "ideas"], action="append")
     parser.add_argument("--limit", type=int, help="only the first N cases of each task")
+    parser.add_argument("--case", action="append", default=[], help="only these case ids (repeatable)")
     args = parser.parse_args()
+    partial = bool(args.limit or args.case)
 
     attempts = Attempts()
     logging.getLogger("app.ai.client").addHandler(attempts)
@@ -205,11 +207,11 @@ async def main() -> None:
     by_task = {}
     for task in tasks:
         print(f"{task}:")
-        by_task[task] = await run_task(task, args.provider, attempts, args.limit)
+        by_task[task] = await run_task(task, args.provider, attempts, args.limit, args.case)
 
     text = report(args.provider, {task: probe.model(task) for task in tasks}, by_task)
     print("\n" + text)
-    if not args.limit:
+    if not partial:  # a partial run would overwrite the full table
         out = HERE / "results" / f"{date.today().isoformat()}-{args.provider}.md"
         out.parent.mkdir(exist_ok=True)
         out.write_text(text, encoding="utf-8")

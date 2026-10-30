@@ -33,7 +33,7 @@ function apply(crossfade: boolean) {
   const bar = getComputedStyle(root).getPropertyValue("--browser-bar").trim();
   if (bar) document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bar);
   if (fade) window.setTimeout(() => root.classList.remove("theme-switching"), 200);
-  listeners.forEach((listener) => listener());
+  for (const listener of listeners) listener();
 }
 
 export function setThemePreference(next: ThemePreference) {

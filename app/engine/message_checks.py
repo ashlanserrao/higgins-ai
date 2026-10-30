@@ -12,6 +12,7 @@ from datetime import date, timedelta
 from typing import Any
 
 from app.engine import rules
+from app.engine.money import amounts_in
 from app.engine.wording import day
 
 _WEEKDAY_PREFIXES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -95,6 +96,22 @@ def date_from_today(message: str, today: date) -> tuple[str, date] | None:
     count, unit = (found.group(1), found.group(2)) if found.group(1) else (found.group(3), found.group(4))
     days = int(count) if count.isdigit() else _COUNT_WORDS[count.lower()]
     return phrase, today + timedelta(days=days * (7 if unit.lower().startswith("week") else 1))
+
+
+def amounts_from_the_message(changes: Mapping[str, Any], message: str) -> dict[str, int]:
+    """Budget amounts the message doesn't state, replaced by its one amount with a unit.
+
+    Seen in evals: "1.5L budget" came back as 15 lakh. A value the message states as written
+    is kept; with no single lakh/k/crore amount to go by, nothing is guessed.
+    """
+    stated = amounts_in(message)
+    with_unit = [a.rupees for a in stated if a.unit]
+    fixed = {}
+    for name in ("budget_inr", "budget_change_inr"):
+        value = changes.get(name)
+        if value and abs(value) not in {a.rupees for a in stated} and len(with_unit) == 1:
+            fixed[name] = with_unit[0] if value > 0 else -with_unit[0]
+    return fixed
 
 
 def signs_from_the_message(changes: Mapping[str, Any], message: str) -> dict[str, float]:

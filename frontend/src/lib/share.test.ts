@@ -51,7 +51,7 @@ describe("share links", () => {
     const url = new URL(await buildShareUrl(inputs, "2026-10-21", tooLong));
     expect(await readSharedIdeas(url.hash)).toBeNull();
     expect(await readSharedIdeas("#zNotDeflate")).toBeNull();
-    expect(await readSharedIdeas("#q" + "a".repeat(20))).toBeNull();
+    expect(await readSharedIdeas(`#q${"a".repeat(20)}`)).toBeNull();
   });
 
   it("are only links that name an event type", () => {

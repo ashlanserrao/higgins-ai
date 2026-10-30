@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.ai.client import StructuredAI
 from app.ai.untrusted import fence
+from app.engine.quote_checks import keep_what_the_quote_says
 from app.models import Plan, PlanRequest, QuoteNote
 
 MAX_OUTPUT_TOKENS = 1500
@@ -107,6 +108,8 @@ class QuoteExtractor:
             response_format=response_format(list(categories)),
             output=QuoteDraft, max_output_tokens=MAX_OUTPUT_TOKENS,
         )
+        if draft is not None:
+            draft = draft.model_copy(update=keep_what_the_quote_says(draft.model_dump(), text))
         if draft is None or not _has_quote_details(draft):
             return None  # e.g. "we'll send the quote tomorrow": nothing to compare
         if draft.category is not None and draft.category not in categories:

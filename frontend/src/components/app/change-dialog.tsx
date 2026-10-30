@@ -139,6 +139,7 @@ export function ChangeDialog({ open, onOpenChange, title, description, label, lo
   // Its opener can change or go once a change applies; focus goes back there, or to the heading.
   const returnFocus = useReturnFocus(open);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loads once per opening; load is a new function every render.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;

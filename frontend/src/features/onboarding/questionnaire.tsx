@@ -92,6 +92,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
   // organiser makes, never during the AI's fill animation, which changes steps too.
   const focusNext = useRef<string | null>(null);
   const stepArea = useRef<HTMLDivElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: step and errors are triggers: focus moves after the render they cause.
   useEffect(() => {
     const target = focusNext.current;
     if (!target) return;

@@ -51,13 +51,15 @@ export function usePlanActions(
   const noted = (label: string, summary: string[] = []) => [{ label, summary }, ...stateRef.current.recent].slice(0, MAX_RECENT);
 
   /** Keep a change the organiser confirmed in a before/after preview (plan already computed). */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: live state is read through stateRef, which never changes.
   const applyChange = useCallback((inputs: PlanRequest, plan: Plan, label: string, summary: string[]) => {
     const previous = stateRef.current.inputs;
     takeTicket("plan", stateRef.current.activeId);
     patch({ inputs, plan, lastChange: previous ? { label, summary, previous } : null, recent: noted(label, summary) });
-  }, [announce, patch, takeTicket]);
+  }, [patch, takeTicket]);
 
   /** Bookings, quotes and moves: change progress, then recalculate. */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: live state is read through stateRef, which never changes.
   const updateProgress = useCallback(async (change: (progress: Progress) => Progress, label: string) => {
     const previous = stateRef.current.inputs;
     if (!previous) return;
@@ -65,6 +67,7 @@ export function usePlanActions(
     await recalculate(inputs, { lastChange: { label, summary: [], previous }, recent: noted(label) });
   }, [recalculate]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: live state is read through stateRef, which never changes.
   const undo = useCallback(async () => {
     const last = stateRef.current.lastChange;
     if (!last) return;

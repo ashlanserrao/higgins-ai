@@ -30,6 +30,7 @@ function useEventRoute(outside: boolean) {
   const { booting, activeId, events, switchEvent } = usePlanner();
   const synced = useRef({ eventId, activeId: null as string | null });
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: page is a deliberate trigger: moving between pages re-syncs the URL with the open event.
   useEffect(() => {
     if (booting || outside) return;
     const known = (id: string | null) => events.some((e) => e.id === id);

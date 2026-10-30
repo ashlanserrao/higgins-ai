@@ -354,7 +354,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
           {/* Editing the event and the theme wait for the full sidebar. */}
           {!collapsed && (
             <div className="mt-auto space-y-0.5 border-t pt-3">
-              <button onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
+              <button type="button" onClick={onEdit} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted">
                 <PencilLine className="size-4" aria-hidden="true" /> Edit event details
               </button>
               <AppearanceControl />

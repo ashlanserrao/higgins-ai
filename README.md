@@ -72,7 +72,7 @@ Every AI call goes through one class, `StructuredAI` in `app/ai/client.py`, whic
 - **Each provider through its stable API.** OpenAI through its Responses API with `store=False`; Groq through Chat Completions, where strict JSON schemas are documented (its Responses API is in beta). Both use the official `openai` SDK; Groq only needs its `base_url`.
 - **Rate limits respected.** After a 429, a provider rests for its `retry-after` time (at most 60 s), so a burst goes straight to the backup without first waiting for a refusal.
 - **Per-task models in config.** `GROQ_MODEL_IDEAS`, `GROQ_MODEL_QUOTES` or `GROQ_MODEL_UNDERSTAND` swap the model for one task without touching code.
-- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. So both providers give the same numbers and dates.
+- **The AI reports, code computes.** Relative changes ("add 40 guests", "20% more budget") and dates counted from today ("tomorrow", "in 2 weeks", "next Saturday") are worked out in code, and each reading is shown ("I took 'in 2 weeks' as 4 Nov 2026"). Vague dates ("next week", "Feb 2027") are asked about, never guessed. Amounts are read by code too: "1.5L" is ₹1,50,000 whatever the model says, a quote's total must be written in the quote, and "GST extra" or "+ 18% GST" means tax isn't included. So both providers give the same numbers and dates.
 - **One log line per call:** task, provider, model, time taken and outcome (`ok`, `cached`, `timeout`, `429`, `auth`, `bad_request`, `invalid_json`). Never the prompt, the reply or a key.
 
 #### Evals: why Groq goes first
@@ -89,7 +89,7 @@ Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals
 
 - **Groq was as good or better on every task, at about a third of the time,** with no invalid JSON (OpenAI had one).
 - **The evals caught a bug in our code.** For "change it to next Sunday", OpenAI also sent a 7-day move, which overrode the Sunday the code had worked out. A named day now wins over a relative move, with a test.
-- **What's left for code checks:** Groq read "1.5L" as 15 lakh, multiplied "6 guards @ ₹900" despite being told not to, and took "+ 18% GST" as included. gpt-5-nano missed two quote categories and a year rollover.
+- **Groq's three misses became code checks.** It read "1.5L" as 15 lakh, multiplied "6 guards @ ₹900" despite being told not to, and took "+ 18% GST" as included. Now a budget must be an amount the message states (or its one lakh/k/crore amount), a quote's total and per-plate price must appear in the quote, and tax wording is read by code. Every correct answer in the eval set was replayed through the checks offline first (none changed), then only those three cases were rerun on Groq: all pass. gpt-5-nano's misses (two quote categories, a year rollover) remain.
 - **Groq's free tier is tight:** at one call every 2.5 s, about half the eval calls hit its 8,000 tokens-a-minute limit. In the app those calls rest Groq and go to OpenAI, so they still work; a paid Groq tier would keep more of them fast.
 
 ### Routes
@@ -214,9 +214,11 @@ Only use `--forwarded-allow-ips="*"` when the app is reachable *only* through th
 
 ```bash
 pip install -r requirements-dev.txt
-pytest                      # backend: 158 tests
+ruff check && mypy          # backend lint and types
+pytest                      # backend: 163 tests
 
 cd frontend
+npm run lint                # Biome, lint only
 npm test                    # frontend: 32 tests (Vitest)
 npm run typecheck && npm run contrast
 npm run build && npm run test:e2e   # end to end: 2 tests (Playwright, your installed Chrome)
@@ -224,17 +226,19 @@ npm run build && npm run test:e2e   # end to end: 2 tests (Playwright, your inst
 
 Everything runs offline and free: both AI providers are faked (a guard blocks the real ones even with keys in `.env`), golden tests pin today to 21 Oct 2026, and the end-to-end run starts the server with empty API keys. GitHub Actions runs all of it on every push (`.github/workflows/ci.yml`).
 
-**Backend (pytest, 158):**
+**Lint.** Python uses ruff (pyflakes, pycodestyle, bugbear, pyupgrade) and mypy with the Pydantic plugin, set up in `pyproject.toml`. The frontend uses Biome's recommended rules (`frontend/biome.jsonc`), because typescript-eslint needs TypeScript's JS API, which TypeScript 7 doesn't ship. Both lint only and never reformat. Each rule switched off, and each hook whose dependencies are deliberate ("run once per opening", "read through a ref"), carries its reason next to it.
 
-- **`test_engine.py` (17):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting
+**Backend (pytest, 163):**
+
+- **`test_engine.py` (18):** the three golden scenarios, a wedding five months out that is "tight" but not in triage, cut suggestions that skip essentials, the monsoon rule, the contingency floor, an event tomorrow, past dates, invalid priorities, city tiers, Indian number formatting, reading amounts like "1.5L" and "8k"
 - **`test_api.py` (28):** the plan over HTTP, plain-language 422 errors that don't echo input, 413/411 for oversized and chunked bodies, 429 rate limiting per endpoint and for all visitors' AI calls together (the AI limits never block plans), security headers (HSTS only over HTTPS), cache headers for built files, options, and `openapi.json` matching the API (with docs not served)
-- **`test_understand.py` (35):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates counted from today ("tomorrow", "in 2 weeks", "next Saturday"), dates and cities only when named, missing fields, invalid revisions, no event-type changes
+- **`test_understand.py` (36):** plain-language intake and revisions. The AI reports changes and the server does the maths: relative changes, dates counted from today ("tomorrow", "in 2 weeks", "next Saturday"), budgets only as stated ("1.5L" is 1,50,000), dates and cities only when named, missing fields, invalid revisions, no event-type changes
 - **`test_routing.py` (9):** the provider chain. Groq answers first with a strict schema; OpenAI answers when Groq times out, is rate-limited, has a bad key or sends invalid JSON; a 429 makes Groq rest; a slow Groq hands over within the time budget; the log names the provider and outcome, never the prompt
 - **`test_progress.py` (16):** booked and delayed tasks, dependencies, and how a delay ripples through the plan
 - **`test_quotes.py` (16):** quote comparison, confirmed costs, and re-budgeting when a quote is accepted
 - **`test_compare.py` (12):** money moves between budget lines and the before/after of two plans
 - **`test_ai.py` (10):** ideas stay advisory. Bad JSON, extra fields, over-long text and timeouts give no ideas, never an error. Also: no API key, caching, preference fencing
-- **`test_quote_extraction.py` (8):** a pasted quote becomes a checked draft or nothing, never an error; the quote text is fenced
+- **`test_quote_extraction.py` (11):** a pasted quote becomes a checked draft or nothing, never an error; amounts only as the quote states them, tax wording read by code; the quote text is fenced
 - **`test_messages.py` (7):** vendor messages are filled from the plan, with no budget unless asked
 
 **Frontend (Vitest, 32):** pure logic only, in the `node` environment. Tests sit next to their code as `*.test.ts`.
@@ -344,7 +348,8 @@ app/                       FastAPI + Pydantic v2
     planner.py             build_plan(request, today): same inputs, same plan
     progress.py, moves.py, quotes.py   Bookings and delays, money moves, vendor quotes
     diff.py, messages.py   Before/after of two plans; ready-to-send vendor messages
-    message_checks.py      Keeps only what a typed message actually says (dates, city, priorities, +/−)
+    message_checks.py      Keeps only what a typed message actually says (dates, amounts, city, priorities, +/−)
+    quote_checks.py        The same for a pasted quote (stated amounts, GST wording)
   ai/                      Every AI call (Groq, then OpenAI), all optional
     client.py              The one place that talks to providers: the chain, time budget, rests, log
     ideas.py, quotes.py, understand.py   Ideas, quote extraction, plain-language intake (prompt + caller)
@@ -352,7 +357,8 @@ app/                       FastAPI + Pydantic v2
 evals/                     Manual evals: cases/*.jsonl, run.py, results/ (real API calls, never in CI)
 scripts/export_openapi.py  Writes frontend/openapi.json for the generated types
 tests/                     pytest suite (offline, AI faked)
-.github/workflows/ci.yml   Backend tests, frontend typecheck, tests, contrast and build, then end to end
+.github/workflows/ci.yml   Lint and types, backend tests, frontend tests, contrast and build, then end to end
+pyproject.toml             ruff, mypy and pytest settings
 
 frontend/                  React 19 + TypeScript + Vite + Tailwind + shadcn/ui
   openapi.json             The API schema, exported from FastAPI

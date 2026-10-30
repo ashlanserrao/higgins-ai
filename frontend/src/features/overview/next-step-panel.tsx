@@ -60,7 +60,7 @@ function TaskActions({ item, primary, onBook, onMessage }: {
   );
 }
 
-function Lead({ lead, onBook, onMessage }: { lead: Lead; onBook: (id: string) => void; onMessage: (id: string) => void }) {
+function LeadCard({ lead, onBook, onMessage }: { lead: Lead; onBook: (id: string) => void; onMessage: (id: string) => void }) {
   const { plan, inputs } = usePlan();
   const { go } = useNav();
   const event = EVENT_LABELS[inputs.event_type].toLowerCase();
@@ -237,7 +237,7 @@ function NotesDrawer({ open, onOpenChange, attention }: { open: boolean; onOpenC
         {advice && group("A thought from AI", <p className="text-sm">{advice}</p>)}
         {group(`Recent changes (${recent.length})`, recent.length ? (
           <ul className="space-y-1.5 text-sm">
-            {recent.map((change, i) => <li key={i}><span className="font-medium">{change.label}</span>{change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary.join(" ")}</span>}</li>)}
+            {recent.map((change, i) => <li key={recent.length - i}><span className="font-medium">{change.label}</span>{change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary.join(" ")}</span>}</li>)}
           </ul>
         ) : <p className="text-sm text-muted-foreground">Nothing changed yet this visit.</p>)}
       </DialogContent>
@@ -261,7 +261,7 @@ export function NextStepPanel({ lead, attention }: { lead: Lead; attention: Atte
     <div className="@container">
       <div className="grid gap-5 @min-[640px]:grid-cols-2 @min-[640px]:gap-0">
         <div className="@min-[640px]:pr-6">
-          <Lead lead={lead} onBook={(taskId) => setBooking({ taskId, state: "booked" })} onMessage={(id) => { setMessageFor(id); setMessageOpen(true); }} />
+          <LeadCard lead={lead} onBook={(taskId) => setBooking({ taskId, state: "booked" })} onMessage={(id) => { setMessageFor(id); setMessageOpen(true); }} />
         </div>
         <div className="border-t pt-5 @min-[640px]:border-t-0 @min-[640px]:border-l @min-[640px]:pt-0 @min-[640px]:pl-6">
           <Money />

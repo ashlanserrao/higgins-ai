@@ -143,7 +143,7 @@ def split_budget(request: PlanRequest) -> list[BudgetLine]:
         splits[rules.TENT_KEY] = rules.TENT_PERCENT
         labels[rules.TENT_KEY] = rules.TENT_LABEL
 
-    boosted = {_priority_key(p, splits) for p in request.priorities} - {None}
+    boosted = {boost for p in request.priorities if (boost := _priority_key(p, splits))}
     if boosted:
         _take_proportionally(
             splits, rules.PRIORITY_BOOST * len(boosted), protected=boosted | {"contingency"}

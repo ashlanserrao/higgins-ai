@@ -12,7 +12,7 @@ import asyncio
 import hashlib
 import logging
 import time
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from openai import (
     APITimeoutError, AsyncOpenAI, AuthenticationError, BadRequestError, OpenAIError, RateLimitError,
@@ -64,14 +64,14 @@ class OpenAIProvider(Provider):
         return self.settings.openai_model
 
     async def reply(self, *, task, instructions, prompt_input, response_format, max_output_tokens, timeout) -> str:
-        options = {}
+        # The SDK types these as TypedDicts and Literals; our schemas and settings are plain dicts and strings.
+        options: dict[str, Any] = {"text": {"format": response_format}}
         if self.settings.openai_reasoning_effort:
             options["reasoning"] = {"effort": self.settings.openai_reasoning_effort}
         response = await self.client.responses.create(
             model=self.model(task),
             instructions=instructions,
             input=prompt_input,
-            text={"format": response_format},
             max_output_tokens=max_output_tokens,
             store=False,
             timeout=timeout,
@@ -89,15 +89,15 @@ class GroqProvider(Provider):
         return self.settings.groq_task_models.get(task, self.settings.groq_model)
 
     async def reply(self, *, task, instructions, prompt_input, response_format, max_output_tokens, timeout) -> str:
-        options = {}
+        # As above: the SDK's TypedDicts and Literals don't take our plain schema dicts and setting strings.
+        options: dict[str, Any] = {"response_format": {"type": "json_schema", "json_schema": {
+            "name": response_format["name"], "schema": response_format["schema"], "strict": True,
+        }}}
         if self.settings.groq_reasoning_effort:
             options["reasoning_effort"] = self.settings.groq_reasoning_effort
         response = await self.client.chat.completions.create(
             model=self.model(task),
             messages=[{"role": "system", "content": instructions}, {"role": "user", "content": prompt_input}],
-            response_format={"type": "json_schema", "json_schema": {
-                "name": response_format["name"], "schema": response_format["schema"], "strict": True,
-            }},
             max_completion_tokens=max_output_tokens,
             # Only the JSON comes back; the model's reasoning stays on Groq's side.
             extra_body={"include_reasoning": False},
@@ -141,7 +141,7 @@ class StructuredAI:
         cache_key = hashlib.sha256(f"{chain}\n{task}\n{instructions}\n{prompt_input}".encode()).hexdigest()
         if (cached := self._cache.get(cache_key)) is not None:
             logger.info("AI %s: cached", task)
-            return cached
+            return cast(M, cached)  # the key holds the task, and each task has one output type
 
         deadline = time.monotonic() + self.settings.ai_timeout_seconds
         for attempt, provider in enumerate(self.providers):

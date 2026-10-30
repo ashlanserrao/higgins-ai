@@ -205,7 +205,7 @@ export function VendorsSection() {
           <ul className="space-y-1">
             {messageable.slice(0, 8).map((item) => (
               <li key={item.id}>
-                <button onClick={() => { setMessageFor(item.id); setMessageOpen(true); }}
+                <button type="button" onClick={() => { setMessageFor(item.id); setMessageOpen(true); }}
                   className="flex w-full items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-left text-sm hover:bg-surface-soft">
                   <span>{item.label}</span>
                   <MessageSquareText className="size-4 text-muted-foreground" aria-hidden="true" />

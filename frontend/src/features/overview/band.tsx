@@ -31,6 +31,7 @@ function BandStat({ value, label }: { value: ReactNode; label: ReactNode }) {
 /** "Good morning", kept in step with the clock while the page stays open. */
 function useGreeting() {
   const [text, setText] = useState(() => greeting());
+  // biome-ignore lint/correctness/useExhaustiveDependencies: text is the trigger that re-arms the timer after each change.
   useEffect(() => {
     const timer = window.setTimeout(() => setText(greeting()), untilNextGreeting() + 1000);
     return () => window.clearTimeout(timer);

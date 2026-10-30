@@ -32,6 +32,7 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
   const returnFocus = useReturnFocus(open);
 
   // Opening for a task picks the message that fits its state (booked → confirmation…).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once per opening; later plan changes must not switch the message being written.
   useEffect(() => {
     if (!open) return;
     const id = taskId ?? tasks[0]?.id ?? "";
@@ -48,7 +49,11 @@ export function MessageDialog({ taskId, open, onOpenChange }: {
     setCopied(false);
     api.message(inputs, task, kind, includeBudget)
       .then((r) => !cancelled && setText(r.text))
-      .catch((e) => !cancelled && (setText(""), setError((e as Error).message)))
+      .catch((e) => {
+        if (cancelled) return;
+        setText("");
+        setError((e as Error).message);
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;

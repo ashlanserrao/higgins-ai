@@ -22,7 +22,7 @@ def diff_plans(before: Plan, after: Plan) -> PlanDiff:
         new_amount = new.amount_inr if new else None
         if old_amount != new_amount:
             lines.append(LineChange(
-                key=key, label=(new or old).label, before_inr=old_amount, after_inr=new_amount,
+                key=key, label=(new or old_lines[key]).label, before_inr=old_amount, after_inr=new_amount,
                 delta_inr=(new_amount or 0) - (old_amount or 0),
             ))
 
@@ -30,11 +30,12 @@ def diff_plans(before: Plan, after: Plan) -> PlanDiff:
     new_tasks = {item.id: item for item in after.checklist}
     tasks = []
     for task_id in [*new_tasks, *(t for t in old_tasks if t not in new_tasks)]:
-        old, new = old_tasks.get(task_id), new_tasks.get(task_id)
-        old_state = task_state(old) if old else None
-        new_state = task_state(new) if new else None
+        old_task, new_task = old_tasks.get(task_id), new_tasks.get(task_id)
+        old_state = task_state(old_task) if old_task else None
+        new_state = task_state(new_task) if new_task else None
         if old_state != new_state:
-            tasks.append(TaskChange(id=task_id, label=(new or old).label, before=old_state, after=new_state))
+            label = (new_task or old_tasks[task_id]).label
+            tasks.append(TaskChange(id=task_id, label=label, before=old_state, after=new_state))
 
     over = Pair[int](
         before=before.rebalance.over_budget_inr if before.rebalance else 0,
@@ -70,7 +71,9 @@ def _summary(diff: PlanDiff) -> list[str]:
         summary.append(f"Budget level: {level.before} → {level.after}.")
     triage = diff.triage_active
     if triage.before != triage.after:
-        summary.append("Some bookings now need booking today." if triage.after else "Nothing needs booking today any more.")
+        summary.append(
+            "Some bookings now need booking today." if triage.after else "Nothing needs booking today any more."
+        )
     over = diff.over_budget_inr
     if over.before != over.after:
         summary.append(f"Over budget: {format_inr(over.before)} → {format_inr(over.after)}." if over.after

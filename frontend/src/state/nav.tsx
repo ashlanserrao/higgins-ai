@@ -44,6 +44,7 @@ function useNavState() {
   // Move focus to the new section's heading so keyboard and screen-reader users land there,
   // unless an intent opens a tool, which focuses its own first field. Runs on a section change
   // only, reading the intent that came with it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: section is the trigger; intent is read, not watched.
   useEffect(() => {
     if (!intent) document.querySelector<HTMLElement>("[data-section-title]")?.focus({ preventScroll: true });
     window.scrollTo({ top: 0 });

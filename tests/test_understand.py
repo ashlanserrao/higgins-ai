@@ -215,6 +215,13 @@ def test_dates_counted_from_today_are_worked_out_by_the_server(message, given, e
     assert result.values["event_date"] == expected
 
 
+def test_budget_must_be_an_amount_the_message_states(diwali_request):
+    # Seen in evals: "1.5L" came back as 15 lakh.
+    assert resolve("Diwali for 400 people, 1.5L budget", budget_inr=1_500_000).values["budget_inr"] == 150_000
+    assert resolve("cut the budget by 20k", diwali_request, budget_change_inr=-200_000).values["budget_inr"] == 130_000
+    assert resolve("budget 25 lakh", budget_inr=2_500_000).values["budget_inr"] == 2_500_000  # stated: kept
+
+
 def test_counting_from_today_needs_a_date_and_is_not_a_move(diwali_request):
     assert resolve("I'll confirm the venue tomorrow").values == {}  # the model set no date
     counted = resolve("make it in 2 weeks", diwali_request, event_date_change_days=14)
