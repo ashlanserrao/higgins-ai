@@ -9,8 +9,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.ai.ideas import IdeasGenerator
-from app.frontend import FrontendFiles
+from app.frontend import IMMUTABLE, FrontendFiles
 from app.main import ai_limiter, ai_total_limiter, app, get_ideas_generator, plan_limiter
+from app.security import SECURITY_HEADERS
 from tests.conftest import TODAY, make_ai
 from tests.test_ai import VALID as IDEAS
 
@@ -116,6 +117,17 @@ def test_security_headers_on_static_and_api(client):
 def test_hsts_only_over_https(client):
     https = TestClient(app, base_url="https://testserver")
     assert https.get("/health").headers["strict-transport-security"] == "max-age=31536000"
+
+
+def test_vercel_serves_the_site_with_the_same_headers_and_forwards_the_api():
+    # JSON can't hold comments: the site is on Vercel, the API on Render (render.yaml), one origin.
+    config = json.loads((Path(__file__).resolve().parent.parent / "frontend" / "vercel.json").read_text("utf-8"))
+    rules = {rule["source"]: {h["key"]: h["value"] for h in rule["headers"]} for rule in config["headers"]}
+    assert rules["/(.*)"] == SECURITY_HEADERS
+    assert rules["/assets/(.*)"] == {"Cache-Control": IMMUTABLE}
+    assert config["rewrites"] == [
+        {"source": "/api/:path*", "destination": "https://higgins-ai-api.onrender.com/api/:path*"},
+    ]
 
 
 def test_built_files_are_cached_by_how_they_are_named(tmp_path):

@@ -139,15 +139,15 @@ Open http://127.0.0.1:8000 and press **Use the demo account** (`test` / `test`).
 
 More options (per-task models, reasoning effort, hourly spend cap) are documented in `.env.example`.
 
-**Deploying behind a proxy** (Render, Cloud Run): run
+**Deploying.** The live site is on Vercel (`frontend/vercel.json`, root `frontend`), which forwards `/api/*` to the API on Render (`render.yaml`, New > Blueprint), so the browser sees one origin and the CSP stays `connect-src 'self'`. Vercel sends the same security headers as the API, and a test fails if they drift apart. API keys are Render secrets. Render runs
 `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
-so per-IP rate limits see real visitor IPs. Only use `"*"` when the app is reachable solely through that proxy. Set API keys as platform secrets.
+so per-IP rate limits see real visitor IPs. Only use `"*"` when the app is reachable solely through that proxy. Render's free plan sleeps after 15 idle minutes, so an uptime monitor calls `/health` every 10 minutes.
 
 ## Testing
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check && mypy && pytest          # backend: 164 tests
+ruff check && mypy && pytest          # backend: 165 tests
 
 cd frontend
 npm run lint && npm test              # frontend: 35 tests (Vitest)
