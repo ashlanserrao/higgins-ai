@@ -154,7 +154,7 @@ pip install -r requirements-dev.txt
 ruff check && mypy && pytest          # backend: 165 tests
 
 cd frontend
-npm run lint && npm test              # frontend: 35 tests (Vitest)
+npm run lint && npm test              # frontend: 38 tests (Vitest)
 npm run typecheck && npm run contrast
 npm run build && npm run test:e2e     # end to end: 3 tests (Playwright)
 ```

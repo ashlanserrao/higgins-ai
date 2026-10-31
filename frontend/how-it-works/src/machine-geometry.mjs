@@ -23,7 +23,9 @@ export function buildMachine(C) {
   // together with copies of the static pieces that must cover them ("both"), so a frame only
   // repaints the live layer.
   const layers = {}, lives = {};
-  let cur = (layers.base = []), curLive = (lives.base = []), mode = "static";
+  layers.base = [];
+  lives.base = [];
+  let cur = layers.base, curLive = lives.base, mode = "static";
   const sec = (name) => { cur = layers[name] ??= []; curLive = lives[name] ??= []; mode = "static"; };
   const live = (...s) => curLive.push(...s);
   const both = (...s) => { cur.push(...s); curLive.push(...s); };
@@ -62,7 +64,7 @@ export function buildMachine(C) {
   push(L(G.circleOf(G.frameOf([LAMP[0], FRONT + 1, LAMP[2]], [0, 1, 0], [1, 0, 0], [0, 0, 1]), 0, 2.8, P, 28), { tone: "mid" }));
   // right face: vents (closed slots)
   const RIGHT0 = RB.x + RB.w;
-  push(faceX(RIGHT0, RB.y + RB.d - 8, RZ + 54, [0, 1, 2, 3, 4].map((i) => rect(4 + i * 7.6, 0, 3, 22, "hm-fill hm-cavity", 1.5) + `<rect class="iso-line" data-tone="lo" x="${4 + i * 7.6}" y="0" width="3" height="22" rx="1.5" fill="none"/>`).join(""), ' class="hm-cavity"'));
+  push(faceX(RIGHT0, RB.y + RB.d - 8, RZ + 54, [0, 1, 2, 3, 4].map((i) => `${rect(4 + i * 7.6, 0, 3, 22, "hm-fill hm-cavity", 1.5)}<rect class="iso-line" data-tone="lo" x="${4 + i * 7.6}" y="0" width="3" height="22" rx="1.5" fill="none"/>`).join(""), ' class="hm-cavity"'));
   // gantry post and arm that hold the ticket
   push(mat("hm-brass", cyl(POST[0], POST[1], 4.2, HOP_Z, 3, { tone: "mid" }, 28, 0.4)));
   push(cyl(POST[0], POST[1], 2.4, HOP_Z + 3, TK.held + TK.h + 14 - HOP_Z - 3, { tone: "mid", crease: "none" }, 24));
@@ -249,11 +251,13 @@ export function buildMachine(C) {
     const sx = at([CABR, ly, 0])[0];
     defs.push(`<clipPath id="${ID}-tag${i}"><rect x="${f1(sx)}" y="-1000" width="3000" height="3000"/></clipPath>`);
     const body = mat("hm-paper-sheet", slab({ x: -TAG.w / 2, y: ly - 0.6, w: TAG.w, d: 1.2, r: 0.8 }, TAG.seat, TAG.h, { tone: "hi" }, 3, 0));
-    const face = faceY(-TAG.w / 2, ly + 0.6, TAG.seat + TAG.h, `<g class="hm-gold">${rect(0, 0, 3.2, TAG.h, "hm-gold-fill", 0.8)}</g><circle class="iso-line" data-tone="mid" cx="1.6" cy="3" r="0.9"/>` + text(TAG.w / 2 + 1.6, 7.4, b.name, { size: 3.6 }));
+    const face = faceY(-TAG.w / 2, ly + 0.6, TAG.seat + TAG.h, `<g class="hm-gold">${rect(0, 0, 3.2, TAG.h, "hm-gold-fill", 0.8)}</g><circle class="iso-line" data-tone="mid" cx="1.6" cy="3" r="0.9"/>${text(TAG.w / 2 + 1.6, 7.4, b.name, { size: 3.6 })}`);
     return `<g clip-path="url(#${ID}-tag${i})"><g data-tag="${b.id}">${body}${face}</g></g>`;
   });
   live(...tagSvg);
-  BUCKETS.forEach((b, i) => hit(`lane-${b.id}`, box(BOARD.x + 2, LANES[i] - 3, BOARD_H - 1, BOARD.x + BOARD.w - 2, LANES[i] + 3, BOARD_H + TAG.h)));
+  BUCKETS.forEach((b, i) => {
+    hit(`lane-${b.id}`, box(BOARD.x + 2, LANES[i] - 3, BOARD_H - 1, BOARD.x + BOARD.w - 2, LANES[i] + 3, BOARD_H + TAG.h));
+  });
 
   // ---------- press, tray, card ----------
   sec("press");
@@ -281,7 +285,7 @@ export function buildMachine(C) {
   const far = (p, s) => [p[0] + dir[1] * s, p[1] - dir[0] * s];
   defs.push(`<clipPath id="${ID}-card"><path d="${k.pathOf([cardEdge[0], cardEdge[1], far(cardEdge[1], 4), far(cardEdge[0], 4)], true)}"/></clipPath>`);
   const cardTop = (inner) => X.top(CARD.inX, CARD.y, CARD.z + 0.8, inner);
-  const bars = BUCKETS.map((b, i) => `<rect class="hm-gold-fill" data-bar="${i}" x="9" y="${f1(5 + i * 4.6)}" width="10" height="2.4" rx="0.6"/>`).join("");
+  const bars = BUCKETS.map((_bucket, i) => `<rect class="hm-gold-fill" data-bar="${i}" x="9" y="${f1(5 + i * 4.6)}" width="10" height="2.4" rx="0.6"/>`).join("");
   const card = mat("hm-paper-sheet", slab({ x: CARD.inX, y: CARD.y, w: CARD.w, d: CARD.d, r: 1.2 }, CARD.z, 0.8, { tone: "hi" }, 3, 0)) +
     cardTop(`<rect class="hm-accent-fill" x="0.8" y="0.8" width="5" height="${CARD.d - 1.6}" rx="0.8"/>${bars}<path class="iso-line" data-tone="lo" data-free="" d="${BUCKETS.map((_, i) => `M9 ${f1(4 + i * 4.6)}h0`).join("")}"/>`);
   live(`<g clip-path="url(#${ID}-card)"><g data-part="card">${card}</g></g>`);

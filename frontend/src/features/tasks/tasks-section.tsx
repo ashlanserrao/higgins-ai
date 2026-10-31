@@ -97,7 +97,13 @@ export function Timeline({ limit }: { limit?: number }) {
         const Icon = entry.kind === "event" ? Flag : entry.kind === "milestone" ? CalendarDays : Clock;
         return (
           <li key={`${entry.date}-${entry.label}`} className="relative">
-            <span className={cn("absolute top-1 -left-[27px] grid size-3.5 place-items-center rounded-full border-2 bg-card", entry.kind === "event" ? "border-primary bg-primary" : entry.status === "done" ? "border-marigold bg-marigold" : "border-input")} aria-hidden="true" />
+            <span
+              className={cn(
+                "absolute top-1 -left-[27px] grid size-3.5 place-items-center rounded-full border-2 bg-card",
+                entry.kind === "event" ? "border-primary bg-primary" : entry.status === "done" ? "border-marigold bg-marigold" : "border-input",
+              )}
+              aria-hidden="true"
+            />
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <time dateTime={entry.date} className="num w-24 text-xs font-medium text-muted-foreground">{formatDate(entry.date)}</time>
               <span className={cn("flex items-center gap-1.5 text-sm", entry.kind === "event" && "font-display text-base")}>

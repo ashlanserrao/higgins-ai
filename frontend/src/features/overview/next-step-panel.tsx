@@ -102,13 +102,20 @@ function LeadCard({ lead, onBook, onMessage }: { lead: Lead; onBook: (id: string
 
   if (lead.kind === "slip") {
     const { item, moves } = lead;
+    // "the caterer (now 5 Dec), the décor and the photographer (now 8 Dec)"
+    const moved = moves.map((m, i) => (
+      <span key={m.id}>
+        {i ? (i === moves.length - 1 ? " and " : ", ") : ""}the {taskShortName(m.label)}
+        {m.expected_on ? ` (now ${formatShortDate(m.expected_on)})` : ""}
+      </span>
+    ));
     return (
       <div>
         <StatusBadge tone="warning" icon={CalendarClock}>A booking slipped</StatusBadge>
         <h3 className="mt-3 text-[19px] leading-snug">Your {taskShortName(item.label)} can confirm from {formatShortDate(item.expected_on!)}</h3>
         <p className="mt-1 text-[13px] text-muted-foreground">
           {moves.length
-            ? <>That moves {moves.map((m, i) => <span key={m.id}>{i ? (i === moves.length - 1 ? " and " : ", ") : ""}the {taskShortName(m.label)}{m.expected_on ? ` (now ${formatShortDate(m.expected_on)})` : ""}</span>)}. A quick message might bring it forward.</>
+            ? <>That moves {moved}. A quick message might bring it forward.</>
             : "Nothing else waits on it, so the rest of your plan stays as it is."}
           {item.at_risk && <> It's after the usual book-by date of {formatShortDate(item.book_by)}.</>}
         </p>
@@ -237,7 +244,12 @@ function NotesDrawer({ open, onOpenChange, attention }: { open: boolean; onOpenC
         {advice && group("A thought from AI", <p className="text-sm">{advice}</p>)}
         {group(`Recent changes (${recent.length})`, recent.length ? (
           <ul className="space-y-1.5 text-sm">
-            {recent.map((change, i) => <li key={recent.length - i}><span className="font-medium">{change.label}</span>{change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary.join(" ")}</span>}</li>)}
+            {recent.map((change, i) => (
+              <li key={recent.length - i}>
+                <span className="font-medium">{change.label}</span>
+                {change.summary.length > 0 && <span className="text-muted-foreground"> · {change.summary.join(" ")}</span>}
+              </li>
+            ))}
           </ul>
         ) : <p className="text-sm text-muted-foreground">Nothing changed yet this visit.</p>)}
       </DialogContent>

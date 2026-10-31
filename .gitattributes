@@ -1,0 +1,11 @@
+# Files not written by hand. GitHub collapses them in diffs and leaves them out of the
+# language stats; nothing else changes.
+
+# Built by `npm run build:hm` (and make-posters.mjs) from frontend/how-it-works/src/.
+frontend/public/hm/** linguist-generated
+# Generated from the backend's Pydantic models (README > Project structure).
+frontend/openapi.json linguist-generated
+frontend/src/lib/api-types.ts linguist-generated
+frontend/package-lock.json linguist-generated
+# Vendored unchanged, used at build time only (frontend/how-it-works/README.md).
+frontend/how-it-works/kit/** linguist-vendored

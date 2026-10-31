@@ -12,7 +12,10 @@ export function PlaceStep({ values, set, err, describedBy, flash }: StepProps) {
   return (
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="budget_inr" label="Total budget (₹)" error={err("budget_inr")} flash={flash === "budget_inr"} hint={values.budget_inr ? shortInr(Number(values.budget_inr)) : "Your all-in budget, in rupees"}>
+        <Field
+          id="budget_inr" label="Total budget (₹)" error={err("budget_inr")} flash={flash === "budget_inr"}
+          hint={values.budget_inr ? shortInr(Number(values.budget_inr)) : "Your all-in budget, in rupees"}
+        >
           <div className="relative">
             <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">₹</span>
             <Input id="budget_inr" type="number" inputMode="numeric" min={1000} max={100000000} step={1000} required className="num pl-7"

@@ -175,7 +175,7 @@ export function mount(root, host) {
         }
         el.coinSets.forEach((set, k) => { if (k === seg) { show(set[n]); move(set[n], at); } else hide(set[n]); });
       });
-      BUCKETS.forEach((bk, i) => {
+      BUCKETS.forEach((_bucket, i) => {
         const want = t < r.C0 - 0.05 && !r.first ? 0 : landed[i];
         const target = Math.min(1, want / plan.budget / D.full);
         view.level[i] += (target - view.level[i]) * (1 - Math.exp(-dt / 0.14));
@@ -260,8 +260,8 @@ export function mount(root, host) {
     if (last.tz !== tz) { last.tz = tz; move(el.ticket, [0, 0, tz]); }
     el.levels.forEach((rect, i) => {
       const h = f1(view.level[i] * D.tankH);
-      if (last["lv" + i] === h) return;
-      last["lv" + i] = h;
+      if (last[`lv${i}`] === h) return;
+      last[`lv${i}`] = h;
       rect.setAttribute("y", f1(D.tankH - h));
       rect.setAttribute("height", h);
       el.surfaces[i].setAttribute("d", `M0 ${f1(D.tankH - h)}H${D.tankW}`);
@@ -270,8 +270,8 @@ export function mount(root, host) {
     const dk = f1(view.drum * 1000);
     if (last.drum !== dk) { last.drum = dk; drawDrum(view.drum); }
     el.tags.forEach((node, i) => {
-      const key = f1(view.tagX[i]) + "," + f1(view.tagZ[i]);
-      if (last["tag" + i] !== key) { last["tag" + i] = key; move(node, [view.tagX[i], 0, view.tagZ[i]]); }
+      const key = `${f1(view.tagX[i])},${f1(view.tagZ[i])}`;
+      if (last[`tag${i}`] !== key) { last[`tag${i}`] = key; move(node, [view.tagX[i], 0, view.tagZ[i]]); }
     });
     const cx = f1(view.cardX - D.card.inX);
     if (last.card !== cx) { last.card = cx; move(el.card, (D.card.axis ?? [1, 0, 0]).map((c) => c * cx)); }
@@ -319,7 +319,7 @@ export function mount(root, host) {
     el.lines[2].textContent = `₹${p.budget} lakh`;
   }
   function writeCard(p) {
-    el.bars.forEach((bar, i) => bar.setAttribute("width", f1(Math.max(0.6, (p.amounts[BUCKETS[i].id] / p.budget) * 40))));
+    el.bars.forEach((bar, i) => { bar.setAttribute("width", f1(Math.max(0.6, (p.amounts[BUCKETS[i].id] / p.budget) * 40))); });
     el.bars[0].dataset.for = String(p.guests) + p.date.short;
   }
   function writePhone(p) {
@@ -327,13 +327,13 @@ export function mount(root, host) {
     el.phoneSub.dataset.for = String(p.guests) + p.date.short;
     el.phoneTitle.textContent = `${EXAMPLE.event}, ${EXAMPLE.city}`;
     el.phoneSub.textContent = `${p.guests} guests · ${p.date.month}`;
-    el.rows.forEach((row, i) => (row.textContent = lakh(p.amounts[BUCKETS[i].id])));
+    el.rows.forEach((row, i) => { row.textContent = lakh(p.amounts[BUCKETS[i].id]); });
     el.phoneBook.textContent = `${months(p.leads.venue)} ahead`;
   }
   const idleReadout = (p) => `Example · ${p.guests} guests · ${p.date.month} · ${lakh(p.budget)}`;
   function say(text) { if (el.readout.textContent !== text) el.readout.textContent = text; }
   function describeNow() {
-    const text = describe(plan);
+    const text = describePlan(plan);
     el.legend.innerHTML = `<span><b>Example split</b> ${BUCKETS.map((b) => `${b.name} ${lakh(plan.amounts[b.id])}`).join(" · ")}</span><span><b>Example book-by</b> ${BUCKETS.map((b) => `${b.name} ${months(plan.leads[b.id])} before`).join(" · ")}</span>`;
     if (announce) el.live.textContent = text;
     refreshTip();
@@ -364,8 +364,8 @@ export function mount(root, host) {
   const hits = el.hits;
   const tipText = (id) => {
     const p = plan;
-    if (id.startsWith("tank-")) return TIPS.tank(BUCKETS.find((b) => "tank-" + b.id === id), p);
-    if (id.startsWith("lane-")) return TIPS.lane(BUCKETS.find((b) => "lane-" + b.id === id), p);
+    if (id.startsWith("tank-")) return TIPS.tank(BUCKETS.find((b) => `tank-${b.id}` === id), p);
+    if (id.startsWith("lane-")) return TIPS.lane(BUCKETS.find((b) => `lane-${b.id}` === id), p);
     return TIPS[id](p);
   };
   let tipFor = null;
@@ -385,7 +385,10 @@ export function mount(root, host) {
     el.tip.setAttribute("data-show", "");
   }
   function hideTip(force) { if (force || tipFor) { tipFor = null; el.tip.removeAttribute("data-show"); } }
-  function refreshTip() { hits.forEach((n) => n.setAttribute("aria-label", tipText(n.dataset.hit))); if (tipFor) showTip(tipFor); }
+  function refreshTip() {
+    for (const n of hits) n.setAttribute("aria-label", tipText(n.dataset.hit));
+    if (tipFor) showTip(tipFor);
+  }
   const parts = hits.filter((n) => !n.dataset.button);
   hits.forEach((node) => {
     node.addEventListener("pointerenter", () => { showTip(node); node.setAttribute("data-focus", ""); });

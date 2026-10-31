@@ -3,7 +3,11 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
-    "includes": ["src/**", "e2e/**", "scripts/**", "*.ts", "!src/lib/api-types.ts"]
+    // how-it-works/kit is vendored and demo/ is built, so neither is ours to lint.
+    "includes": [
+      "src/**", "e2e/**", "scripts/**", "how-it-works/**", "*.ts",
+      "!src/lib/api-types.ts", "!how-it-works/kit", "!how-it-works/demo"
+    ]
   },
   "formatter": { "enabled": false },
   "assist": { "enabled": false },

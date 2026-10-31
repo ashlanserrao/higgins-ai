@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, Mic, X } from "lucide-react";
 import { LogoMark } from "@/components/brand";
-import { api } from "@/lib/api";
 import { readItem, writeItem } from "@/lib/safe-storage";
 import type { PlanRequest } from "@/lib/types";
 import { useMediaQuery } from "@/lib/use-media-query";
@@ -14,8 +13,10 @@ import { speechSupported, useSpeech } from "@/lib/use-speech";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";
 import { usePhoneSheet, useSlashKey } from "./ask-hooks";
-import { Review, type Outcome } from "./ask-review";
-import { headline, suggestions } from "./ask-words";
+import { ExamplesMenu, Waveform } from "./ask-parts";
+import { Review } from "./ask-review";
+import { useAskRequest, useExamples } from "./ask-state";
+import { suggestions } from "./ask-words";
 
 const PHONE = "(max-width: 767.98px)";
 const OPENED_KEY = "ask:opened";
@@ -28,22 +29,17 @@ export function AskDock() {
   const phone = useMediaQuery(PHONE);
   const [stage, setStage] = useState<Stage>("closed");
   const [text, setText] = useState(() => (activeId && readItem("session", draftKey(activeId))) || "");
-  const [busy, setBusy] = useState(false);
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [pulse] = useState(() => !readItem("local", OPENED_KEY));
-  const ticket = useRef(0);
   const dock = useRef<HTMLDivElement>(null);
   const circle = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
-  const examples = useRef<HTMLUListElement>(null);
-  // The examples show while the cursor is in the empty field (or on an example), until Esc.
-  const [focusHere, setFocusHere] = useState(false);
-  const [examplesHidden, setExamplesHidden] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const fieldId = useId();
   const hintId = useId();
   const headingId = useId();
   const open = stage !== "closed";
+  const request = useAskRequest(inputs, aiAvailable, () => setStage("review"));
+  const { busy, outcome, ready, title, send, drop } = request;
 
   const heard = useRef(false);
   const speech = useSpeech((words) => {
@@ -92,41 +88,16 @@ export function AskDock() {
   const { abort: stopListening } = speech;
   const close = useCallback((refocus = true) => {
     stopListening();
-    ticket.current++;
-    setBusy(false);
-    setOutcome(null);
+    drop();
     setStage("closed");
     if (refocus) window.requestAnimationFrame(() => circle.current?.focus());
-  }, [stopListening]);
+  }, [stopListening, drop]);
 
   const backToField = () => {
-    setOutcome(null);
+    request.clear();
     setStage("open");
     window.requestAnimationFrame(() => field.current?.focus());
   };
-
-  const send = async (message: string) => {
-    const asked = message.trim();
-    if (!asked || busy || !aiAvailable) return;
-    const mine = ++ticket.current;
-    setBusy(true);
-    setOutcome(null);
-    try {
-      const response = await api.understand(asked, inputs);
-      if (mine === ticket.current) setOutcome({ asked, response });
-    } catch {
-      if (mine === ticket.current) setOutcome({ asked, failed: true });
-    } finally {
-      if (mine === ticket.current) {
-        setBusy(false);
-        setStage("review");
-      }
-    }
-  };
-
-  const response = outcome?.response;
-  const ready = response?.plan && response.changes && response.fields.length > 0 && !response.errors.length ? response : null;
-  const title = response ? headline(response.fields, inputs) : "";
 
   const apply = () => {
     if (!ready?.plan || !ready.changes) return;
@@ -157,41 +128,22 @@ export function AskDock() {
     else close();
   };
 
+  const message = aiAvailable ? speech.message : null;
+  const chips = open && stage === "open" && aiAvailable && !text.trim() && !speech.listening && !busy
+    ? suggestions(inputs, plan.rebalance?.over_budget_inr ?? 0) : [];
+  const examples = useExamples(field, chips.length > 0);
+
   const onFieldKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showExamples && event.key === "ArrowUp") {
-      event.preventDefault();
-      exampleButtons().at(-1)?.focus();
-    } else if (showExamples && event.key === "Escape") {
-      event.preventDefault();
-      setExamplesHidden(true);
-    } else if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (examples.onFieldKey(event)) return;
+    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       void send(text);
     }
   };
 
-  const message = aiAvailable ? speech.message : null;
-  const chips = open && stage === "open" && aiAvailable && !text.trim() && !speech.listening && !busy
-    ? suggestions(inputs, plan.rebalance?.over_budget_inr ?? 0) : [];
-  const showExamples = chips.length > 0 && focusHere && !examplesHidden;
-
-  const inExamples = (node: EventTarget | null) => node instanceof Node && (node === field.current || Boolean(examples.current?.contains(node)));
-  const exampleButtons = () => [...(examples.current?.querySelectorAll("button") ?? [])];
   const pick = (example: string) => {
     setText(example);
     void send(example);
-  };
-  // Up and down move through the examples; down from the last goes back to the field.
-  const onExampleKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    const buttons = exampleButtons();
-    const at = buttons.indexOf(event.currentTarget);
-    if (event.key === "ArrowUp") buttons[Math.max(0, at - 1)].focus();
-    else if (event.key === "ArrowDown") (buttons[at + 1] ?? field.current)?.focus();
-    else if (event.key === "Escape") {
-      setExamplesHidden(true);
-      field.current?.focus();
-    } else return;
-    event.preventDefault();
   };
 
   return (
@@ -221,26 +173,7 @@ export function AskDock() {
         </section>
       )}
 
-      {/* Examples to try: a menu that drops up from the bar while its field is empty and has
-          the cursor. Pressing on one keeps the cursor in the field (no blur), then sends it. */}
-      {showExamples && (
-        <ul
-          ref={examples} aria-label="Examples to try"
-          onBlur={(e) => !inExamples(e.relatedTarget) && setFocusHere(false)}
-          className="pointer-events-auto mb-2 min-w-56 rounded-xl border bg-popover p-1.5 max-md:w-full [[data-theme=dark]_&]:border-(--hairline-strong)"
-        >
-          {chips.map(({ icon: Icon, text: example }) => (
-            <li key={example}>
-              <button
-                type="button" tabIndex={-1} onMouseDown={(e) => e.preventDefault()} onClick={() => pick(example)} onKeyDown={onExampleKey}
-                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] outline-none hover:bg-accent focus-visible:bg-accent pointer-coarse:min-h-11"
-              >
-                <Icon className="size-3.5 shrink-0 text-primary-text" aria-hidden="true" /> {example}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {examples.shown && <ExamplesMenu chips={chips} menu={examples} onPick={pick} />}
 
       {/* Always mounted, so what it says is read out as it changes. */}
       <div aria-live="polite" className="contents">
@@ -285,11 +218,8 @@ export function AskDock() {
                   speech.clearError();
                 }}
                 onKeyDown={onFieldKey}
-                onFocus={(e) => {
-                  setFocusHere(true);
-                  if (!inExamples(e.relatedTarget)) setExamplesHidden(false);
-                }}
-                onBlur={(e) => !inExamples(e.relatedTarget) && setFocusHere(false)}
+                onFocus={examples.onFieldFocus}
+                onBlur={examples.onBlur}
                 aria-describedby={hintId}
                 placeholder={!aiAvailable ? "Changes in your own words need the AI, which isn't set up here"
                   // The phone's 16px text (smaller makes iOS zoom in) fits only the short one.
@@ -335,22 +265,5 @@ export function AskDock() {
         </button>
       </div>
     </div>
-  );
-}
-
-// Each bar's height and its place in the wave.
-const BARS = [
-  "h-3", "h-[19px] [animation-delay:-150ms]", "h-6 [animation-delay:-300ms]", "h-4 [animation-delay:-450ms]",
-  "h-[22px] [animation-delay:-600ms]", "h-[13px] [animation-delay:-750ms]", "h-2 [animation-delay:-100ms]",
-];
-
-/** Seven bars that rise and fall while the browser listens; still under reduced motion. */
-function Waveform() {
-  return (
-    <span className="flex h-6 shrink-0 items-center gap-[3px]" aria-hidden="true">
-      {BARS.map((bar) => (
-        <span key={bar} className={cn("w-[3px] rounded-full bg-primary-text motion-safe:animate-[ask-wave_900ms_ease-in-out_infinite]", bar)} />
-      ))}
-    </span>
   );
 }

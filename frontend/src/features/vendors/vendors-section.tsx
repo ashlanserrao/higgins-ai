@@ -167,7 +167,9 @@ function QuoteCard({ quote, comparison, onEdit }: { quote: Quote; comparison: Qu
             <BadgeCheck aria-hidden="true" /> Accept this quote
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={onEdit}>{quote.verified ? <PencilLine aria-hidden="true" /> : <BadgeCheck aria-hidden="true" />} {quote.verified ? "Edit" : "Check details"}</Button>
+        <Button size="sm" variant="outline" onClick={onEdit}>
+          {quote.verified ? <PencilLine aria-hidden="true" /> : <BadgeCheck aria-hidden="true" />} {quote.verified ? "Edit" : "Check details"}
+        </Button>
         <Button size="icon-sm" variant="ghost" onClick={remove} aria-label={`Delete the quote from ${name}`} className="ml-auto"><Trash2 aria-hidden="true" /></Button>
       </div>
       {!comparison.accepted && (!quote.verified || !priced) && (

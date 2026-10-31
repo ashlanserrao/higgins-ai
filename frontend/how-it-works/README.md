@@ -23,6 +23,8 @@ npm run build:hm               # writes ../public/hm/loader.js, machine.js, mach
 node how-it-works/serve.mjs    # http://localhost:8017/ (the demo host page)
 ```
 
+The sources here are linted with the app (`npm run lint`); `kit/` is vendored and isn't.
+
 **No inline styles anywhere**, so the app can send `style-src 'self'`: the CSS is a linked file, and what the runtime styles (coins, levels, the placeholder) it sets from script, which a CSP allows.
 
 **The posters are committed artifacts.** `npm run build:hm` never touches `poster.html` or the PNGs. Regenerate them after changing the art or the example numbers. That needs the Anatomy skill's headless-browser driver (`drive.mjs` and `capture.mjs`), which is not in this repo:

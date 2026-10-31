@@ -79,7 +79,14 @@ export function GuestsSection() {
         </div>
       )}
 
-      <Panel title="Add a guest" icon={UserPlus} actions={<span className="flex items-center gap-1 text-xs text-muted-foreground"><Lock className="size-3.5" aria-hidden="true" /> Stays in this browser</span>}>
+      <Panel
+        title="Add a guest" icon={UserPlus}
+        actions={
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Lock className="size-3.5" aria-hidden="true" /> Stays in this browser
+          </span>
+        }
+      >
         <form onSubmit={add} noValidate className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_0.7fr_1fr_auto] lg:items-end">
           <div className="grid gap-1.5">
             <Label htmlFor="g-name">Name</Label>

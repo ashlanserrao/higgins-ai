@@ -11,7 +11,7 @@ import { FieldError } from "@/components/field-error";
 import { ApiError } from "@/lib/api";
 import { EVENT_LABELS } from "@/lib/format";
 import { emptyProgress } from "@/lib/share";
-import type { UnderstandResponse } from "@/lib/types";
+import type { EventType, UnderstandResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { usePlanner } from "@/state/planner";
 import { DescribeBox } from "./describe-box";
@@ -22,6 +22,7 @@ import {
 import { EventStep } from "./steps/event-step";
 import { PlaceStep } from "./steps/place-step";
 import { PrioritiesStep } from "./steps/priorities-step";
+import { useFillAnimation } from "./use-fill-animation";
 
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -38,8 +39,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
   const [busy, setBusy] = useState(false);
   const [confirmFresh, setConfirmFresh] = useState(false);
   const [aiPath, setAiPath] = useState(Boolean(initialText.trim())); // typing in the box: its button is the main one
-  const [filling, setFilling] = useState<{ values: Values; keys: (keyof Values)[]; step: number } | null>(null);
-  const [flash, setFlash] = useState<keyof Values | null>(null);
+  const { flash, start: startFill } = useFillAnimation(setValues, setStep);
 
   // A new plan previews its event's colours as the type is picked; App sets them otherwise.
   useEffect(() => {
@@ -63,29 +63,9 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
       setStep(target);
       return;
     }
-    setStep(FIELD_STEP[keys[0]]);
-    setFilling({ values: next, keys, step: target });
+    // Fill one understood value at a time, on its own step, then land where checking is needed.
+    startFill({ values: next, keys, step: target });
   };
-
-  // Fill one understood value at a time, on its own step, then land where checking is needed.
-  useEffect(() => {
-    if (!filling) return;
-    const timer = window.setTimeout(() => {
-      const [key, ...rest] = filling.keys;
-      if (!key) {
-        setValues(filling.values);
-        setStep(filling.step);
-        setFlash(null);
-        setFilling(null);
-        return;
-      }
-      setStep(FIELD_STEP[key]);
-      setValues((v) => ({ ...v, [key]: filling.values[key] }));
-      setFlash(key);
-      setFilling({ ...filling, keys: rest });
-    }, 350);
-    return () => window.clearTimeout(timer);
-  }, [filling]);
 
   // Where focus goes after the next render: a field with an error, or the first field of the
   // step just opened (the Next and Back buttons it was on may be gone). Only for moves the
@@ -164,36 +144,8 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
       )}
 
       <form onSubmit={onSubmit} noValidate className="rounded-xl border bg-card p-5 md:p-7">
-        <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Steps">
-          {STEPS.map((name, index) => (
-            <li key={name}>
-              <button
-                type="button"
-                onClick={() => index < step && setStep(index)}
-                aria-current={index === step ? "step" : undefined}
-                className={cn(
-                  "w-full border-t-4 pt-2 text-left text-xs font-medium md:text-sm",
-                  index <= step ? "border-primary-text text-foreground" : "border-surface-soft text-muted-foreground",
-                )}
-              >
-                <span className="block text-xs text-muted-foreground">Step {index + 1}</span>
-                {name}
-              </button>
-            </li>
-          ))}
-        </ol>
-
-        {filled && (
-          <div className="mb-5 space-y-2 rounded-lg bg-ai-soft p-4 text-sm ring-1 ring-ai-border" aria-live="polite">
-            <p className="font-medium">Filled in for you. Have a quick look, then carry on.</p>
-            {filled.fields.length > 0 && <p>{filled.fields.map((f) => f.label).join(", ")}.</p>}
-            {filled.missing.length > 0 && (
-              <p className="text-danger">Still needed: {filled.missing.map((f) => FIELD_NAMES[f] ?? f).join(", ")}.</p>
-            )}
-            {filled.unclear.map((u) => <p key={u} className="text-muted-foreground">Not sure: {u}</p>)}
-            {filled.errors.map((e) => <FieldError key={e.field}>{e.message}</FieldError>)}
-          </div>
-        )}
+        <StepList step={step} onBack={setStep} />
+        {filled && <FilledNote filled={filled} />}
 
         {formError && (
           <p role="alert" className="mb-4 rounded-lg bg-danger-soft p-4 text-sm font-medium text-danger">{formError}</p>
@@ -241,21 +193,71 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
         )}
       </form>
 
-      <Dialog open={confirmFresh} onOpenChange={setConfirmFresh}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Start this plan over?</DialogTitle>
-            <DialogDescription>
-              A {values.event_type ? EVENT_LABELS[values.event_type].toLowerCase() : "different event"} has different bookings and budget lines, so your bookings,
-              quotes, money moves and guest list for this event will be cleared. Your other events stay as they are.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmFresh(false)}>Keep my plan</Button>
-            <Button variant="destructive" onClick={() => submit(true)}>Clear and start over</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <StartOverDialog
+        open={confirmFresh} onOpenChange={setConfirmFresh} eventType={values.event_type} onConfirm={() => submit(true)}
+      />
     </div>
+  );
+}
+
+/** The three steps across the top. A step already passed can be reopened; later ones can't. */
+function StepList({ step, onBack }: { step: number; onBack: (step: number) => void }) {
+  return (
+    <ol className="mb-6 grid grid-cols-3 gap-2" aria-label="Steps">
+      {STEPS.map((name, index) => (
+        <li key={name}>
+          <button
+            type="button"
+            onClick={() => index < step && onBack(index)}
+            aria-current={index === step ? "step" : undefined}
+            className={cn(
+              "w-full border-t-4 pt-2 text-left text-xs font-medium md:text-sm",
+              index <= step ? "border-primary-text text-foreground" : "border-surface-soft text-muted-foreground",
+            )}
+          >
+            <span className="block text-xs text-muted-foreground">Step {index + 1}</span>
+            {name}
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** What the plain-language box filled in, what's still needed, and what it wasn't sure of. */
+function FilledNote({ filled }: { filled: UnderstandResponse }) {
+  return (
+    <div className="mb-5 space-y-2 rounded-lg bg-ai-soft p-4 text-sm ring-1 ring-ai-border" aria-live="polite">
+      <p className="font-medium">Filled in for you. Have a quick look, then carry on.</p>
+      {filled.fields.length > 0 && <p>{filled.fields.map((f) => f.label).join(", ")}.</p>}
+      {filled.missing.length > 0 && (
+        <p className="text-danger">Still needed: {filled.missing.map((f) => FIELD_NAMES[f] ?? f).join(", ")}.</p>
+      )}
+      {filled.unclear.map((u) => <p key={u} className="text-muted-foreground">Not sure: {u}</p>)}
+      {filled.errors.map((e) => <FieldError key={e.field}>{e.message}</FieldError>)}
+    </div>
+  );
+}
+
+/** Changing the event type of a plan with progress clears that progress, so it asks first. */
+function StartOverDialog({ open, onOpenChange, eventType, onConfirm }: {
+  open: boolean; onOpenChange: (open: boolean) => void; eventType: EventType | ""; onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Start this plan over?</DialogTitle>
+          <DialogDescription>
+            A {eventType ? EVENT_LABELS[eventType].toLowerCase() : "different event"} has different bookings and budget lines, so your bookings,
+            quotes, money moves and guest list for this event will be cleared. Your other events stay as they are.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Keep my plan</Button>
+          <Button variant="destructive" onClick={onConfirm}>Clear and start over</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

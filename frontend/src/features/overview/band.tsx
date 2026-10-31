@@ -68,7 +68,11 @@ export function OverviewBand() {
         {over ? (
           <BandStat
             value={<Odometer value={inr(over)} />}
-            label={<span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning"><AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Over budget by</span>}
+            label={
+              <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 font-semibold text-warning">
+                <AlertTriangle className="size-3.5 shrink-0" aria-hidden="true" /> Over budget by
+              </span>
+            }
           />
         ) : (
           <BandStat value={<Odometer value={inr(buffer)} />} label="Buffer" />

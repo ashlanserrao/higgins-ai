@@ -22,7 +22,7 @@ export function partsFor(P) {
   const faceX = (x, y0, zTop, inner, extra = "") => `<g transform="${k.sideMatrix([x, y0], zTop, P, "right")}"${extra}>${inner}</g>`;
   const top = (x0, y0, z, inner, extra = "") => `<g transform="${k.topMatrix([x0, y0], z, P, "x")}"${extra}>${inner}</g>`;
   const text = (x, y, str, { size = 4, anchor = "middle", tone = "hi", cls = "", weight } = {}) =>
-    `<text class="iso-face-text${cls ? " " + cls : ""}" data-tone="${tone}" x="${f1(x)}" y="${f1(y)}" font-size="${size}" text-anchor="${anchor}"${weight ? ` font-weight="${weight}"` : ""}>${esc(str)}</text>`;
+    `<text class="iso-face-text${cls ? ` ${cls}` : ""}" data-tone="${tone}" x="${f1(x)}" y="${f1(y)}" font-size="${size}" text-anchor="${anchor}"${weight ? ` font-weight="${weight}"` : ""}>${esc(str)}</text>`;
   const rect = (x, y, w, h, cls, r = 0, extra = "") => `<rect class="${cls}" x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="${r}"${extra}/>`;
   const halo = (plan, z, h) => `<path class="iso-halo" d="${k.haloOf(plan, z, h, P)}"/>`;
   const slab = (plan, z, h, style = {}, steps = 4, bevel = 0.5) => S(k.slabOf(plan, z, h, P, steps, bevel), style);

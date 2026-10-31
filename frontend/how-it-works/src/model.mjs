@@ -113,7 +113,7 @@ function coinsOf(amounts, example) {
 export const lakh = (value) => `₹${value.toFixed(1).replace(/\.0$/, "")} lakh`;
 export const months = (value) => `${String(value).replace(/\.5$/, "½")} months`;
 
-export function describe(plan) {
+export function describePlan(plan) {
   const split = BUCKETS.map(({ id, name }) => `${name} ${lakh(plan.amounts[id])}`).join(", ");
   const books = BUCKETS.map(({ id, name }) => `${name.toLowerCase()} about ${months(plan.leads[id])} before`).join(", ");
   return `Example: “${plan.sentence}”, in ${plan.date.month}. Budget split: ${split}. Book ${books}.`;
