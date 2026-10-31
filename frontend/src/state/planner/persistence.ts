@@ -1,7 +1,7 @@
 // Loading at start and saving on every change. The browser is the only store.
 
 import { useCallback, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { todayInIndia } from "@/lib/format";
 import { readSharedIdeas, readSharedInputs } from "@/lib/share";
 import { storage, type SavedEvent } from "@/lib/storage";
@@ -29,7 +29,7 @@ export function useBoot({ stateRef, patch, storeEvent, fail }: Store, recalculat
       try {
         options = await api.options();
       } catch (error) {
-        patch({ booting: false, bootError: (error as Error).message });
+        patch({ booting: false, bootError: errorMessage(error) });
         return;
       }
       let shared = readSharedInputs();
@@ -50,7 +50,7 @@ export function useBoot({ stateRef, patch, storeEvent, fail }: Store, recalculat
           // Recalculated against today; ideas come from the link, not a new AI call.
           await recalculate(shared.inputs, { ideasFor: ideas ? ideasKey(shared.inputs) : null });
         } catch (error) {
-          const message = `This shared plan can't be shown: ${(error as Error).message} Change the details to make a new plan.`;
+          const message = `This shared plan can't be shown: ${errorMessage(error)} Change the details to make a new plan.`;
           patch({ inputs: shared.inputs, bootError: message });
         }
       } else if (open) {

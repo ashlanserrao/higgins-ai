@@ -13,15 +13,17 @@ import logging
 import re
 import statistics
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from app.ai.client import StructuredAI, default_providers
 from app.ai.ideas import PRICES, IdeasGenerator
-from app.ai.quotes import QuoteExtractor
-from app.ai.understand import PlanInterpreter
+from app.ai.quotes import QuoteDraft, QuoteExtractor
+from app.ai.schema import EventIdeas
+from app.ai.understand import Interpretation, PlanInterpreter
 from app.config import Settings
 from app.engine.planner import build_plan
 from app.models import PlanRequest
@@ -46,6 +48,9 @@ PLANS = {
         venue_type="outdoor", households=120,
     ),
 }
+# One line of a cases file, and what a task makes of it: the answer to await, and its checker.
+Case = dict[str, Any]
+Run = Callable[[Case], tuple[Awaitable[Any], Callable[[Any], list[str]]]]
 LAVISH = re.compile(r"\b(?:luxury|luxurious|lavish|premium|designer|imported|extravagant)\b", re.IGNORECASE)
 
 
@@ -54,7 +59,7 @@ class Attempts(logging.Handler):
 
     def __init__(self) -> None:
         super().__init__()
-        self.lines: list[tuple] = []
+        self.lines: list[tuple[Any, ...]] = []
 
     def emit(self, record: logging.LogRecord) -> None:
         if isinstance(record.args, tuple) and len(record.args) == 5:
@@ -70,7 +75,7 @@ class Result:
     problems: list[str] = field(default_factory=list)
 
 
-def check_understand(case: dict, interpretation) -> list[str]:
+def check_understand(case: Case, interpretation: Interpretation | None) -> list[str]:
     if interpretation is None:
         return ["no answer"]
     values = {k: sorted(v) if isinstance(v, list) else v for k, v in interpretation.values.items()}
@@ -85,7 +90,7 @@ def check_understand(case: dict, interpretation) -> list[str]:
     return problems
 
 
-def check_quote(case: dict, draft) -> list[str]:
+def check_quote(case: Case, draft: QuoteDraft | None) -> list[str]:
     if case["expect"] is None:
         return [] if draft is None else ["should not read a quote here"]
     if draft is None:
@@ -94,12 +99,16 @@ def check_quote(case: dict, draft) -> list[str]:
     return [
         f"{name}: got {got.get(name)!r}, expected {want!r}"
         for name, want in case["expect"].items()
-        if (got.get(name).casefold() if isinstance(got.get(name), str) else got.get(name))
-        != (want.casefold() if isinstance(want, str) else want)
+        if _folded(got.get(name)) != _folded(want)
     ]
 
 
-def check_ideas(case: dict, ideas, tight: bool) -> list[str]:
+def _folded(value: Any) -> Any:
+    """Text compared without case; anything else as it is."""
+    return value.casefold() if isinstance(value, str) else value
+
+
+def check_ideas(case: Case, ideas: EventIdeas | None, tight: bool) -> list[str]:
     if ideas is None:
         return ["no ideas"]
     text = " ".join(f"{i.title} {i.detail}" for cat in (ideas.themes, ideas.decor, ideas.food, ideas.entertainment)
@@ -114,25 +123,25 @@ def check_ideas(case: dict, ideas, tight: bool) -> list[str]:
     return problems
 
 
-def runner(task: str, ai: StructuredAI) -> Callable:
+def runner(task: str, ai: StructuredAI) -> Run:
     """The case → (awaitable answer, checker) for one task, through the app's own feature class."""
     if task == "understand":
         interpreter = PlanInterpreter(ai)
         return lambda case: (
-            interpreter.interpret(case["message"], PLANS.get(case.get("current")), TODAY),
+            interpreter.interpret(case["message"], PLANS.get(case.get("current", "")), TODAY),
             lambda answer: check_understand(case, answer),
         )
     if task == "quotes":
         extractor = QuoteExtractor(ai)
 
-        def quote(case):
+        def quote(case: Case) -> tuple[Awaitable[Any], Callable[[Any], list[str]]]:
             request = PLANS[case["plan"]]
             return extractor.extract(request, build_plan(request, TODAY), case["text"], TODAY), (
                 lambda answer: check_quote(case, answer))
         return quote
     generator = IdeasGenerator(ai)
 
-    def ideas(case):
+    def ideas(case: Case) -> tuple[Awaitable[Any], Callable[[Any], list[str]]]:
         request = PLANS[case["plan"]].model_copy(update={
             "preferences": case["preferences"], "must_haves": case["must_haves"],
         })
@@ -150,8 +159,8 @@ async def run_task(task: str, provider: str, attempts: Attempts, limit: int | No
             settings = Settings()
             chain = [p for p in default_providers(settings) if p.name == provider]
             attempts.lines.clear()
-            answer, check = runner(task, StructuredAI(settings, chain))(case)
-            answer = await answer
+            pending, check = runner(task, StructuredAI(settings, chain))(case)
+            answer = await pending
             _, _, _, ms, outcome = attempts.lines[-1] if attempts.lines else ("", "", "", 0, "none")
             if outcome != "429":
                 break

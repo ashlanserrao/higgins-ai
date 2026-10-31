@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { AiNote } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
+import { errorMessage } from "@/lib/api";
 import type { Quote } from "@/lib/types";
 import { usePlan } from "@/state/planner";
 
@@ -80,7 +81,7 @@ export function QuoteEditor({ quote, onClose }: { quote: Quote | null; onClose: 
       }, `${isNew ? "Added" : "Updated"} the quote${saved.vendor ? ` from ${saved.vendor}` : ""}`);
       onClose();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

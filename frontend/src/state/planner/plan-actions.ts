@@ -2,7 +2,7 @@
 // changes, progress, undo and the guest list.
 
 import { useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { todayInIndia } from "@/lib/format";
 import { newEventId } from "@/lib/storage";
 import type { Guest, Plan, PlanRequest, Progress } from "@/lib/types";
@@ -75,7 +75,7 @@ export function usePlanActions(
       await recalculate(last.previous, { lastChange: null, recent: noted(`Undid: ${last.label}`) });
       announce(`Undone: ${last.label}.`);
     } catch (error) {
-      fail(`Couldn't undo “${last.label}”. ${(error as Error).message}`);
+      fail(`Couldn't undo “${last.label}”. ${errorMessage(error)}`);
     }
   }, [announce, fail, recalculate]);
 

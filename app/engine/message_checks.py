@@ -124,7 +124,7 @@ def signs_from_the_message(changes: Mapping[str, Any], message: str) -> dict[str
     return flipped
 
 
-def _direction(message: str, topic: re.Pattern) -> int:
+def _direction(message: str, topic: re.Pattern[str]) -> int:
     """+1 or -1 when every part of the message about this field points the same way, else 0."""
     found = set()
     for part in re.split(r"[,;.]|\band\b|\bbut\b|\bthen\b", message, flags=re.IGNORECASE):

@@ -4,28 +4,26 @@
 
 import { useRef, useState, type ReactNode, type Ref } from "react";
 import {
-  AlertTriangle, CalendarCheck, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine, Plus,
-  Printer, ReceiptIndianRupee, Share2, Store, UserPlus, Users, Wallet, type LucideIcon,
+  AlertTriangle, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine,
+  Printer, Store, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { LogoFull, LogoMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { PageBandTools } from "@/components/page-band";
 import { inr, shortInr } from "@/lib/format";
 import { expectedGuests } from "@/lib/guests";
-import { buildShareUrl } from "@/lib/share";
+import { readItem, writeItem } from "@/lib/safe-storage";
 import { needsAction } from "@/lib/tasks";
 import { DESKTOP, useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
-import { routeHash, useNav, type Intent, type Section } from "@/state/nav";
+import { useNav, type Section } from "@/state/nav";
 import { usePlan } from "@/state/planner";
+import { AddMenu } from "./add-menu";
 import { AskDock } from "./ask-dock";
 import { EventSwitcher } from "./event-switcher";
 import { ProfileMenu } from "./profile-menu";
+import { SectionLink } from "./section-link";
+import { BandTools, ShareButton } from "./share-button";
 import { AppearanceControl } from "./theme-control";
 
 // Each section's icon sits on its own soft chip in the sidebar, tinted from the semantic tokens
@@ -56,64 +54,13 @@ function useCounts(): Record<Section, ReactNode> {
   };
 }
 
-/** `rail`: the folded sidebar's, an icon that opens to its right. */
-function AddMenu({ className, rail = false }: { className?: string; rail?: boolean }) {
-  const { go } = useNav();
-  const items: { label: string; icon: LucideIcon; section: Section; intent: Intent }[] = [
-    { label: "Add a quote", icon: ReceiptIndianRupee, section: "vendors", intent: "add-quote" },
-    { label: "Mark a booking", icon: CalendarCheck, section: "tasks", intent: "mark-booking" },
-    { label: "Add a guest", icon: UserPlus, section: "guests", intent: "add-guest" },
-    { label: "Move money", icon: Wallet, section: "budget", intent: "move-money" },
-  ];
-  // A chosen item opens its tool with the first field focused. The menu holds focus until it
-  // has fully closed, so the page changes only then; a menu closed without a choice hands
-  // focus back to Add.
-  const chosen = useRef<{ section: Section; intent: Intent } | null>(null);
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size={rail ? "icon" : "default"} className={className} aria-label="Add" title={rail ? "Add" : undefined}>
-          <Plus aria-hidden="true" /> {!rail && <span className="hidden sm:inline">Add</span>}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start" side={rail ? "right" : undefined} className="w-56"
-        onCloseAutoFocus={(event) => {
-          if (!chosen.current) return;
-          event.preventDefault();
-          go(chosen.current.section, chosen.current.intent);
-          chosen.current = null;
-        }}
-      >
-        <DropdownMenuLabel>Something changed?</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {items.map(({ label, icon: Icon, section, intent }) => (
-          <DropdownMenuItem key={label} onSelect={() => (chosen.current = { section, intent })}>
-            <Icon aria-hidden="true" /> {label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 const COLLAPSED_KEY = "sidebar:collapsed";
 
 /** Folded or not, remembered in this browser (storage can be blocked: then it lasts the visit). */
 function useCollapsed() {
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      return localStorage.getItem(COLLAPSED_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [collapsed, setCollapsed] = useState(() => readItem("local", COLLAPSED_KEY) === "1");
   const toggle = () => {
-    try {
-      localStorage.setItem(COLLAPSED_KEY, collapsed ? "0" : "1");
-    } catch {
-      // Not remembered; it still folds.
-    }
+    writeItem("local", COLLAPSED_KEY, collapsed ? "0" : "1");
     setCollapsed(!collapsed);
   };
   return [collapsed, toggle] as const;
@@ -121,19 +68,11 @@ function useCollapsed() {
 
 /** The brand, which opens the event's overview (signed in, the landing page is behind you). */
 function Logo({ toggleRef, onCollapse }: { toggleRef: Ref<HTMLButtonElement>; onCollapse: () => void }) {
-  const { eventId, go } = useNav();
   return (
     <div className="flex items-center gap-2">
-      <a
-        href={routeHash({ eventId, section: "overview" })}
-        onClick={(e) => {
-          e.preventDefault();
-          go("overview");
-        }}
-        className="flex min-w-0 flex-1 items-center rounded-lg"
-      >
+      <SectionLink section="overview" className="flex min-w-0 flex-1 items-center rounded-lg">
         <LogoFull />
-      </a>
+      </SectionLink>
       <Button
         ref={toggleRef} variant="ghost" size="icon-sm" onClick={onCollapse}
         aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded aria-controls="sidebar"
@@ -167,16 +106,11 @@ function RailLogo({ toggleRef, onExpand }: { toggleRef: Ref<HTMLButtonElement>; 
  *  sidebar's, the event's dot and a warning icon. */
 function EventCard({ rail = false }: { rail?: boolean }) {
   const { plan } = usePlan();
-  const { eventId, go } = useNav();
   const over = plan.rebalance?.over_budget_inr ?? 0;
   const warning = over ? `Over budget by ${inr(over)}` : "Budget tight";
   const budgetLink = plan.budget_status !== "ok" && (
-    <a
-      href={routeHash({ eventId, section: "budget" })}
-      onClick={(e) => {
-        e.preventDefault();
-        go("budget");
-      }}
+    <SectionLink
+      section="budget"
       aria-label={rail ? warning : undefined} title={rail ? warning : undefined}
       className={rail
         ? "grid size-8 place-items-center rounded-full bg-warning-soft text-warning"
@@ -184,7 +118,7 @@ function EventCard({ rail = false }: { rail?: boolean }) {
     >
       <AlertTriangle className={rail ? "size-3.5" : "mt-px size-3.5 shrink-0"} aria-hidden="true" />
       {!rail && warning}
-    </a>
+    </SectionLink>
   );
   return rail ? (
     <div className="flex flex-col items-center gap-2">
@@ -199,66 +133,8 @@ function EventCard({ rail = false }: { rail?: boolean }) {
   );
 }
 
-/** `tone="band"`: white on the Overview's coloured band. */
-function ShareButton({ tone }: { tone?: "band" }) {
-  const { inputs, plannedOn, ideas, ideasStatus, announce } = usePlan();
-  const [url, setUrl] = useState("");
-  const share = async () => {
-    const link = await buildShareUrl(inputs, plannedOn, ideasStatus === "ready" ? ideas : null);
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Our event plan", url: link });
-        return;
-      }
-      await navigator.clipboard.writeText(link);
-      announce("Link copied. Paste it into WhatsApp or email.");
-    } catch {
-      setUrl(link);
-    }
-  };
-  return (
-    <>
-      {tone === "band" ? (
-        <Button
-          variant="outline" onClick={share}
-          className="rounded-full border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
-        >
-          <Share2 aria-hidden="true" /> <span className="xl:hidden">Share</span><span className="hidden xl:inline">Share with family</span>
-        </Button>
-      ) : (
-        <Button variant="outline" onClick={share} aria-label="Share with family"><Share2 aria-hidden="true" /> <span className="hidden sm:inline">Share with family</span></Button>
-      )}
-      <Dialog open={Boolean(url)} onOpenChange={(o) => !o && setUrl("")}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share this plan</DialogTitle>
-            <DialogDescription>The link holds the plan and ideas only. Your notes, bookings, quotes and guest list stay with you.</DialogDescription>
-          </DialogHeader>
-          <Input readOnly value={url} onFocus={(e) => e.target.select()} aria-label="Shareable link" />
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-/** On a desktop the page band carries these instead of the top bar. `onPrint` prints or saves
- *  the whole plan (App renders every section first). */
-function BandTools({ onPrint }: { onPrint: () => void }) {
-  return (
-    <>
-      <ShareButton tone="band" />
-      <Button
-        variant="ghost" size="icon" onClick={onPrint} aria-label="Print or save as PDF" title="Print or save as PDF"
-        className="text-primary-foreground hover:bg-primary-foreground/15 hover:text-primary-foreground"
-      >
-        <Printer aria-hidden="true" />
-      </Button>
-    </>
-  );
-}
-
 export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEdit: () => void; onPrint: () => void }) {
-  const { section, eventId, go } = useNav();
+  const { section } = useNav();
   const { shared, keepSharedPlan, activeId } = usePlan();
   const counts = useCounts();
   const [collapsed, toggleSidebar] = useCollapsed();
@@ -276,13 +152,9 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
     const Icon = item.icon;
     const active = section === item.id;
     if (collapsed && !compact) return (
-      <a
+      <SectionLink
         key={item.id}
-        href={routeHash({ eventId, section: item.id })}
-        onClick={(e) => {
-          e.preventDefault();
-          go(item.id);
-        }}
+        section={item.id}
         aria-current={active ? "page" : undefined}
         title={item.label}
         className={cn("relative grid size-10 place-items-center rounded-lg", active ? "bg-primary-soft" : "hover:bg-surface")}
@@ -293,16 +165,12 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         <span className="sr-only">{item.label}{counts[item.id] && <>, {counts[item.id]}</>}</span>
         {/* Only what needs attention keeps a mark when the counts fold away. */}
         {item.id === "tasks" && counts.tasks && <span className="absolute top-1 right-1 size-2 rounded-full bg-warning ring-2 ring-surface-soft" aria-hidden="true" />}
-      </a>
+      </SectionLink>
     );
     return (
-      <a
+      <SectionLink
         key={item.id}
-        href={routeHash({ eventId, section: item.id })}
-        onClick={(e) => {
-          e.preventDefault();
-          go(item.id);
-        }}
+        section={item.id}
         aria-current={active ? "page" : undefined}
         className={cn(
           compact
@@ -322,7 +190,7 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
         )}
         <span className={compact ? "" : "min-w-0 flex-1"}>{item.label}</span>
         {!compact && counts[item.id]}
-      </a>
+      </SectionLink>
     );
   };
 

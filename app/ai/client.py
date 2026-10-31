@@ -55,7 +55,7 @@ class Provider:
         raise NotImplementedError
 
     async def reply(
-        self, *, task: str, instructions: str, prompt_input: str, response_format: dict,
+        self, *, task: str, instructions: str, prompt_input: str, response_format: dict[str, Any],
         max_output_tokens: int, timeout: float,
     ) -> str:
         raise NotImplementedError
@@ -69,7 +69,10 @@ class OpenAIProvider(Provider):
     def model(self, task: str) -> str:
         return self.settings.openai_model
 
-    async def reply(self, *, task, instructions, prompt_input, response_format, max_output_tokens, timeout) -> str:
+    async def reply(
+        self, *, task: str, instructions: str, prompt_input: str, response_format: dict[str, Any],
+        max_output_tokens: int, timeout: float,
+    ) -> str:
         # The SDK types these as TypedDicts and Literals; our schemas and settings are plain dicts and strings.
         options: dict[str, Any] = {"text": {"format": response_format}}
         if self.settings.openai_reasoning_effort:
@@ -83,7 +86,8 @@ class OpenAIProvider(Provider):
             timeout=timeout,
             **options,
         )
-        return response.output_text
+        text: str = response.output_text  # typed loosely by the SDK when options are passed as **kwargs
+        return text
 
 
 class GroqProvider(Provider):
@@ -94,7 +98,10 @@ class GroqProvider(Provider):
     def model(self, task: str) -> str:
         return self.settings.groq_task_models.get(task, self.settings.groq_model)
 
-    async def reply(self, *, task, instructions, prompt_input, response_format, max_output_tokens, timeout) -> str:
+    async def reply(
+        self, *, task: str, instructions: str, prompt_input: str, response_format: dict[str, Any],
+        max_output_tokens: int, timeout: float,
+    ) -> str:
         # As above: the SDK's TypedDicts and Literals don't take our plain schema dicts and setting strings.
         options: dict[str, Any] = {"response_format": {"type": "json_schema", "json_schema": {
             "name": response_format["name"], "schema": response_format["schema"], "strict": True,
@@ -142,7 +149,7 @@ class StructuredAI:
         return bool(self.providers)
 
     async def call(
-        self, *, task: str, instructions: str, prompt_input: str, response_format: dict,
+        self, *, task: str, instructions: str, prompt_input: str, response_format: dict[str, Any],
         output: type[M], max_output_tokens: int,
     ) -> M | None:
         """One structured reply validated as `output`, or None. Repeats come from the cache."""

@@ -3,6 +3,7 @@
 // The browser asks for the microphone on the first start(), never before.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { readItem, writeItem } from "./safe-storage";
 
 /** The language recognition listens for. The app is English-only, written for India. */
 export const SPEECH_LANG = "en-IN";
@@ -55,12 +56,8 @@ const NOTED_KEY = "voice:noted";
 
 /** True the first time only. Storage can be blocked: then it's said every visit. */
 function firstUse() {
-  try {
-    if (localStorage.getItem(NOTED_KEY)) return false;
-    localStorage.setItem(NOTED_KEY, "1");
-  } catch {
-    // Not remembered.
-  }
+  if (readItem("local", NOTED_KEY)) return false;
+  writeItem("local", NOTED_KEY, "1");
   return true;
 }
 

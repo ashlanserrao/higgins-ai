@@ -12,7 +12,7 @@ import { VoiceTextarea } from "@/components/voice-textarea";
 import { EmptyState, Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
 import { MessageDialog } from "@/components/app/message-dialog";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import { formatDate, inr, plural } from "@/lib/format";
 import { canMessage, lineTask, taskShortName } from "@/lib/tasks";
 import type { Quote, QuoteComparison } from "@/lib/types";
@@ -56,7 +56,7 @@ function PasteQuote({ onDraft, onManual }: { onDraft: (quote: Quote) => void; on
         setText("");
       }
     } catch (error) {
-      setNote((error as Error).message);
+      setNote(errorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -99,7 +99,7 @@ function QuoteCard({ quote, comparison, onEdit }: { quote: Quote; comparison: Qu
 
   const run = (change: (quotes: Quote[]) => Quote[], label: string) => {
     setError("");
-    updateProgress((p) => ({ ...p, quotes: change(p.quotes) }), label).catch((e) => setError((e as Error).message));
+    updateProgress((p) => ({ ...p, quotes: change(p.quotes) }), label).catch((e) => setError(errorMessage(e)));
   };
   const accept = () =>
     run((quotes) => quotes.map((q) => (q.category === quote.category ? { ...q, accepted_on: q.id === quote.id ? plan.today : null } : q)),

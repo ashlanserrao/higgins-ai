@@ -3,58 +3,34 @@
 // into changes, the engine works out the new plan, and a review card shows exactly what moves;
 // nothing is applied until the organiser says so, and the toast after it offers Undo.
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from "react";
-import { AlertTriangle, ArrowUp, Loader2, Mic, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { ArrowUp, Loader2, Mic, X } from "lucide-react";
 import { LogoMark } from "@/components/brand";
-import { Button } from "@/components/ui/button";
-import { FieldError } from "@/components/field-error";
 import { api } from "@/lib/api";
-import type { PlanRequest, UnderstandResponse } from "@/lib/types";
+import { readItem, writeItem } from "@/lib/safe-storage";
+import type { PlanRequest } from "@/lib/types";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { speechSupported, useSpeech } from "@/lib/use-speech";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";
-import { headline, reviewRows, suggestions } from "./ask-words";
+import { usePhoneSheet, useSlashKey } from "./ask-hooks";
+import { Review, type Outcome } from "./ask-review";
+import { headline, suggestions } from "./ask-words";
 
 const PHONE = "(max-width: 767.98px)";
 const OPENED_KEY = "ask:opened";
 const draftKey = (eventId: string) => `ask:draft:${eventId}`;
-// Rows the review card shows before "Show n more".
-const ROWS_SHOWN = 5;
-
-// Storage can be blocked (private mode, site data off); the dock works without it.
-const read = (storage: () => Storage, key: string) => {
-  try {
-    return storage().getItem(key);
-  } catch {
-    return null;
-  }
-};
-const write = (storage: () => Storage, key: string, value: string | null) => {
-  try {
-    if (value === null) storage().removeItem(key);
-    else storage().setItem(key, value);
-  } catch {
-    // Nothing to keep it in; it lasts as long as the page.
-  }
-};
-const session = () => sessionStorage;
-const local = () => localStorage;
-
-const typing = (target: EventTarget | null) =>
-  target instanceof HTMLElement && Boolean(target.closest("input, textarea, select, [contenteditable=true]"));
 
 type Stage = "closed" | "open" | "review";
-type Outcome = { asked: string } & ({ response: UnderstandResponse; failed?: never } | { failed: true; response?: never });
 
 export function AskDock() {
   const { inputs, plan, aiAvailable, activeId, applyChange } = usePlan();
   const phone = useMediaQuery(PHONE);
   const [stage, setStage] = useState<Stage>("closed");
-  const [text, setText] = useState(() => (activeId && read(session, draftKey(activeId))) || "");
+  const [text, setText] = useState(() => (activeId && readItem("session", draftKey(activeId))) || "");
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [pulse] = useState(() => !read(local, OPENED_KEY));
+  const [pulse] = useState(() => !readItem("local", OPENED_KEY));
   const ticket = useRef(0);
   const dock = useRef<HTMLDivElement>(null);
   const circle = useRef<HTMLButtonElement>(null);
@@ -83,7 +59,7 @@ export function AskDock() {
 
   // Unsent words wait for the organiser while this tab is open, per event.
   useEffect(() => {
-    if (activeId) write(session, draftKey(activeId), text || null);
+    if (activeId) writeItem("session", draftKey(activeId), text || null);
   }, [activeId, text]);
 
   // The field grows with its text, up to three lines, then scrolls. Measured again as the bar
@@ -109,7 +85,7 @@ export function AskDock() {
 
   const openDock = useCallback(() => {
     setStage((s) => (s === "closed" ? "open" : s));
-    write(local, OPENED_KEY, "1");
+    writeItem("local", OPENED_KEY, "1");
     window.requestAnimationFrame(() => field.current?.focus());
   }, []);
 
@@ -165,35 +141,9 @@ export function AskDock() {
     if (stage === "review") heading.current?.focus();
   }, [stage, outcome]);
 
-  // "/" opens the dock from anywhere except a text field.
-  useEffect(() => {
-    const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || typing(event.target)) return;
-      event.preventDefault();
-      openDock();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [openDock]);
-
-  // The phone sheet: stays above the on-screen keyboard, and a tap outside it closes it.
-  useEffect(() => {
-    const el = dock.current;
-    const viewport = window.visualViewport;
-    if (!phone || !open || !el) return;
-    const place = () => viewport && el.style.setProperty("--ask-kb", `${Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)}px`);
-    const outside = (event: PointerEvent) => !el.contains(event.target as Node) && close(false);
-    place();
-    viewport?.addEventListener("resize", place);
-    viewport?.addEventListener("scroll", place);
-    document.addEventListener("pointerdown", outside);
-    return () => {
-      viewport?.removeEventListener("resize", place);
-      viewport?.removeEventListener("scroll", place);
-      document.removeEventListener("pointerdown", outside);
-      el.style.removeProperty("--ask-kb");
-    };
-  }, [phone, open, close]);
+  // "/" opens the dock from anywhere except a text field. On a phone the open dock is a sheet.
+  useSlashKey(openDock);
+  usePhoneSheet(dock, phone && open, close);
 
   const listen = () => (speech.listening ? speech.stop() : speech.start());
 
@@ -402,100 +352,5 @@ function Waveform() {
         <span key={bar} className={cn("w-[3px] rounded-full bg-primary-text motion-safe:animate-[ask-wave_900ms_ease-in-out_infinite]", bar)} />
       ))}
     </span>
-  );
-}
-
-/** The card above the bar: what the words would change, or why there's nothing to apply. */
-function Review({ outcome, title, ready, headingRef, headingId, onApply, onCancel, onRetry }: {
-  outcome: Outcome; title: string; ready: boolean;
-  headingRef: Ref<HTMLHeadingElement>; headingId: string;
-  onApply: () => void; onCancel: () => void; onRetry: () => void;
-}) {
-  const [all, setAll] = useState(false);
-  const heading = (children: ReactNode, serif = false) => (
-    <h2 ref={headingRef} id={headingId} tabIndex={-1} className={cn("outline-none focus-visible:shadow-none", serif ? "font-display text-xl leading-snug" : "text-sm font-semibold")}>
-      {children}
-    </h2>
-  );
-  const asked = <p className="mt-1 text-xs text-muted-foreground">You asked: “{outcome.asked}”</p>;
-  const cancel = (label = "Cancel") => <Button variant="ghost" size="sm" onClick={onCancel}>{label}</Button>;
-
-  if (outcome.failed) {
-    return (
-      <>
-        {heading("That didn't work. Your plan hasn't changed. Try again?")}
-        <div className="mt-3 flex gap-2"><Button variant="outline" size="sm" onClick={onRetry}>Retry</Button>{cancel()}</div>
-      </>
-    );
-  }
-
-  const { response } = outcome;
-  if (!ready) {
-    const nothing = response.understood && !response.fields.length && !response.errors.length;
-    return (
-      <>
-        {heading(
-          !response.ai_available ? "The AI isn't set up here"
-            : nothing ? "That's already how it is."
-              : !response.understood ? "I couldn't find a change in that"
-                : title || "I can't make that change",
-        )}
-        {asked}
-        <div className="mt-2 space-y-1.5 text-[13px]">
-          {!response.ai_available && <p>Changes in your own words need it. Edit event details does the same job.</p>}
-          {response.ai_available && !response.understood && (
-            <p>Something like “add 40 guests”, “budget 30 lakh” or “move it to 5 Jan” works well.</p>
-          )}
-          {response.unclear.map((note) => <p key={note} className="text-muted-foreground">Not sure: {note}</p>)}
-          {response.errors.map((e) => <FieldError key={e.field + e.message}>{e.message}</FieldError>)}
-        </div>
-        <div className="mt-3">{cancel(nothing ? "OK" : "Change my words")}</div>
-      </>
-    );
-  }
-
-  const rows = reviewRows(response);
-  const shown = all ? rows : rows.slice(0, ROWS_SHOWN);
-  const notes = [...(response.changes?.warnings_added ?? []), ...response.unclear.map((note) => `Not sure: ${note}`)];
-  return (
-    <>
-      <p className="flex items-center gap-1.5 text-xs font-medium text-ai">
-        <Sparkles className="size-3.5" aria-hidden="true" /> I understood
-      </p>
-      {heading(title, true)}
-      {asked}
-      <dl className="mt-3 divide-y text-[13px]">
-        {shown.map((row) => (
-          <div key={row.key} className="flex flex-wrap items-baseline justify-between gap-x-4 py-1.5">
-            <dt className="text-muted-foreground">{row.label}</dt>
-            <dd className="num font-medium">
-              <span className="text-muted-foreground">{row.before}</span>
-              <span aria-hidden="true" className="px-1.5 text-muted-foreground">→</span>
-              <span className="sr-only"> becomes </span>
-              {row.after}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {rows.length > ROWS_SHOWN && (
-        <button type="button" onClick={() => setAll(!all)} aria-expanded={all} className="mt-1 text-xs font-medium text-primary-text underline-offset-4 hover:underline pointer-coarse:min-h-11">
-          {all ? "Show fewer" : `Show ${rows.length - ROWS_SHOWN} more`}
-        </button>
-      )}
-      {notes.length > 0 && (
-        <ul className="mt-3 space-y-1.5 text-[13px]">
-          {notes.map((note) => (
-            <li key={note} className="flex items-start gap-2 text-warning">
-              <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" /> <span>{note}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1">
-        <Button size="sm" className="rounded-full px-4" onClick={onApply}>Apply change</Button>
-        {cancel()}
-        <span className="ml-auto text-xs text-muted-foreground">You can undo after</span>
-      </div>
-    </>
   );
 }

@@ -1,13 +1,15 @@
 """FastAPI app: planning API plus the static frontend."""
 
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import ValidationError
 
 from app.ai.client import AIBusyError, StructuredAI
@@ -74,15 +76,16 @@ def get_plan_interpreter() -> PlanInterpreter:
     return plan_interpreter
 
 
-def _error(status: int, message: str, fields: list[dict] | None = None) -> JSONResponse:
-    body: dict = {"error": message}
+def _error(status: int, message: str, fields: list[dict[str, str]] | None = None) -> JSONResponse:
+    body: dict[str, Any] = {"error": message}
     if fields:
         body["fields"] = fields
     return JSONResponse(status_code=status, content=body)
 
 
 @app.middleware("http")
-async def guard_requests(request: Request, call_next):
+async def guard_requests(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    response: Response
     if request.url.path.startswith("/api/"):
         content_length = request.headers.get("content-length")
         if request.method == "POST" and not content_length:
@@ -136,12 +139,12 @@ async def unexpected_error(_: Request, exc: Exception) -> JSONResponse:
 
 
 @app.get("/health")
-def health() -> dict:
+def health() -> dict[str, Any]:
     return {"status": "ok"}
 
 
 @app.get("/api/options")
-def options() -> dict:
+def options() -> dict[str, Any]:
     """Priority choices per event type, so the form never duplicates the rules tables."""
     return {
         event_type: [

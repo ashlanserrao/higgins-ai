@@ -1,4 +1,4 @@
-// API types, generated from FastAPI's OpenAPI schema into api-types.ts (README > API types).
+// API types, generated from FastAPI's OpenAPI schema into api-types.ts (README > Project structure).
 // Regenerate after changing app/models.py or app/responses.py; never edit api-types.ts by hand.
 // Dates travel as ISO strings (YYYY-MM-DD); money is whole rupees.
 //

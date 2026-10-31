@@ -29,7 +29,7 @@ REQUEST_WRAPPERS = {"body", "base", "changes", "inputs", "current"}
 PROGRESS_LABELS = {"tasks": "booking status", "quotes": "quote", "moves": "budget move"}
 
 
-def field_errors(errors: Sequence[Any]) -> list[dict]:
+def field_errors(errors: Sequence[Any]) -> list[dict[str, str]]:
     """Pydantic errors as [{field, message}], without echoing the submitted values back."""
     fields = []
     for err in errors:
@@ -39,7 +39,7 @@ def field_errors(errors: Sequence[Any]) -> list[dict]:
     return fields
 
 
-def friendly_message(field: str, error: dict) -> str:
+def friendly_message(field: str, error: dict[str, Any]) -> str:
     label = FIELD_LABELS.get(field, "value")
     if field == "progress":
         part = next((str(p) for p in error["loc"] if str(p) in PROGRESS_LABELS), "")
@@ -73,5 +73,5 @@ def friendly_message(field: str, error: dict) -> str:
     if kind == "extra_forbidden":
         return "This field isn't recognised."
     if kind == "value_error":
-        return error["msg"].removeprefix("Value error, ")
+        return str(error["msg"]).removeprefix("Value error, ")
     return f"Please check the {label}."

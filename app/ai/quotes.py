@@ -2,7 +2,7 @@
 it counts: until then it is marked AI-extracted and can't be accepted."""
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
@@ -54,11 +54,11 @@ class QuoteDraft(BaseModel):
     valid_until: date | None
 
 
-def _nullable(json_type: str) -> dict:
+def _nullable(json_type: str) -> dict[str, Any]:
     return {"type": [json_type, "null"]}
 
 
-def response_format(categories: list[str]) -> dict:
+def response_format(categories: list[str]) -> dict[str, Any]:
     """Strict JSON schema; the category must be one of this plan's budget lines."""
     notes = {"type": "array", "maxItems": MAX_NOTES, "items": {"type": "string"}}
     properties = {

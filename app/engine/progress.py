@@ -1,6 +1,7 @@
 """Booked and delayed tasks, and how a delay ripples to the bookings that depend on it."""
 
 from datetime import date
+from typing import Any
 
 from app.engine import rules
 from app.engine.errors import PlanInputError
@@ -46,7 +47,7 @@ def apply_progress(
             return resolved[task_id]
         item = by_id[task_id]
         pres = [resolve(p) for p in prerequisites[task_id]]
-        changes: dict = {"waiting_on": [p.id for p in pres if not p.done]}
+        changes: dict[str, Any] = {"waiting_on": [p.id for p in pres if not p.done]}
         if not item.done:
             update = tasks.get(task_id)
             candidates: list[tuple[date, str | None]] = []

@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/badges";
 import { Panel } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
 import { MessageDialog } from "@/components/app/message-dialog";
+import { errorMessage } from "@/lib/api";
 import { formatDate, plural } from "@/lib/format";
 import { canMessage, needsAction, TIMELINE_STATUS, taskBadge, taskLabel, taskShortName } from "@/lib/tasks";
 import type { ChecklistItem } from "@/lib/types";
@@ -137,7 +138,7 @@ export function TasksSection() {
     updateProgress((progress) => {
       delete progress.tasks[item.id];
       return progress;
-    }, `${item.label}: ${item.done ? "back on your list" : "back to its usual date"}`).catch((error) => fail((error as Error).message));
+    }, `${item.label}: ${item.done ? "back on your list" : "back to its usual date"}`).catch((error) => fail(errorMessage(error)));
 
   return (
     <div className="space-y-6">

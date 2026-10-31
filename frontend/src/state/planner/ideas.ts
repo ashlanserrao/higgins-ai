@@ -2,7 +2,7 @@
 // inputs they were made for change.
 
 import { useCallback } from "react";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import type { PlanRequest } from "@/lib/types";
 import type { State, Store } from "./store";
 
@@ -43,7 +43,7 @@ export function useIdeas({ state, stateRef, announce, update, patch, takeTicket,
     } catch (error) {
       if (!isLatest()) return;
       update((s) => ({ ideasLoadingFor: settle(s), ...(stillOpen() ? { ideasFailed: true } : {}) }));
-      if (stillOpen()) announce((error as Error).message);
+      if (stillOpen()) announce(errorMessage(error));
     }
   }, [announce, patch, stateRef, storeEvent, takeTicket, update]);
 

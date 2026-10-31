@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/badges";
 import { daysBetween, formatShortDate } from "@/lib/format";
+import { readItem, writeItem } from "@/lib/safe-storage";
 import type { TimelineEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useNav } from "@/state/nav";
@@ -25,20 +26,10 @@ const TABS: { id: OverviewTab; label: string; short: string }[] = [
 // The last tab chosen, for this browser session only: every new visit opens on the next step.
 const TAB_KEY = "overview:tab";
 const readTab = (): OverviewTab => {
-  try {
-    const saved = sessionStorage.getItem(TAB_KEY);
-    return TABS.some((tab) => tab.id === saved) ? (saved as OverviewTab) : "next";
-  } catch {
-    return "next";
-  }
+  const saved = readItem("session", TAB_KEY);
+  return TABS.find((tab) => tab.id === saved)?.id ?? "next";
 };
-const saveTab = (tab: OverviewTab) => {
-  try {
-    sessionStorage.setItem(TAB_KEY, tab);
-  } catch {
-    // Storage blocked: the choice just isn't remembered.
-  }
-};
+const saveTab = (tab: OverviewTab) => writeItem("session", TAB_KEY, tab);
 
 /** A label that keeps its active (bolder) width at all times, so the tabs never shift. */
 function TabLabel({ children }: { children: string }) {

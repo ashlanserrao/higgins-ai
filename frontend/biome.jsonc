@@ -26,10 +26,6 @@
         // Segmented toggles and card radio groups use ARIA roles on purpose (Lighthouse accessibility: 100).
         "useSemanticElements": "off"
       },
-      "suspicious": {
-        // Index keys only on lists that never reorder: iso tiles, digit wheels, table cells.
-        "noArrayIndexKey": "off"
-      },
       "complexity": {
         // Print styles must win over Tailwind's utilities.
         "noImportantStyles": "off"
@@ -37,6 +33,16 @@
     }
   },
   "overrides": [
+    {
+      // Index keys where items have no id of their own and never reorder: iso tiles, digit
+      // wheels, print-table cells, budget moves (the same move can repeat) and recent changes
+      // (counted from the oldest, so each keeps its key as new ones arrive).
+      "includes": [
+        "src/features/landing/iso-scenes.tsx", "src/features/overview/odometer.tsx", "src/features/print/print-sheet.tsx",
+        "src/features/budget/budget-section.tsx", "src/features/overview/next-step-panel.tsx"
+      ],
+      "linter": { "rules": { "suspicious": { "noArrayIndexKey": "off" } } }
+    },
     {
       // Row receives its cells as a positional array and keys them itself.
       "includes": ["src/features/print/print-sheet.tsx"],

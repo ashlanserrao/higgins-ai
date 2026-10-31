@@ -32,21 +32,17 @@ node how-it-works/serve.mjs &   # the poster script drives the demo's test pages
 ANATOMY_SCRIPTS=/path/to/anatomy/scripts node how-it-works/make-posters.mjs
 ```
 
-## Placing it
+## Where it's used
 
-Put this directly under the hero. The hero itself is untouched.
+The landing hero (`src/features/landing/landing.tsx`) places the element and loads `/hm/loader.js` on that page only:
 
 ```html
-<section class="how" aria-labelledby="how-title">
-  <h2 id="how-title">See how it works</h2>
-  <higgins-how-it-works src="/hm/machine.js" poster="/hm/poster.html" ratio="0.8600">
-    <noscript><img src="/hm/poster-light.png" alt="…same text alternative…"></noscript>
-  </higgins-how-it-works>
-</section>
-<script type="module" src="/hm/loader.js"></script>
+<higgins-how-it-works src="/hm/machine.js" poster="/hm/poster.html" ratio="0.8600">
+  <noscript><img src="/hm/poster-light.png" alt="…same text alternative…"></noscript>
+</higgins-how-it-works>
 ```
 
-`ratio` reserves the space (0.8600), so nothing below the section moves when the machine loads. The section sits on the page background and needs no styles of its own.
+`ratio` reserves the space (0.8600), so nothing below the section moves when the machine loads.
 
 ## Colour
 
@@ -54,18 +50,18 @@ The component reads eight inputs and derives every tone from them with `color-mi
 
 `--hm-paper`, `--hm-surface`, `--hm-raised`, `--hm-shadow`, `--hm-ink`, `--hm-accent`, `--hm-highlight`, `--hm-brass` (plus `--hm-halo-strength` and `--hm-font`).
 
-Declare the mapping on the `higgins-how-it-works` element itself, as `tokens.example.css` does, not on `:root`. That way `--hm-accent` resolves under whichever `[data-event]` wraps it. Light and dark follow whatever the tokens do (`prefers-color-scheme` or `data-theme`). The machine is brass and ivory throughout. The event accent marks the outcome: the ticket's "Example" stamp, the plan card's band and the phone's "Send to family" button. Marigold (or gold for festivals) fills the coins and the tank levels.
+The mapping is declared on the `higgins-how-it-works` element itself (in `src/index.css`, and in `tokens.example.css` for the demo), not on `:root`. That way `--hm-accent` resolves under whichever `[data-event]` wraps it. Light and dark follow whatever the tokens do (`prefers-color-scheme` or `data-theme`). The machine is brass and ivory throughout. The event accent marks the outcome: the ticket's "Example" stamp, the plan card's band and the phone's "Send to family" button. Marigold (or gold for festivals) fills the coins and the tank levels.
 
 ## The layout
 
-An upright cabinet with its front panels off, in three terraces read top to bottom. Card ratio about 0.86 : 1. Two chutes carry the coins: out to a turnaround box, then back along the tank shelf, so it reads as a marble run. The drum, tags and plan card sit in the bottom terrace, in front of the tanks, and the phone stands outside the cabinet. A run takes about 10 s.
+An upright cabinet with its front panels off, in three terraces read top to bottom. Card ratio about 0.86 : 1. Two chutes carry the coins: out to a turnaround box, then back along the tank shelf, so it reads as a marble run. The drum, tags and plan card sit in the bottom terrace, in front of the tanks, and the phone stands outside the cabinet. A run takes about 10 s. The calendar drum shows only the month (Dec or Aug), no year.
 
 ## Part count, load size, performance
 
 - **Parts:** 152 shaded solids and about 1,440 paths. That counts bodies, slabs, discs and spheres; screws, ticks and rule lines are not counted. It is slightly over the ~150 target because of its walls and shelves.
 - **Transfer size, gzipped:** the loader is 0.9 KB. The machine is 81 KB, fetched only on wider screens and only when near the viewport. The poster is 70 KB, fetched only on narrow screens. The PNGs (about 200 KB each) load only without JavaScript.
 - **Rendering:** the static art is painted once into its own layer (`.hm-back`, `will-change: transform`). The moving parts, plus copies of the few static pieces that must cover them, live in a small overlay SVG. Each frame only repaints the overlay and writes a handful of attributes.
-- **Measured** in headless Chrome on a desktop with software rasterization: script takes about 1 ms per frame (median; 2.6 ms at the 95th percentile), and runs hold 53–56 fps. **I have not tested on a real Android phone.** Please profile one mid-range device before shipping.
+- **Measured** in headless Chrome on a desktop with software rasterization: script takes about 1 ms per frame (median; 2.6 ms at the 95th percentile), and runs hold 53–56 fps. Not yet profiled on a real phone; narrow screens get the static poster.
 - **Pauses:** the loop stops when the run settles, when the section scrolls out of view and when the tab is hidden. It never loops on its own; it runs once when first seen and again when a lever is pulled.
 
 ## Accessibility
@@ -86,10 +82,4 @@ Edit `EXAMPLE` in `src/model.mjs`, then run `npm run build:hm` and `make-posters
 - Book-by lead times: `leads`. In the example, a busy month adds time for the venue and décor, every 25 extra guests add half a month for the venue, and every 50 add half a month for food. That is why each pull moves one or two tags.
 - Coin value: `coinValue`, in lakh per coin.
 
-**These rules are placeholders I made up to drive the example.** They are not Higgins's pricing or logic. Please replace them, or confirm that you are comfortable showing them as an "Example".
-
-## Assumptions to check
-
-- No Higgins codebase was available here. The component is framework-free so it drops into any stack, and the token names in `tokens.example.css` are guesses.
-- The labels only describe what the brief describes: one sentence in, a budget split across Venue, Food, Décor and Other, book-by dates, a plan card, and a phone with "Send to family". The hopper's label says Higgins reads "the event, the place, the guests and the budget". Check that this matches the product.
-- The calendar drum's month window shows only the month (Dec or Aug); no year is shown.
+**These are made-up example numbers**, labelled "Example" on the page. They are not the rules engine's pricing or logic (that lives in `app/engine/rules.py`).

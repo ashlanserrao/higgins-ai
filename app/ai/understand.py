@@ -91,7 +91,7 @@ class PlanPatch(BaseModel):
     unclear: list[Note] = Field(max_length=MAX_NOTES)
 
 
-def _nullable(json_type: str, **extra) -> dict:
+def _nullable(json_type: str, **extra: Any) -> dict[str, Any]:
     return {"anyOf": [{"type": json_type, **extra}, {"type": "null"}]}
 
 
@@ -162,7 +162,7 @@ def apply_patch(patch: PlanPatch, current: PlanRequest | None, message: str, tod
     unclear = list(patch.unclear) + keep_what_the_message_says(values, message, today)
     patch = patch.model_copy(update=signs_from_the_message(patch.model_dump(), message))
 
-    def start(name: str):
+    def start(name: str) -> Any:
         # A change applies to the current value. If the model also filled in a total, ignore
         # it: "add 100" must not be added on top of a total it already worked out.
         return base[name] if base.get(name) is not None else values.get(name)

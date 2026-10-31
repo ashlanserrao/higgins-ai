@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AiNote } from "@/components/badges";
 import { VoiceTextarea } from "@/components/voice-textarea";
-import { api } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api";
 import type { UnderstandResponse } from "@/lib/types";
 
 /** Plain language → form values. The AI reads; the organiser checks the form and submits. */
@@ -37,7 +37,7 @@ export function DescribeBox({ initialText, active, onFilled, onTyping }: {
         onFilled(result);
       }
     } catch (error) {
-      setNote((error as Error).message);
+      setNote(errorMessage(error));
     } finally {
       setBusy(false);
     }

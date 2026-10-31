@@ -3,6 +3,7 @@
 // public/theme-init.js applies it before first paint; this keeps it in step afterwards.
 
 import { useSyncExternalStore } from "react";
+import { readItem, writeItem } from "./safe-storage";
 
 export type ThemePreference = "light" | "dark" | "auto";
 
@@ -11,12 +12,8 @@ const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 const listeners = new Set<() => void>();
 
 function read(): ThemePreference {
-  try {
-    const stored = localStorage.getItem(KEY);
-    return stored === "light" || stored === "dark" ? stored : "auto";
-  } catch {
-    return "auto";
-  }
+  const stored = readItem("local", KEY);
+  return stored === "light" || stored === "dark" ? stored : "auto";
 }
 
 let preference = read();
@@ -38,11 +35,7 @@ function apply(crossfade: boolean) {
 
 export function setThemePreference(next: ThemePreference) {
   preference = next;
-  try {
-    localStorage.setItem(KEY, next);
-  } catch {
-    /* not remembered, but still applied */
-  }
+  writeItem("local", KEY, next); // if storage is blocked, not remembered but still applied
   apply(true);
 }
 

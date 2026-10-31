@@ -187,7 +187,7 @@ Everything runs offline and free: both AI providers are faked (a guard blocks re
 ## Future improvements
 
 - Server-side accounts, so plans follow the organiser across devices and can be shared for editing
-- Live deployment with a shared rate-limit store
+- A shared rate-limit store (such as Redis), so the API can run on several instances
 - Regional cost data per city and vendor category, and verified benchmarks for birthdays and community events
 - Expense tracking against the plan
 - Vendor contact lists and WhatsApp reminders for book-by dates

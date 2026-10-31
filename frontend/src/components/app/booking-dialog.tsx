@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/field-error";
+import { errorMessage } from "@/lib/api";
 import { addDays, formatDate } from "@/lib/format";
 import { taskShortName } from "@/lib/tasks";
 import type { TaskState } from "@/lib/types";
@@ -57,7 +58,7 @@ export function BookingDialog({ target, onClose }: { target: BookingTarget | nul
       }, delayed ? `The ${name} can confirm from ${formatDate(date)}` : `Booked the ${name}`);
       close();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }

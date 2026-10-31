@@ -15,6 +15,9 @@ export class ApiError extends Error {
   }
 }
 
+/** The text to show for a failed call or save. Everything thrown here is an Error. */
+export const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {

@@ -1,6 +1,6 @@
-// The Higgins AI logo, from public/brand/ (web-sized copies of the artwork in
-// frontend/brand-source/). The mark reads on both themes; the full logo has a light and a dark
-// version, and the page's theme shows one (a style rule, so it never flashes the wrong one).
+// The Higgins AI logo, from public/brand/. The mark reads on both themes; the full logo has a
+// light and a dark version, and the page's theme shows one (a style rule, so it never flashes
+// the wrong one).
 
 import { cn } from "@/lib/utils";
 

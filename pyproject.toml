@@ -18,8 +18,7 @@ extend-immutable-calls = ["fastapi.Depends"]
 python_version = "3.11"
 files = ["app", "evals", "scripts"]
 plugins = ["pydantic.mypy"]
-warn_unused_ignores = true
-warn_redundant_casts = true
+strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
