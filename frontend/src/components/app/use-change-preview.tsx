@@ -3,8 +3,8 @@
 
 import { useState, type ReactNode } from "react";
 import { ChangeDialog } from "@/components/app/change-dialog";
-import { api } from "@/lib/api";
-import type { PlanEdit } from "@/lib/types";
+import { api } from "@/lib/api/client";
+import type { PlanEdit } from "@/lib/api/types";
 import { usePlan } from "@/state/planner";
 
 interface Pending {

@@ -2,7 +2,7 @@
 // The fragment never reaches the server. Free text, progress and guests are never shared.
 // The format is unchanged from v1/v2, so old links keep working.
 
-import type { EventIdeas, EventType, PlanRequest, VenueType } from "./types";
+import type { EventIdeas, EventType, PlanRequest, VenueType } from "@/lib/api/types";
 
 const QUERY_FIELDS = [
   "event_type", "event_date", "guests", "budget_inr", "city", "city_tier",

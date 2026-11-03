@@ -2,7 +2,7 @@
 // be blocked (private mode, disabled site data), so every read and write is allowed to fail.
 
 import { emptyProgress } from "./share";
-import type { EventIdeas, Guest, Plan, PlanRequest } from "./types";
+import type { EventIdeas, Guest, Plan, PlanRequest } from "@/lib/api/types";
 
 const KEY = "eventPlanner:v4"; // before accounts; each account now has its own copy
 const ownKey = (owner: string) => `${KEY}:${owner.toLowerCase()}`;

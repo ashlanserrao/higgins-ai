@@ -5,7 +5,7 @@ import { useState, type ReactNode, type Ref } from "react";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/field-error";
-import type { UnderstandResponse } from "@/lib/types";
+import type { UnderstandResponse } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { reviewRows } from "./ask-words";
 

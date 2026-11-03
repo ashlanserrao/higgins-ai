@@ -1,10 +1,11 @@
 import { Cake, Heart, Users, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { addDays, EVENT_LABELS, todayInIndia } from "@/lib/format";
-import type { EventType } from "@/lib/types";
-import { ChoiceCards, Field } from "../fields";
-import type { StepProps } from "../form";
+import { addDays, todayInIndia } from "@/lib/format";
+import { EVENT_LABELS } from "@/lib/labels";
+import type { EventType } from "@/lib/api/types";
+import { ChoiceCards, Field } from "@/features/onboarding/fields";
+import type { StepProps } from "@/features/onboarding/form";
 
 const EVENT_ICONS: Record<EventType, LucideIcon> = { wedding: Heart, birthday: Cake, community: Users };
 const GUEST_PICKS = [50, 100, 200, 300];

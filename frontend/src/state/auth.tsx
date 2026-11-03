@@ -2,7 +2,7 @@
 // (see main.tsx), so signing in or out loads that account's events from scratch.
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import * as accounts from "@/lib/accounts";
+import * as accounts from "@/lib/storage/accounts";
 
 function useAuthState() {
   const [user, setUser] = useState(accounts.currentUser);

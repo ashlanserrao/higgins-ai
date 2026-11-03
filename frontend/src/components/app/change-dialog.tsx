@@ -8,13 +8,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatusBadge } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
-import { ApiError } from "@/lib/api";
-import { inr, LEVEL_LABELS, signedInr } from "@/lib/format";
+import { ApiError } from "@/lib/api/client";
+import { inr, signedInr } from "@/lib/format";
+import { LEVEL_LABELS } from "@/lib/labels";
 import { DIFF_TASK_LABELS } from "@/lib/tasks";
-import type { Plan, PlanDiff, PlanRequest } from "@/lib/types";
+import type { Plan, PlanDiff, PlanRequest } from "@/lib/api/types";
 import { usePlanner } from "@/state/planner";
 import { cn } from "@/lib/utils";
-import { useReturnFocus } from "@/lib/use-return-focus";
+import { useReturnFocus } from "@/hooks/use-return-focus";
 
 export interface Preview {
   inputs: PlanRequest;

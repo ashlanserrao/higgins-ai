@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ChecklistItem, Plan } from "@/lib/types";
+import type { ChecklistItem, Plan } from "@/lib/api/types";
 import { dueLabel, leadFor } from "./next-step";
 
 const TODAY = "2026-10-21";

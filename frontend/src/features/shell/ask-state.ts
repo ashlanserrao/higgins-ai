@@ -2,8 +2,8 @@
 // and what came back, and the "Examples to try" menu under the field.
 
 import { useCallback, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from "react";
-import { api } from "@/lib/api";
-import type { PlanRequest } from "@/lib/types";
+import { api } from "@/lib/api/client";
+import type { PlanRequest } from "@/lib/api/types";
 import type { Outcome } from "./ask-review";
 import { headline } from "./ask-words";
 

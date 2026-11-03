@@ -40,6 +40,26 @@ so the plan works with no API key, and engine tests are fast and exact. `ai/` ne
 
 Tests mirror the layers: `tests/engine/`, `tests/ai/`, `tests/api/`.
 
+## The frontend (`frontend/src/`)
+
+The same rule, one layer stack:
+
+```
+pages/        the lazy-loaded screens: onboarding, dashboard (App.tsx picks the screen)
+features/     one folder per section of the app (overview, budget, tasks, vendors, shell…)
+components/   shared UI: ui/ (shadcn primitives) and app/ (dialogs and notes several features open)
+state/        the planner store and auth (React context)
+hooks/        generic hooks: media queries, focus return, speech input
+lib/          no React tree: api/ (client + types generated from OpenAPI), storage/ (browser
+              storage, accounts, share links), plan helpers (tasks, guests), format, labels
+```
+
+Imports only point down, and **Biome checks it** (`frontend/biome.jsonc`): `npm run lint` fails
+on an upward import, and on `../`, so a relative path can't step around the rule. Code used by one
+feature lives in that feature (`features/shell/ask-hooks.ts`); code used by several lives lower.
+`components/app/use-change-preview.tsx` is a hook, but it renders a dialog and reads the store, so
+it stays with the dialog instead of going to `hooks/`. See [decision 0006](decisions/0006-frontend-layers-checked-by-lint.md).
+
 ## Two requests
 
 **`POST /api/plan`** (milliseconds): the guard checks size and the per-IP limit → Pydantic

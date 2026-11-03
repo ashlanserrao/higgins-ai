@@ -2,9 +2,10 @@
 // review card's headline and before → after rows, built from what /api/understand returns.
 
 import { CalendarDays, Users, Wallet, type LucideIcon } from "lucide-react";
-import { addDays, formatShortDate, inr, LEVEL_LABELS, plural, TIER_LABELS, titleCase, VENUE_LABELS } from "@/lib/format";
+import { addDays, formatShortDate, inr, plural, titleCase } from "@/lib/format";
+import { LEVEL_LABELS, TIER_LABELS, VENUE_LABELS } from "@/lib/labels";
 import { DIFF_TASK_LABELS } from "@/lib/tasks";
-import type { PlanRequest, UnderstandResponse } from "@/lib/types";
+import type { PlanRequest, UnderstandResponse } from "@/lib/api/types";
 
 // The API's limits (app/models.py), so an example never asks for something it would refuse.
 const MAX_GUESTS = 5000;

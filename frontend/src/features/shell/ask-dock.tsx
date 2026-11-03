@@ -6,10 +6,10 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, Mic, X } from "lucide-react";
 import { LogoMark } from "@/components/brand";
-import { readItem, writeItem } from "@/lib/safe-storage";
-import type { PlanRequest } from "@/lib/types";
-import { useMediaQuery } from "@/lib/use-media-query";
-import { speechSupported, useSpeech } from "@/lib/use-speech";
+import { readItem, writeItem } from "@/lib/storage/safe-storage";
+import type { PlanRequest } from "@/lib/api/types";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { speechSupported, useSpeech } from "@/hooks/use-speech";
 import { cn } from "@/lib/utils";
 import { usePlan } from "@/state/planner";
 import { usePhoneSheet, useSlashKey } from "./ask-hooks";

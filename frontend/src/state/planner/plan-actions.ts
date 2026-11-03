@@ -2,10 +2,10 @@
 // changes, progress, undo and the guest list.
 
 import { useCallback } from "react";
-import { api, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api/client";
 import { todayInIndia } from "@/lib/format";
-import { newEventId } from "@/lib/storage";
-import type { Guest, Plan, PlanRequest, Progress } from "@/lib/types";
+import { newEventId } from "@/lib/storage/saved-events";
+import type { Guest, Plan, PlanRequest, Progress } from "@/lib/api/types";
 import type { State, Store } from "./store";
 
 const MAX_RECENT = 20;

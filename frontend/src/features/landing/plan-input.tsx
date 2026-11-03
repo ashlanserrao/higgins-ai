@@ -6,7 +6,7 @@ import { useRef, type FormEvent, type KeyboardEvent } from "react";
 import { Mic, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { speechSupported, useSpeech } from "@/lib/use-speech";
+import { speechSupported, useSpeech } from "@/hooks/use-speech";
 import { cn } from "@/lib/utils";
 import { COPY } from "./copy";
 

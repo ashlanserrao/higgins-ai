@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { AiNote } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
-import { errorMessage } from "@/lib/api";
-import type { Quote } from "@/lib/types";
+import { errorMessage } from "@/lib/api/client";
+import type { Quote } from "@/lib/api/types";
 import { usePlan } from "@/state/planner";
 
 export const newQuoteId = () => `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;

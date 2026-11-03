@@ -1,7 +1,7 @@
 // How a checklist item is presented. The engine decides the facts (done, delayed, at risk);
 // this only picks which one to show first.
 
-import type { ChecklistItem, EventType, MessageKind, Plan, TimelineEntry } from "./types";
+import type { ChecklistItem, EventType, MessageKind, Plan, TimelineEntry } from "@/lib/api/types";
 
 export type TaskTone = "success" | "warning" | "danger" | "neutral";
 

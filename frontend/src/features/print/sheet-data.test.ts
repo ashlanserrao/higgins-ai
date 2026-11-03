@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ChecklistItem, Plan, TimelineEntry } from "@/lib/types";
+import type { ChecklistItem, Plan, TimelineEntry } from "@/lib/api/types";
 import { sheetBookings, sheetDates } from "./sheet-data";
 
 const TODAY = "2026-10-29";

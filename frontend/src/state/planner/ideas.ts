@@ -2,8 +2,8 @@
 // inputs they were made for change.
 
 import { useCallback } from "react";
-import { api, errorMessage } from "@/lib/api";
-import type { PlanRequest } from "@/lib/types";
+import { api, errorMessage } from "@/lib/api/client";
+import type { PlanRequest } from "@/lib/api/types";
 import type { State, Store } from "./store";
 
 export type IdeasStatus = "idle" | "loading" | "ready" | "stale" | "failed" | "unavailable";

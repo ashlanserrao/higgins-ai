@@ -4,7 +4,7 @@
 // and a response for an event that has since been closed goes into its saved copy.
 
 import { createContext, useContext, type ReactNode } from "react";
-import { ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api/client";
 import { useEvents } from "./events";
 import { useIdeas } from "./ideas";
 import { useBoot, useSave } from "./persistence";

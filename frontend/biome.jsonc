@@ -6,7 +6,7 @@
     // how-it-works/kit is vendored and demo/ is built, so neither is ours to lint.
     "includes": [
       "src/**", "e2e/**", "scripts/**", "how-it-works/**", "*.ts",
-      "!src/lib/api-types.ts", "!how-it-works/kit", "!how-it-works/demo"
+      "!src/lib/api/generated.ts", "!how-it-works/kit", "!how-it-works/demo"
     ]
   },
   "formatter": { "enabled": false },
@@ -51,6 +51,56 @@
       // Row receives its cells as a positional array and keys them itself.
       "includes": ["src/features/print/print-sheet.tsx"],
       "linter": { "rules": { "correctness": { "useJsxKeyInIterable": "off" } } }
+    },
+    // Layers: imports only point down, pages → features → components → state → hooks → lib
+    // (docs/architecture.md). Code two layers share lives below both.
+    // "../" is banned in src/ so a relative path can't step around the layer patterns: outside
+    // its own folder, a file imports through "@/". Each layer repeats that pattern because an
+    // override's options replace the earlier ones rather than adding to them.
+    {
+      "includes": ["src/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." }
+      ] } } } } }
+    },
+    {
+      "includes": ["src/lib/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." },
+        { "group": ["@/hooks/**", "@/state/**", "@/components/**", "@/features/**", "@/pages/**", "@/App"],
+          "message": "lib/ is the bottom layer: it imports nothing from the app above it." }
+      ] } } } } }
+    },
+    {
+      "includes": ["src/hooks/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." },
+        { "group": ["@/state/**", "@/components/**", "@/features/**", "@/pages/**", "@/App"],
+          "message": "hooks/ holds generic hooks: they may use lib/, nothing above it." }
+      ] } } } } }
+    },
+    {
+      "includes": ["src/state/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." },
+        { "group": ["@/components/**", "@/features/**", "@/pages/**", "@/App"],
+          "message": "state/ sits below the UI: it may use hooks/ and lib/, never components or features." }
+      ] } } } } }
+    },
+    {
+      "includes": ["src/components/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." },
+        { "group": ["@/features/**", "@/pages/**", "@/App"],
+          "message": "Shared components are used by features, so they can't import from a feature." }
+      ] } } } } }
+    },
+    {
+      "includes": ["src/features/**"],
+      "linter": { "rules": { "style": { "noRestrictedImports": { "level": "error", "options": { "patterns": [
+        { "group": ["../**"], "message": "Import from outside this folder through \"@/\"." },
+        { "group": ["@/pages/**", "@/App"], "message": "Features are placed by pages, so they can't import a page." }
+      ] } } } } }
     },
     {
       // Compact one-line stubs in tests.

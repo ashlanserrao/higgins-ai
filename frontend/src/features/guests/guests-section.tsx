@@ -13,7 +13,7 @@ import { EmptyState, Panel, Stat } from "@/components/layout";
 import { PageBand } from "@/components/page-band";
 import { useChangePreview } from "@/components/app/use-change-preview";
 import { plural } from "@/lib/format";
-import type { Guest, Rsvp } from "@/lib/types";
+import type { Guest, Rsvp } from "@/lib/api/types";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { expectedGuests } from "@/lib/guests";

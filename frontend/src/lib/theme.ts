@@ -3,7 +3,7 @@
 // public/theme-init.js applies it before first paint; this keeps it in step afterwards.
 
 import { useSyncExternalStore } from "react";
-import { readItem, writeItem } from "./safe-storage";
+import { readItem, writeItem } from "@/lib/storage/safe-storage";
 
 export type ThemePreference = "light" | "dark" | "auto";
 

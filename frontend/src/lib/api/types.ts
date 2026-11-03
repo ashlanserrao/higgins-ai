@@ -1,11 +1,11 @@
-// API types, generated from FastAPI's OpenAPI schema into api-types.ts (README > Project structure).
-// Regenerate after changing app/models.py or app/responses.py; never edit api-types.ts by hand.
+// API types, generated from FastAPI's OpenAPI schema into generated.ts (README > Project structure).
+// Regenerate after changing src/higgins/schemas/; never edit generated.ts by hand.
 // Dates travel as ISO strings (YYYY-MM-DD); money is whole rupees.
 //
 // "-Output" schemas are what the API sends back: every field present. The browser stores and
 // resends those, so they are the types the app works with.
 
-import type { components } from "./api-types";
+import type { components } from "./generated";
 
 type Schemas = components["schemas"];
 

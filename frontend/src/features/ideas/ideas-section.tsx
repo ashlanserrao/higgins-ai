@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, Panel } from "@/components/layout";
 import { IdeasNote, IdeasStatusLine } from "@/components/app/ideas-status-line";
 import { PageBand } from "@/components/page-band";
-import type { EventIdeas } from "@/lib/types";
+import type { EventIdeas } from "@/lib/api/types";
 import { usePlan } from "@/state/planner";
 
 const CATEGORIES: { key: keyof Omit<EventIdeas, "triage_advice">; label: string; icon: LucideIcon }[] = [

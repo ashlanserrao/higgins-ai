@@ -2,10 +2,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/field-error";
 import { VoiceTextarea } from "@/components/voice-textarea";
-import type { EventType, Options } from "@/lib/types";
+import type { EventType, Options } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
-import { Field } from "../fields";
-import type { StepProps } from "../form";
+import { Field } from "@/features/onboarding/fields";
+import type { StepProps } from "@/features/onboarding/form";
 
 /** Step 3: what gets a bigger share, must-haves and taste. */
 export function PrioritiesStep({ values, set, err, describedBy, priorities }: StepProps & { priorities: Options[EventType] }) {

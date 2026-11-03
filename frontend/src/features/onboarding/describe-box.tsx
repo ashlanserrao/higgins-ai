@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AiNote } from "@/components/badges";
 import { VoiceTextarea } from "@/components/voice-textarea";
-import { api, errorMessage } from "@/lib/api";
-import type { UnderstandResponse } from "@/lib/types";
+import { api, errorMessage } from "@/lib/api/client";
+import type { UnderstandResponse } from "@/lib/api/types";
 
 /** Plain language → form values. The AI reads; the organiser checks the form and submits. */
 export function DescribeBox({ initialText, active, onFilled, onTyping }: {

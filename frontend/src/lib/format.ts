@@ -1,5 +1,7 @@
 // Indian formatting for money and dates. Plans count days in India time.
 
+import { EVENT_LABELS } from "./labels";
+
 const rupees = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
 export const inr = (amount: number) => rupees.format(amount);
@@ -33,8 +35,7 @@ export function todayInIndia(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
 }
 
-/** "Good evening", by the clock in India. */
-/** By the visitor's own clock: morning until noon, afternoon until 5 pm, then evening. */
+/** "Good evening", by the visitor's own clock: morning until noon, afternoon until 5 pm, then evening. */
 export function greeting(now = new Date()): string {
   const hour = now.getHours();
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -55,11 +56,6 @@ export function addDays(iso: string, days: number): string {
 }
 
 export const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
-
-export const EVENT_LABELS = { wedding: "Wedding", birthday: "Birthday", community: "Community event" } as const;
-export const VENUE_LABELS = { venue: "Hall or venue", home: "At home", outdoor: "Outdoor" } as const;
-export const TIER_LABELS = { 1: "Metro", 2: "Tier-2 city", 3: "Smaller town" } as const;
-export const LEVEL_LABELS = { tight: "Tight", modest: "Modest", comfortable: "Comfortable", generous: "Generous" } as const;
 
 /** Whole days from one ISO date to another; negative when `to` comes first. */
 export const daysBetween = (from: string, to: string) => Math.round((parse(to).getTime() - parse(from).getTime()) / 86_400_000);

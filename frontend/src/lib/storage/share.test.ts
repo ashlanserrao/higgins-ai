@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildShareUrl, emptyProgress, readSharedIdeas, readSharedInputs } from "./share";
-import type { EventIdeas, PlanRequest } from "./types";
+import type { EventIdeas, PlanRequest } from "@/lib/api/types";
 
 const inputs: PlanRequest = {
   event_type: "community", event_date: "2026-11-08", guests: 300, budget_inr: 150000, city: "Mysuru",

@@ -7,11 +7,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/field-error";
-import { errorMessage } from "@/lib/api";
+import { errorMessage } from "@/lib/api/client";
 import { addDays, formatDate } from "@/lib/format";
 import { taskShortName } from "@/lib/tasks";
-import type { TaskState } from "@/lib/types";
-import { useReturnFocus } from "@/lib/use-return-focus";
+import type { TaskState } from "@/lib/api/types";
+import { useReturnFocus } from "@/hooks/use-return-focus";
 import { usePlan } from "@/state/planner";
 
 export interface BookingTarget {

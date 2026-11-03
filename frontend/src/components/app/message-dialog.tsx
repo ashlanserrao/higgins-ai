@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FieldError } from "@/components/field-error";
-import { api, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api/client";
 import { canMessage, defaultMessageKind, MESSAGE_KINDS } from "@/lib/tasks";
-import type { MessageKind } from "@/lib/types";
-import { useReturnFocus } from "@/lib/use-return-focus";
+import type { MessageKind } from "@/lib/api/types";
+import { useReturnFocus } from "@/hooks/use-return-focus";
 import { usePlan } from "@/state/planner";
 
 export function MessageDialog({ taskId, open, onOpenChange }: {

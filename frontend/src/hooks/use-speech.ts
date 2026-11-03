@@ -3,7 +3,7 @@
 // The browser asks for the microphone on the first start(), never before.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { readItem, writeItem } from "./safe-storage";
+import { readItem, writeItem } from "@/lib/storage/safe-storage";
 
 /** The language recognition listens for. The app is English-only, written for India. */
 export const SPEECH_LANG = "en-IN";

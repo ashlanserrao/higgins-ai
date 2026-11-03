@@ -3,8 +3,8 @@
 
 import { useCallback, useRef, useState } from "react";
 import { todayInIndia } from "@/lib/format";
-import type { SavedEvent } from "@/lib/storage";
-import type { EventIdeas, Guest, Options, Plan, PlanRequest } from "@/lib/types";
+import type { SavedEvent } from "@/lib/storage/saved-events";
+import type { EventIdeas, Guest, Options, Plan, PlanRequest } from "@/lib/api/types";
 
 /** The last change the organiser applied, so the dashboard can say what moved and undo it. */
 export interface LastChange {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { emptyProgress } from "./share";
-import { storage, type SavedEvent } from "./storage";
-import type { PlanRequest } from "./types";
+import { storage, type SavedEvent } from "./saved-events";
+import type { PlanRequest } from "@/lib/api/types";
 
 /** A Map-backed localStorage; `blocked` makes every call throw, as private mode can. */
 function fakeStorage(entries: Record<string, string> = {}, blocked = false) {

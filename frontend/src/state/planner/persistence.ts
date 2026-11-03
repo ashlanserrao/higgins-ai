@@ -1,12 +1,12 @@
 // Loading at start and saving on every change. The browser is the only store.
 
 import { useCallback, useEffect } from "react";
-import { api, errorMessage } from "@/lib/api";
+import { api, errorMessage } from "@/lib/api/client";
 import { todayInIndia } from "@/lib/format";
-import { readSharedIdeas, readSharedInputs } from "@/lib/share";
-import { storage, type SavedEvent } from "@/lib/storage";
-import type { Options } from "@/lib/types";
-import { readRoute } from "../nav";
+import { readSharedIdeas, readSharedInputs } from "@/lib/storage/share";
+import { storage, type SavedEvent } from "@/lib/storage/saved-events";
+import type { Options } from "@/lib/api/types";
+import { readRoute } from "@/state/nav";
 import { ideasKey } from "./ideas";
 import type { Recalculate } from "./plan-actions";
 import { allEvents, opened, type State, type Store } from "./store";

@@ -15,9 +15,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { countdown, daysUntil, eventName, formatShortDate, plural, titleCase } from "@/lib/format";
-import type { SavedEvent } from "@/lib/storage";
+import type { SavedEvent } from "@/lib/storage/saved-events";
 import { dueToday } from "@/lib/tasks";
-import type { EventType } from "@/lib/types";
+import type { EventType } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/lib/theme";
 import { orderEvents, usePlan } from "@/state/planner";

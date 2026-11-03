@@ -208,6 +208,10 @@ tests/           pytest suite (offline, AI faked), one folder per layer: engine/
 docs/            Architecture and decision records
 frontend/     React + TypeScript + Vite + Tailwind + shadcn/ui
   src/features/   One folder per domain (overview, budget, tasks, vendors, guests, ideas, print…)
+  src/components/ Shared UI: ui/ (shadcn primitives) and app/ (shared dialogs)
+  src/state/      Planner store and auth
+  src/hooks/      Generic React hooks
+  src/lib/        api/ (client + generated types), storage/, plan helpers, formatting
   e2e/            Playwright end-to-end test
 ```
 

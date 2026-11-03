@@ -6,7 +6,7 @@ import { Printer, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { buildShareUrl } from "@/lib/share";
+import { buildShareUrl } from "@/lib/storage/share";
 import { usePlan } from "@/state/planner";
 
 /** `tone="band"`: white on the Overview's coloured band. */

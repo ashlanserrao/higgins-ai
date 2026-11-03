@@ -3,7 +3,7 @@
 
 import { useCallback } from "react";
 import { daysUntil, eventName } from "@/lib/format";
-import { newEventId, type SavedEvent } from "@/lib/storage";
+import { newEventId, type SavedEvent } from "@/lib/storage/saved-events";
 import type { Recalculate } from "./plan-actions";
 import { allEvents, opened, type State, type Store } from "./store";
 

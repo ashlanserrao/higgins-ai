@@ -2,7 +2,7 @@
 // the page only lays them out, and a big event still fits one A4 sheet.
 
 import { taskBadge, taskShortName, type TaskBadge } from "@/lib/tasks";
-import type { EventIdeas, Guest, Plan, Rsvp } from "@/lib/types";
+import type { EventIdeas, Guest, Plan, Rsvp } from "@/lib/api/types";
 
 const MAX_BOOKINGS = 10;
 const MAX_DATES = 6;

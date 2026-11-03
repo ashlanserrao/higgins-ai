@@ -8,9 +8,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { LogoMark } from "@/components/brand";
-import {
-  EVENT_LABELS, LEVEL_LABELS, VENUE_LABELS, countdown, eventName, formatDate, formatShortDate, inr, plural, titleCase, weekday,
-} from "@/lib/format";
+import { countdown, eventName, formatDate, formatShortDate, inr, plural, titleCase, weekday } from "@/lib/format";
+import { EVENT_LABELS, LEVEL_LABELS, VENUE_LABELS } from "@/lib/labels";
 import { expectedGuests } from "@/lib/guests";
 import type { TaskTone } from "@/lib/tasks";
 import { cn } from "@/lib/utils";

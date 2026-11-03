@@ -5,7 +5,7 @@
 
 import { daysBetween, formatShortDate, inr } from "@/lib/format";
 import { taskShortName } from "@/lib/tasks";
-import type { ChecklistItem, Plan } from "@/lib/types";
+import type { ChecklistItem, Plan } from "@/lib/api/types";
 
 export type Lead =
   | { kind: "triage"; today: ChecklistItem[]; canWait: ChecklistItem[]; cuts: string[] }

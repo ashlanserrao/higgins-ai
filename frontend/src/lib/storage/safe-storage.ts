@@ -1,6 +1,6 @@
 // Small per-browser preferences (the open tab, the folded sidebar, the theme). Storage can be
 // blocked (private mode, site data off), so a read gives null and a write is dropped instead of
-// throwing: the app works the same, it just doesn't remember. Event data has lib/storage.ts.
+// throwing: the app works the same, it just doesn't remember. Event data has saved-events.ts.
 
 type Area = "local" | "session";
 

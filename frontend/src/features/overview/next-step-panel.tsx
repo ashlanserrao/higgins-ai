@@ -8,9 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { StatusBadge } from "@/components/badges";
 import { MessageDialog } from "@/components/app/message-dialog";
 import { useChangePreview } from "@/components/app/use-change-preview";
-import { EVENT_LABELS, formatShortDate, inr, plural } from "@/lib/format";
+import { formatShortDate, inr, plural } from "@/lib/format";
+import { EVENT_LABELS } from "@/lib/labels";
 import { canMessage, taskShortName } from "@/lib/tasks";
-import type { ChecklistItem } from "@/lib/types";
+import type { ChecklistItem } from "@/lib/api/types";
 import { useNav } from "@/state/nav";
 import { usePlan } from "@/state/planner";
 import { BookingDialog, type BookingTarget } from "@/components/app/booking-dialog";

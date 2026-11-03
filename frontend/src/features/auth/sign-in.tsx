@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FieldError } from "@/components/field-error";
-import { AccountError, DEMO, MIN_PASSWORD } from "@/lib/accounts";
+import { AccountError, DEMO, MIN_PASSWORD } from "@/lib/storage/accounts";
 import { useAuth } from "@/state/auth";
 import { useNav } from "@/state/nav";
 

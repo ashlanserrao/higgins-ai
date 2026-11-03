@@ -5,7 +5,7 @@
 import { type ComponentProps } from "react";
 import { Mic } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { addSpoken, speechSupported, useSpeech } from "@/lib/use-speech";
+import { addSpoken, speechSupported, useSpeech } from "@/hooks/use-speech";
 import { cn } from "@/lib/utils";
 
 type Props = Omit<ComponentProps<typeof Textarea>, "value" | "onChange" | "id"> & {

@@ -2,10 +2,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { shortInr, VENUE_LABELS } from "@/lib/format";
-import type { VenueType } from "@/lib/types";
-import { ChoiceCards, Field } from "../fields";
-import type { StepProps } from "../form";
+import { shortInr } from "@/lib/format";
+import { VENUE_LABELS } from "@/lib/labels";
+import type { VenueType } from "@/lib/api/types";
+import { ChoiceCards, Field } from "@/features/onboarding/fields";
+import type { StepProps } from "@/features/onboarding/form";
 
 /** Step 2: budget, city and venue. */
 export function PlaceStep({ values, set, err, describedBy, flash }: StepProps) {
@@ -13,11 +14,11 @@ export function PlaceStep({ values, set, err, describedBy, flash }: StepProps) {
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          id="budget_inr" label="Total budget (₹)" error={err("budget_inr")} flash={flash === "budget_inr"}
+          id="budget_inr" label="Total budget (â‚¹)" error={err("budget_inr")} flash={flash === "budget_inr"}
           hint={values.budget_inr ? shortInr(Number(values.budget_inr)) : "Your all-in budget, in rupees"}
         >
           <div className="relative">
-            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">₹</span>
+            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground" aria-hidden="true">â‚¹</span>
             <Input id="budget_inr" type="number" inputMode="numeric" min={1000} max={100000000} step={1000} required className="num pl-7"
               value={values.budget_inr} onChange={(e) => set("budget_inr", e.target.value)}
               aria-invalid={Boolean(err("budget_inr"))} aria-describedby={describedBy("budget_inr")} />

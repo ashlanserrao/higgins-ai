@@ -1,7 +1,7 @@
 // The questionnaire's form values and the pure rules around them: defaults, which step a
 // field is on, per-step checks and the conversion to a PlanRequest.
 
-import type { EventType, Options, PlanRequest, Progress, VenueType } from "@/lib/types";
+import type { EventType, Options, PlanRequest, Progress, VenueType } from "@/lib/api/types";
 
 export interface Values {
   event_type: EventType | ""; // "" until the organiser picks one
