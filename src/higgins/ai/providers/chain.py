@@ -7,12 +7,16 @@ the check hands over to the next. If none answers, the call returns None: every 
 non-AI path. The one error is AIBusyError, when the hourly cap shared by every visitor is used
 up. Prompts, replies and keys are never logged; one line per call records the task, provider,
 model, time taken and outcome.
+
+The agent uses the same chain one turn at a time (`turn`): tool calls or a text reply instead of
+JSON, with the time budget set by the agent for its whole conversation.
 """
 
 import asyncio
 import hashlib
 import logging
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar, cast
 
 from openai import (
@@ -20,7 +24,7 @@ from openai import (
 )
 from pydantic import BaseModel, ValidationError
 
-from higgins.ai.providers.base import Provider
+from higgins.ai.providers.base import Provider, Turn
 from higgins.ai.providers.cache import TTLCache
 from higgins.ai.providers.groq_provider import GROQ_BASE_URL, GroqProvider
 from higgins.ai.providers.openai_provider import OpenAIProvider
@@ -30,6 +34,7 @@ from higgins.core.rate_limit import RateLimiter
 logger = logging.getLogger(__name__)
 
 M = TypeVar("M", bound=BaseModel)
+T = TypeVar("T")
 
 # A backup with less time left than this would only time out too.
 MIN_BACKUP_SECONDS = 2.0
@@ -80,27 +85,59 @@ class StructuredAI:
         if (cached := self._cache.get(cache_key)) is not None:
             logger.info("AI %s: cached", task)
             return cast(M, cached)  # the key holds the task, and each task has one output type
-        # Counted after the cache, so only calls that reach a provider use up the cap.
+        self._count(task)
+
+        async def attempt(provider: Provider, timeout: float) -> M:
+            text = await provider.reply(
+                task=task, instructions=instructions, prompt_input=prompt_input,
+                response_format=response_format, max_output_tokens=max_output_tokens, timeout=timeout,
+            )
+            return output.model_validate_json(text)
+
+        result = await self._first_answer(task, time.monotonic() + self.settings.ai_timeout_seconds, attempt)
+        if result is not None:
+            self._cache.set(cache_key, result)
+        return result
+
+    async def turn(
+        self, *, task: str, messages: list[dict[str, Any]], tools: list[dict[str, Any]],
+        max_output_tokens: int, deadline: float,
+    ) -> Turn | None:
+        """One turn of a tool-calling conversation, or None if no provider answered by `deadline`
+        (monotonic time, set by the caller for the whole conversation). Never cached: the
+        conversation changes with every tool result."""
+        if not self.available:
+            return None
+        self._count(task)
+
+        async def attempt(provider: Provider, timeout: float) -> Turn:
+            return await provider.tool_turn(
+                task=task, messages=messages, tools=tools, max_output_tokens=max_output_tokens, timeout=timeout,
+            )
+
+        return await self._first_answer(task, deadline, attempt)
+
+    def _count(self, task: str) -> None:
+        """Use up one call from the hourly cap (after the cache, so only real calls count)."""
         if self.hourly_cap and not self.hourly_cap.allow("all"):
             logger.warning("AI %s: hourly cap reached", task)
             raise AIBusyError
 
-        deadline = time.monotonic() + self.settings.ai_timeout_seconds
-        for attempt, provider in enumerate(self.providers):
+    async def _first_answer(
+        self, task: str, deadline: float, attempt: Callable[[Provider, float], Awaitable[T]],
+    ) -> T | None:
+        """Try each provider in order until one answers, all within `deadline`."""
+        for index, provider in enumerate(self.providers):
             started = time.monotonic()
             if provider.resting_until > started:
                 logger.info("AI %s: %s skipped, resting after a 429", task, provider.name)
                 continue
             remaining = deadline - started
-            if attempt and remaining < MIN_BACKUP_SECONDS:
+            if index and remaining < MIN_BACKUP_SECONDS:
                 break
             timeout = min(provider.timeout, remaining)
             try:
-                text = await asyncio.wait_for(provider.reply(
-                    task=task, instructions=instructions, prompt_input=prompt_input,
-                    response_format=response_format, max_output_tokens=max_output_tokens, timeout=timeout,
-                ), timeout)
-                result = output.model_validate_json(text)
+                result = await asyncio.wait_for(attempt(provider, timeout), timeout)
             except (OpenAIError, ValidationError, ValueError, TimeoutError) as exc:
                 if isinstance(exc, RateLimitError):
                     provider.resting_until = time.monotonic() + _rest_seconds(exc)
@@ -108,7 +145,6 @@ class StructuredAI:
                 _log(logging.WARNING, task, provider, started, _failure(exc))
                 continue
             _log(logging.INFO, task, provider, started, "ok")
-            self._cache.set(cache_key, result)
             return result
         return None
 

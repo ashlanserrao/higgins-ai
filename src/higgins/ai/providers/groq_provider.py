@@ -38,3 +38,9 @@ class GroqProvider(Provider):
         if not response.choices:
             return ""
         return response.choices[0].message.content or ""
+
+    def chat_options(self) -> dict[str, Any]:
+        options: dict[str, Any] = {"extra_body": {"include_reasoning": False}}
+        if self.settings.groq_reasoning_effort:
+            options["reasoning_effort"] = self.settings.groq_reasoning_effort
+        return options

@@ -6,7 +6,8 @@ from higgins.ai.providers.base import Provider
 
 
 class OpenAIProvider(Provider):
-    """OpenAI's Responses API, with store=False so nothing is kept for later turns."""
+    """OpenAI's Responses API for structured replies, Chat Completions for tool turns; store=False
+    in both, so nothing is kept on OpenAI's side."""
 
     name = "openai"
 
@@ -32,3 +33,10 @@ class OpenAIProvider(Provider):
         )
         text: str = response.output_text  # typed loosely by the SDK when options are passed as **kwargs
         return text
+
+    def chat_options(self) -> dict[str, Any]:
+        # Tool turns use Chat Completions, like Groq, so either provider can continue a conversation.
+        options: dict[str, Any] = {"store": False}
+        if self.settings.openai_reasoning_effort:
+            options["reasoning_effort"] = self.settings.openai_reasoning_effort
+        return options

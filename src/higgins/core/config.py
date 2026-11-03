@@ -12,7 +12,7 @@ load_dotenv()
 IST = timezone(timedelta(hours=5, minutes=30), "Asia/Kolkata")
 
 # The AI features, as named in logs and in the per-task model settings.
-AI_TASKS = ("ideas", "quotes", "understand")
+AI_TASKS = ("ideas", "quotes", "understand", "ask")
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,8 @@ class Settings:
     })
     # The whole time one AI call may take, backup included.
     ai_timeout_seconds: float = float(os.getenv("AI_TIMEOUT_SECONDS", "15"))
+    # The whole time one agent request may take: every model turn and tool call together.
+    agent_timeout_seconds: float = float(os.getenv("AGENT_TIMEOUT_SECONDS", "25"))
     # AI idea requests per IP per minute.
     rate_limit_per_minute: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
     # Rules-only plan requests (including "what if" slider updates) per IP per minute.

@@ -32,13 +32,14 @@ so the plan works with no API key, and engine tests are fast and exact. `ai/` ne
 |---|---|
 | `engine/` | `planner.py` (`build_plan(request, today)`, a pure function), `rules.py` (every heuristic as a named constant), progress, quotes, money moves, diffs, vendor messages, and the checks that compare an AI reading with the user's own words |
 | `ai/` | One module per AI feature (`ideas`, `quotes`, `understand`), the ideas prompt and schema, and `untrusted.py` (fencing user text against prompt injection) |
-| `ai/providers/` | `chain.py` (`StructuredAI`: cache, hourly cap, one time budget, fallback, validation, logging), `base.py`, `groq_provider.py`, `openai_provider.py`, `cache.py` |
+| `ai/providers/` | `chain.py` (`StructuredAI`: cache, hourly cap, one time budget, fallback, validation, logging; `turn` for the agent's tool-calling turns), `base.py`, `groq_provider.py`, `openai_provider.py`, `cache.py` |
 | `services/` | `understand.py`: turns an AI reading into form values or a validated revision with its before/after |
+| `agent/` | Ask Higgins as an agent (Phase 1, in progress). `loop.py`: the model calls tools until it can reply, within a turn cap and one time budget (no framework, [decision 0007](decisions/0007-agent-loop-without-a-framework.md)). `tools.py`: the tools it can call, each running the engine on a working copy (`draft.py`). Same level as `services/`: it uses `ai/` and `engine/`, and only `api/` will use it |
 | `schemas/` | `common.py` (shared types), `requests.py` (what the browser sends), `plan.py` (what the engine returns), `responses.py` (route bodies), `validation_messages.py` |
 | `api/` | `main.py` (wiring only), `routes/` (health, rules-only plan routes, AI routes), `middleware.py`, `errors.py`, `dependencies.py`, `security.py` (headers), `static.py` (serving the built site) |
 | `core/` | `config.py` (settings from the environment), `logging.py`, `rate_limit.py` |
 
-Tests mirror the layers: `tests/engine/`, `tests/ai/`, `tests/api/`.
+Tests mirror the layers: `tests/engine/`, `tests/ai/`, `tests/agent/`, `tests/api/`.
 
 ## The frontend (`frontend/src/`)
 
