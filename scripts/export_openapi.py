@@ -5,13 +5,11 @@ Run from the repo root: python scripts/export_openapi.py
 """
 
 import json
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+from higgins.api.main import app
 
-from app.main import app  # noqa: E402  (needs the repo root on the path)
+ROOT = Path(__file__).resolve().parent.parent
 
 OUTPUT = ROOT / "frontend" / "openapi.json"
 

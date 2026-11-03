@@ -13,7 +13,7 @@ export default defineConfig({
   testDir: "e2e",
   use: { baseURL: `http://127.0.0.1:${PORT}`, channel: "chrome" },
   webServer: {
-    command: `${process.env.PYTHON ?? "python"} -m uvicorn app.main:app --port ${PORT}`,
+    command: `${process.env.PYTHON ?? "python"} -m uvicorn higgins.api.main:app --port ${PORT}`,
     cwd: "..",
     url: `http://127.0.0.1:${PORT}/health`,
     reuseExistingServer: false,

@@ -1,4 +1,25 @@
-# Tool settings only: the app is run with uvicorn and installed from requirements*.txt.
+# The backend is the `higgins` package in src/. Install it with its pinned dependencies:
+#   pip install -e .                      (running it locally: editable, so it finds frontend/dist)
+#   pip install -r requirements-dev.txt   (development: the above plus test and lint tools)
+#   pip install .                         (API-only hosts such as Render: the site is on Vercel)
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "higgins"
+version = "0.1.0"
+description = "Event planning assistant: a rules engine computes the plan, AI personalises it."
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+# One list of pins, shared with hosts that install from requirements.txt.
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.ruff]
 line-length = 120
@@ -16,7 +37,7 @@ extend-immutable-calls = ["fastapi.Depends"]
 
 [tool.mypy]
 python_version = "3.11"
-files = ["app", "evals", "scripts"]
+files = ["src", "evals", "scripts"]
 plugins = ["pydantic.mypy"]
 strict = true
 

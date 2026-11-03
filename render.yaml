@@ -5,10 +5,10 @@ services:
     name: higgins-ai-api
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install .
     # Render's proxy is the only way in, so its X-Forwarded-For header is trusted: per-IP rate
     # limits see the visitor's IP, and HSTS is sent because the visitor used HTTPS.
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    startCommand: uvicorn higgins.api.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
     healthCheckPath: /health
     envVars:
       # Asked for when the blueprint is created; never committed.

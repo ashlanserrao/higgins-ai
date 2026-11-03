@@ -13,7 +13,7 @@ export default defineConfig({
       "react-style-singleton": path.resolve(import.meta.dirname, "src/lib/style-singleton.ts"),
     },
   },
-  // In development the API runs separately: uvicorn app.main:app --port 8000
+  // In development the API runs separately: uvicorn higgins.api.main:app --port 8000
   server: { proxy: { "/api": "http://127.0.0.1:8000", "/health": "http://127.0.0.1:8000" } },
   build: { outDir: "dist", emptyOutDir: true },
   // Tests cover pure logic only; the few browser globals it touches are stubbed per test.

@@ -19,14 +19,14 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from app.ai.client import StructuredAI, default_providers
-from app.ai.ideas import PRICES, IdeasGenerator
-from app.ai.quotes import QuoteDraft, QuoteExtractor
-from app.ai.schema import EventIdeas
-from app.ai.understand import Interpretation, PlanInterpreter
-from app.config import Settings
-from app.engine.planner import build_plan
-from app.models import PlanRequest
+from higgins.ai.ideas import PRICES, IdeasGenerator
+from higgins.ai.providers.chain import StructuredAI, default_providers
+from higgins.ai.quotes import QuoteDraft, QuoteExtractor
+from higgins.ai.schema import EventIdeas
+from higgins.ai.understand import Interpretation, PlanInterpreter
+from higgins.core.config import Settings
+from higgins.engine.planner import build_plan
+from higgins.schemas.requests import PlanRequest
 
 TODAY = date(2026, 10, 21)
 HERE = Path(__file__).resolve().parent
@@ -205,8 +205,8 @@ async def main() -> None:
     partial = bool(args.limit or args.case)
 
     attempts = Attempts()
-    logging.getLogger("app.ai.client").addHandler(attempts)
-    logging.getLogger("app.ai.client").setLevel(logging.INFO)
+    logging.getLogger("higgins.ai.providers.chain").addHandler(attempts)
+    logging.getLogger("higgins.ai.providers.chain").setLevel(logging.INFO)
     probe = next((p for p in default_providers(Settings()) if p.name == args.provider), None)
     if probe is None:
         raise SystemExit(f"No {args.provider.upper()}_API_KEY in .env")

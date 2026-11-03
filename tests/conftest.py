@@ -5,16 +5,19 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from app.ai.client import GroqProvider, OpenAIProvider, StructuredAI
-from app.ai.ideas import IdeasGenerator
-from app.ai.quotes import QuoteExtractor
-from app.ai.understand import PlanInterpreter
-from app.config import Settings
-from app.main import (
-    RATE_LIMITERS, ai, ai_total_limiter, app, get_ideas_generator, get_plan_interpreter, get_quote_extractor,
+from higgins.ai.ideas import IdeasGenerator
+from higgins.ai.providers.chain import StructuredAI
+from higgins.ai.providers.groq_provider import GroqProvider
+from higgins.ai.providers.openai_provider import OpenAIProvider
+from higgins.ai.quotes import QuoteExtractor
+from higgins.ai.understand import PlanInterpreter
+from higgins.api.dependencies import (
+    RATE_LIMITERS, ai, ai_total_limiter, get_ideas_generator, get_plan_interpreter, get_quote_extractor,
     today_in_india,
 )
-from app.models import PlanRequest
+from higgins.api.main import app
+from higgins.core.config import Settings
+from higgins.schemas.requests import PlanRequest
 
 TODAY = date(2026, 10, 21)
 

@@ -11,9 +11,9 @@ A GenAI-powered planning assistant that helps people organise **weddings, birthd
 **Quick start** (Python 3.11+, Node 22):
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 cd frontend && npm ci && npm run build && cd ..
-uvicorn app.main:app        # open http://127.0.0.1:8000 and sign in with test / test
+uvicorn higgins.api.main:app        # open http://127.0.0.1:8000 and sign in with test / test
 ```
 
 No API key needed: the full rules-based plan works without one. Keys only switch on the AI parts (see [Running it](#running-it)).
@@ -38,7 +38,7 @@ She doesn't want a chatbot to interrogate. So the app is **one short form → on
 | Themes, décor, food/menu, entertainment ideas | GenAI | Free-text taste ("pastel colours, my son loves dinosaurs") is what rules can't do well |
 | Wording of triage advice | GenAI | Turns the rules' decisions into friendly advice, but cannot change them |
 
-The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, today)`: the same inputs on the same day always give the same plan. That is what makes share links and golden tests possible.
+The engine (`src/higgins/engine/planner.py`) is a pure function, `build_plan(request, today)`: the same inputs on the same day always give the same plan. That is what makes share links and golden tests possible.
 
 **How the rules work, in short:**
 
@@ -48,7 +48,7 @@ The engine (`app/engine/planner.py`) is a pure function, `build_plan(request, to
 - **Triage in three stages:** *on track*, *tight but doable* ("book this week") and *book today*. Only "book today" items switch on triage. Essentials (venue, permissions, caterer) are flagged, never cut; other items get a cheaper alternative.
 - **Community events:** with a household count, the plan shows a per-flat contribution, which is how committees actually raise money.
 
-All heuristics are named, commented constants in `app/engine/rules.py`.
+All heuristics are named, commented constants in `src/higgins/engine/rules.py`.
 
 ## How it works
 
@@ -77,7 +77,7 @@ The plan appears as soon as the rules engine returns; the ideas card fills in a 
 
 ### AI providers and guardrails
 
-Every AI call goes through one class, `StructuredAI` (`app/ai/client.py`), which tries a provider chain within one 15 s budget.
+Every AI call goes through one class, `StructuredAI` (`src/higgins/ai/providers/chain.py`), which tries a provider chain within one 15 s budget.
 
 - **Groq first, OpenAI as backup.** Groq (`openai/gpt-oss-20b`) usually answers in about a second. On a timeout, error (429, 5xx, bad key, rejected schema) or invalid JSON, OpenAI gets the rest of the budget. No key means AI is off and the rules-based plan still works in full.
 - **The AI reports, code computes.** Relative changes ("add 40 guests"), dates counted from today ("in 2 weeks") and amounts ("1.5L" = ₹1,50,000) are worked out in code, and each reading is shown to the user. Vague dates are asked about, never guessed. Ideas never carry prices: one that quotes a price is dropped.
@@ -103,7 +103,7 @@ Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals
 
 ## Demo scenarios
 
-Real engine output with `today = 2026-10-21`; each is also a golden test in `tests/test_engine.py`.
+Real engine output with `today = 2026-10-21`; each is also a golden test in `tests/engine/test_engine.py`.
 
 **1. Happy path: cousin's wedding.** Bengaluru · 250 guests · ₹15,00,000 · 12 Dec 2027 · venue includes catering · priorities: food, photography.
 417 days to go, ₹6,000 per guest, level *generous*. Venue & catering gets ₹8,25,000 (55%), photo & video ₹2,25,000 (15%). Because December is peak season, the venue is due by **16 Jan 2027** and the photographer by **15 Feb 2027**. No triage.
@@ -121,11 +121,11 @@ Requires Python 3.11+ and Node 22.
 ```bash
 python -m venv venv
 # Windows: venv\Scripts\activate    macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
+pip install -e .            # the higgins package and its pinned dependencies
 cp .env.example .env        # optional: add GROQ_API_KEY and/or OPENAI_API_KEY
 
 cd frontend && npm ci && npm run build && cd ..
-uvicorn app.main:app
+uvicorn higgins.api.main:app
 ```
 
 Open http://127.0.0.1:8000 and press **Use the demo account** (`test` / `test`). For frontend work, `npm run dev` in `frontend/` gives hot reload and forwards `/api` to port 8000.
@@ -144,7 +144,7 @@ Open http://127.0.0.1:8000 and press **Use the demo account** (`test` / `test`).
 More options (per-task models, reasoning effort, hourly spend cap) are documented in `.env.example`.
 
 **Deploying.** The live site is on Vercel (`frontend/vercel.json`, root `frontend`), which forwards `/api/*` to the API on Render (`render.yaml`, New > Blueprint), so the browser sees one origin and the CSP stays `connect-src 'self'`. Vercel sends the same security headers as the API, and a test fails if they drift apart. API keys are Render secrets. Render runs
-`uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
+`uvicorn higgins.api.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"`
 so per-IP rate limits see real visitor IPs. Only use `"*"` when the app is reachable solely through that proxy. Render's free plan sleeps after 15 idle minutes, so an uptime monitor calls `/health` every 10 minutes.
 
 ## Testing
@@ -195,12 +195,17 @@ Everything runs offline and free: both AI providers are faked (a guard blocks re
 ## Project structure
 
 ```
-app/          FastAPI + Pydantic v2
-  engine/     Deterministic rules, no AI (rules.py, planner.py, progress, quotes, diff, messages)
-  ai/         All AI calls: Groq, then OpenAI (client.py, ideas, quotes, understand, prompts)
-  services/   Plain-language intake and revisions
-evals/        Manual evals against real providers (cases, runner, saved results)
-tests/        pytest suite (offline, AI faked)
+src/higgins/     The backend package (FastAPI + Pydantic v2)
+  engine/        Deterministic rules, no AI (rules.py, planner.py, progress, quotes, diff, messages)
+  ai/            AI features (ideas, quotes, understand, prompt) and their safety (untrusted.py)
+    providers/   The provider chain: Groq, then OpenAI (chain.py, groq_provider.py, openai_provider.py)
+  services/      Plain-language intake and revisions: AI reading + engine
+  schemas/       API models: requests, plan, responses, plain-language validation messages
+  api/           FastAPI app: main.py, routes/, middleware, errors, dependencies, security headers
+  core/          Settings, logging, rate limiting
+evals/           Manual evals against real providers (cases, runner, saved results)
+tests/           pytest suite (offline, AI faked), one folder per layer: engine/, ai/, api/
+docs/            Architecture and decision records
 frontend/     React + TypeScript + Vite + Tailwind + shadcn/ui
   src/features/   One folder per domain (overview, budget, tasks, vendors, guests, ideas, print…)
   e2e/            Playwright end-to-end test

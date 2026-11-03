@@ -84,4 +84,4 @@ Edit `EXAMPLE` in `src/model.mjs`, then run `npm run build:hm` and `make-posters
 - Book-by lead times: `leads`. In the example, a busy month adds time for the venue and décor, every 25 extra guests add half a month for the venue, and every 50 add half a month for food. That is why each pull moves one or two tags.
 - Coin value: `coinValue`, in lakh per coin.
 
-**These are made-up example numbers**, labelled "Example" on the page. They are not the rules engine's pricing or logic (that lives in `app/engine/rules.py`).
+**These are made-up example numbers**, labelled "Example" on the page. They are not the rules engine's pricing or logic (that lives in `src/higgins/engine/rules.py`).
