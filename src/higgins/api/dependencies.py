@@ -15,9 +15,12 @@ from higgins.core.rate_limit import RateLimiter
 # The rules-only plan is cheap and called on every "what if" change; AI calls are not.
 plan_limiter = RateLimiter(settings.plan_rate_limit_per_minute)
 ai_limiter = RateLimiter(settings.rate_limit_per_minute)
+# Its own, lower limit: one agent request can make up to 6 AI calls.
+ask_limiter = RateLimiter(settings.ask_rate_limit_per_minute)
 RATE_LIMITERS = {
     "/api/plan": plan_limiter, "/api/compare": plan_limiter, "/api/messages": plan_limiter,
     "/api/ideas": ai_limiter, "/api/quotes/extract": ai_limiter, "/api/understand": ai_limiter,
+    "/api/ask": ask_limiter,
 }
 # One shared bucket for every visitor's AI calls, so many IPs together can't run up the bill.
 # StructuredAI counts it, so cached replies and requests that fail validation don't use it up.
@@ -43,3 +46,8 @@ def get_quote_extractor() -> QuoteExtractor:
 
 def get_plan_interpreter() -> PlanInterpreter:
     return plan_interpreter
+
+
+def get_agent_ai() -> StructuredAI:
+    """The provider chain the agent's turns go through: the same one, cap included."""
+    return ai

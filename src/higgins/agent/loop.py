@@ -9,13 +9,14 @@ way the draft holds whatever was proposed so far, and the organiser confirms it 
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any
 
 from higgins.agent.draft import Draft
 from higgins.agent.tools import GetPlanArgs, ToolOutcome, get_plan, run_tool, tool_specs
 from higgins.ai.providers.base import Turn
 from higgins.ai.providers.chain import AIBusyError, StructuredAI
 from higgins.ai.untrusted import fence, sanitize
+from higgins.schemas.common import StopReason
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +27,6 @@ MAX_OUTPUT_TOKENS = 1000
 # A turn with less time left than this would only time out.
 MIN_TURN_SECONDS = 2.0
 MAX_REPLY_CHARS = 400
-
-# done: the model replied. step_cap / time: a guardrail stopped it. no_answer: no provider
-# answered a turn. busy: the hourly cap shared by every visitor is used up.
-StopReason = Literal["done", "step_cap", "time", "no_answer", "busy"]
 
 INSTRUCTIONS = """\
 You help an event organiser in India change their event plan, using tools. \

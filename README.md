@@ -200,11 +200,12 @@ src/higgins/     The backend package (FastAPI + Pydantic v2)
   ai/            AI features (ideas, quotes, understand, prompt) and their safety (untrusted.py)
     providers/   The provider chain: Groq, then OpenAI (chain.py, groq_provider.py, openai_provider.py)
   services/      Plain-language intake and revisions: AI reading + engine
+  agent/         Ask Higgins as an agent: tools on a draft, the loop, the proposal (POST /api/ask)
   schemas/       API models: requests, plan, responses, plain-language validation messages
   api/           FastAPI app: main.py, routes/, middleware, errors, dependencies, security headers
   core/          Settings, logging, rate limiting
 evals/           Manual evals against real providers (cases, runner, saved results)
-tests/           pytest suite (offline, AI faked), one folder per layer: engine/, ai/, api/
+tests/           pytest suite (offline, AI faked), one folder per layer: engine/, ai/, agent/, api/
 docs/            Architecture and decision records
 frontend/     React + TypeScript + Vite + Tailwind + shadcn/ui
   src/features/   One folder per domain (overview, budget, tasks, vendors, guests, ideas, print…)

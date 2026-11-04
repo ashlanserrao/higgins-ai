@@ -12,8 +12,8 @@ from higgins.ai.providers.openai_provider import OpenAIProvider
 from higgins.ai.quotes import QuoteExtractor
 from higgins.ai.understand import PlanInterpreter
 from higgins.api.dependencies import (
-    RATE_LIMITERS, ai, ai_total_limiter, get_ideas_generator, get_plan_interpreter, get_quote_extractor,
-    today_in_india,
+    RATE_LIMITERS, ai, ai_total_limiter, get_agent_ai, get_ideas_generator, get_plan_interpreter,
+    get_quote_extractor, today_in_india,
 )
 from higgins.api.main import app
 from higgins.core.config import Settings
@@ -112,6 +112,7 @@ def client():
     app.dependency_overrides[get_ideas_generator] = lambda: make_generator()
     app.dependency_overrides[get_quote_extractor] = lambda: make_extractor()
     app.dependency_overrides[get_plan_interpreter] = lambda: make_interpreter()
+    app.dependency_overrides[get_agent_ai] = lambda: make_ai()
     for limiter in [*RATE_LIMITERS.values(), ai_total_limiter]:
         limiter.reset()
     yield TestClient(app)

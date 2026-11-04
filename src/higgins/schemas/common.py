@@ -18,6 +18,9 @@ QuoteId = Annotated[str, StringConstraints(min_length=1, max_length=40, pattern=
 QuoteNote = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
 Capacity = Literal["fits", "too_small", "not_stated"]
 MessageKind = Literal["enquiry", "follow_up", "confirmation"]
+# Why the agent stopped. done: the model replied. step_cap / time: a guardrail stopped it.
+# no_answer: no provider answered a turn. busy: the hourly cap shared by every visitor is used up.
+StopReason = Literal["done", "step_cap", "time", "no_answer", "busy"]
 
 
 class ApiModel(BaseModel):

@@ -162,10 +162,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ask": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask
+         * @description Ask Higgins as an agent: it can change the plan, move money and draft vendor messages in
+         *     one request. Returns a proposal (before/after, drafted messages); nothing is applied.
+         */
+        post: operations["ask_api_ask_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AskRequest
+         * @description Ask Higgins as an agent: a request about an existing plan.
+         */
+        AskRequest: {
+            /** Message */
+            message: string;
+            current: components["schemas"]["PlanRequest-Input"];
+        };
+        /**
+         * AskResponse
+         * @description What the agent proposes. Built from its working copy, not from its reply; nothing is
+         *     applied until the organiser confirms.
+         */
+        AskResponse: {
+            /** Ai Available */
+            ai_available: boolean;
+            /**
+             * Stopped
+             * @enum {string}
+             */
+            stopped: "done" | "step_cap" | "time" | "no_answer" | "busy";
+            /** Partial */
+            partial: boolean;
+            /** Reply */
+            reply: string;
+            inputs: components["schemas"]["PlanRequest-Output"] | null;
+            plan: components["schemas"]["Plan"] | null;
+            changes: components["schemas"]["PlanDiff"] | null;
+            /** Messages */
+            messages: components["schemas"]["DraftedVendorMessage"][];
+            /** Notes */
+            notes: string[];
+        };
         /** BudgetCut */
         BudgetCut: {
             /** Key */
@@ -257,6 +312,20 @@ export interface components {
             inputs: components["schemas"]["PlanRequest-Output"];
             plan: components["schemas"]["Plan"];
             changes: components["schemas"]["PlanDiff"];
+        };
+        /** DraftedVendorMessage */
+        DraftedVendorMessage: {
+            /** Task Id */
+            task_id: string;
+            /** Label */
+            label: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "enquiry" | "follow_up" | "confirmation";
+            /** Text */
+            text: string;
         };
         /** EventIdeas */
         EventIdeas: {
@@ -1140,6 +1209,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnderstandResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_api_ask_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskResponse"];
                 };
             };
             /** @description Validation Error */

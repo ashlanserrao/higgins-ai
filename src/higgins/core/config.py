@@ -37,6 +37,8 @@ class Settings:
     agent_timeout_seconds: float = float(os.getenv("AGENT_TIMEOUT_SECONDS", "25"))
     # AI idea requests per IP per minute.
     rate_limit_per_minute: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+    # Agent requests (Ask Higgins) per IP per minute: each can make up to 6 AI calls.
+    ask_rate_limit_per_minute: int = int(os.getenv("ASK_RATE_LIMIT_PER_MINUTE", "6"))
     # Rules-only plan requests (including "what if" slider updates) per IP per minute.
     plan_rate_limit_per_minute: int = int(os.getenv("PLAN_RATE_LIMIT_PER_MINUTE", "120"))
     # AI requests per hour from all visitors together: caps spend even across many IPs.

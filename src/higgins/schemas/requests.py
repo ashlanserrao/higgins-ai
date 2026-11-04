@@ -174,6 +174,15 @@ class UnderstandRequest(ApiModel):
     current: PlanRequest | None = None  # None: a new event
 
 
+class AskRequest(ApiModel):
+    """Ask Higgins as an agent: a request about an existing plan."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    message: str = Field(min_length=1, max_length=500)
+    current: PlanRequest
+
+
 class QuoteExtractRequest(ApiModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

@@ -279,10 +279,155 @@
           }
         }
       }
+    },
+    "/api/ask": {
+      "post": {
+        "summary": "Ask",
+        "description": "Ask Higgins as an agent: it can change the plan, move money and draft vendor messages in\none request. Returns a proposal (before/after, drafted messages); nothing is applied.",
+        "operationId": "ask_api_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AskRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "current": {
+            "$ref": "#/components/schemas/PlanRequest-Input"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message",
+          "current"
+        ],
+        "title": "AskRequest",
+        "description": "Ask Higgins as an agent: a request about an existing plan."
+      },
+      "AskResponse": {
+        "properties": {
+          "ai_available": {
+            "type": "boolean",
+            "title": "Ai Available"
+          },
+          "stopped": {
+            "type": "string",
+            "enum": [
+              "done",
+              "step_cap",
+              "time",
+              "no_answer",
+              "busy"
+            ],
+            "title": "Stopped"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial"
+          },
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "inputs": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanRequest-Output"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Plan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "changes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanDiff"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/DraftedVendorMessage"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_available",
+          "stopped",
+          "partial",
+          "reply",
+          "inputs",
+          "plan",
+          "changes",
+          "messages",
+          "notes"
+        ],
+        "title": "AskResponse",
+        "description": "What the agent proposes. Built from its working copy, not from its reply; nothing is\napplied until the organiser confirms."
+      },
       "BudgetCut": {
         "properties": {
           "key": {
@@ -517,6 +662,39 @@
           "changes"
         ],
         "title": "CompareResponse"
+      },
+      "DraftedVendorMessage": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "enquiry",
+              "follow_up",
+              "confirmation"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "label",
+          "kind",
+          "text"
+        ],
+        "title": "DraftedVendorMessage"
       },
       "EventIdeas": {
         "properties": {

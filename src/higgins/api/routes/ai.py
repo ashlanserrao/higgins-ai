@@ -9,13 +9,17 @@ from datetime import date
 
 from fastapi import APIRouter, Depends
 
+from higgins.agent.propose import propose
 from higgins.ai.ideas import IdeasGenerator
+from higgins.ai.providers.chain import StructuredAI
 from higgins.ai.quotes import QuoteExtractor
 from higgins.ai.understand import PlanInterpreter
-from higgins.api.dependencies import get_ideas_generator, get_plan_interpreter, get_quote_extractor, today_in_india
+from higgins.api.dependencies import (
+    get_agent_ai, get_ideas_generator, get_plan_interpreter, get_quote_extractor, today_in_india,
+)
 from higgins.engine.planner import build_plan
-from higgins.schemas.requests import PlanRequest, QuoteExtractRequest, UnderstandRequest
-from higgins.schemas.responses import IdeasResponse, QuoteExtractResponse, UnderstandResponse
+from higgins.schemas.requests import AskRequest, PlanRequest, QuoteExtractRequest, UnderstandRequest
+from higgins.schemas.responses import AskResponse, IdeasResponse, QuoteExtractResponse, UnderstandResponse
 from higgins.services.understand import understand_message
 
 router = APIRouter()
@@ -52,3 +56,14 @@ async def understand(
     """Turn a typed request into form values (new event) or a proposed revision with its
     before/after. Nothing is saved or applied."""
     return await understand_message(body, interpreter, today)
+
+
+@router.post("/api/ask", response_model=AskResponse)
+async def ask(
+    body: AskRequest,
+    today: date = Depends(today_in_india),
+    agent_ai: StructuredAI = Depends(get_agent_ai),
+) -> AskResponse:
+    """Ask Higgins as an agent: it can change the plan, move money and draft vendor messages in
+    one request. Returns a proposal (before/after, drafted messages); nothing is applied."""
+    return await propose(body, agent_ai, today)
