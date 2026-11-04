@@ -1,11 +1,11 @@
-// State for the Ask Higgins dock that doesn't depend on how it's drawn: the request to the AI
-// and what came back, and the "Examples to try" menu under the field.
+// State for the Ask Higgins dock that doesn't depend on how it's drawn: the request to the
+// agent (/api/ask) and the proposal that came back, and the "Examples to try" menu.
 
 import { useCallback, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from "react";
 import { api } from "@/lib/api/client";
 import type { PlanRequest } from "@/lib/api/types";
 import type { Outcome } from "./ask-review";
-import { headline } from "./ask-words";
+import { askHeadline } from "./ask-words";
 
 /** One request at a time. A reply that arrives after `drop()` (the dock closed) is ignored.
  *  `onAnswered` runs once a reply (or a failure) is in, to show the review card. */
@@ -21,7 +21,7 @@ export function useAskRequest(inputs: PlanRequest, enabled: boolean, onAnswered:
     setBusy(true);
     setOutcome(null);
     try {
-      const response = await api.understand(asked, inputs);
+      const response = await api.ask(asked, inputs);
       if (mine === ticket.current) setOutcome({ asked, response });
     } catch {
       if (mine === ticket.current) setOutcome({ asked, failed: true });
@@ -40,10 +40,11 @@ export function useAskRequest(inputs: PlanRequest, enabled: boolean, onAnswered:
     setOutcome(null);
   }, []);
 
-  // Something to apply only when the engine worked out a new plan with at least one change.
+  // Something to apply only when the agent's draft changed the plan; drafted messages alone
+  // need no applying (they're copied).
   const response = outcome?.response;
-  const ready = response?.plan && response.changes && response.fields.length > 0 && !response.errors.length ? response : null;
-  const title = response ? headline(response.fields, inputs) : "";
+  const ready = response?.inputs && response.plan && response.changes ? response : null;
+  const title = response ? askHeadline(response, inputs) : "";
 
   return { busy, outcome, ready, title, send, drop, clear: () => setOutcome(null) };
 }

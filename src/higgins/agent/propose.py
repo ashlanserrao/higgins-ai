@@ -10,8 +10,10 @@ from datetime import date
 from higgins.agent.draft import Draft
 from higgins.agent.loop import run_agent
 from higgins.ai.providers.chain import AIBusyError, StructuredAI
+from higgins.engine import rules
 from higgins.schemas.requests import AskRequest
-from higgins.schemas.responses import AskResponse, DraftedVendorMessage
+from higgins.schemas.responses import AskResponse, DraftedVendorMessage, FieldChange
+from higgins.schemas.validation_messages import FIELD_LABELS
 
 DONE_REPLY = "Done. Check the changes below."
 PARTIAL_REPLY = "I only got part of the way through that. Check what I did below, or try again."
@@ -22,7 +24,9 @@ async def propose(body: AskRequest, ai: StructuredAI, today: date) -> AskRespons
     """The agent's proposal for `body.message`. Raises AIBusyError only when the hourly cap
     stopped it before it did anything, like the other AI routes."""
     if not ai.available:
-        return AskResponse(ai_available=False, stopped="no_answer", partial=False, reply="", messages=[], notes=[])
+        return AskResponse(
+            ai_available=False, stopped="no_answer", partial=False, reply="", fields=[], messages=[], notes=[],
+        )
 
     draft = Draft(message=body.message, today=today, original=body.current)
     result = await run_agent(ai, draft)
@@ -36,10 +40,17 @@ async def propose(body: AskRequest, ai: StructuredAI, today: date) -> AskRespons
         # Stopped early: say so in the server's words, and keep whatever was done for review.
         reply = PARTIAL_REPLY if did_something else FAILED_REPLY
     plan = draft.plan()
-    labels = {item.id: item.label for item in plan.checklist}
+    # Who each message is to: "decorator" for the decor booking, else the booking's own label.
+    labels = {item.id: rules.VENDOR_NAMES.get(item.id, item.label) for item in plan.checklist}
+    before, after = (request.model_dump(exclude={"progress"}) for request in (draft.original, draft.current))
     response = AskResponse(
         ai_available=True, stopped=result.stopped, partial=result.stopped != "done" and did_something,
         reply=reply, notes=draft.notes,
+        # The same rows /api/understand returns, so the page's review card shows both alike.
+        fields=[
+            FieldChange(field=name, label=FIELD_LABELS.get(name, name), before=before[name], after=value)
+            for name, value in after.items() if before[name] != value
+        ],
         messages=[
             DraftedVendorMessage(task_id=m.task_id, label=labels.get(m.task_id, m.task_id), kind=m.kind, text=m.text)
             for m in draft.messages

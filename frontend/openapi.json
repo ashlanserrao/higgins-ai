@@ -368,6 +368,13 @@
             "type": "string",
             "title": "Reply"
           },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChange"
+            },
+            "type": "array",
+            "title": "Fields"
+          },
           "inputs": {
             "anyOf": [
               {
@@ -419,6 +426,7 @@
           "stopped",
           "partial",
           "reply",
+          "fields",
           "inputs",
           "plan",
           "changes",

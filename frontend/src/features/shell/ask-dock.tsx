@@ -1,13 +1,13 @@
 // Ask Higgins: a change to the plan in the organiser's own words, typed or spoken. A circle at
-// the bottom right of the content opens into a bar (a sheet on phones). The AI turns the words
-// into changes, the engine works out the new plan, and a review card shows exactly what moves;
-// nothing is applied until the organiser says so, and the toast after it offers Undo.
+// the bottom right of the content opens into a bar (a sheet on phones). The agent (/api/ask)
+// changes a draft of the plan with the engine's tools (inputs, money moves, vendor messages),
+// and a review card shows exactly what moves; nothing is applied until the organiser says so,
+// and the toast after it offers Undo.
 
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowUp, Loader2, Mic, X } from "lucide-react";
 import { LogoMark } from "@/components/brand";
 import { readItem, writeItem } from "@/lib/storage/safe-storage";
-import type { PlanRequest } from "@/lib/api/types";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { speechSupported, useSpeech } from "@/hooks/use-speech";
 import { cn } from "@/lib/utils";
@@ -100,8 +100,14 @@ export function AskDock() {
   };
 
   const apply = () => {
-    if (!ready?.plan || !ready.changes) return;
-    applyChange(ready.inputs as PlanRequest, ready.plan, title, ready.changes.summary);
+    if (!ready?.inputs || !ready.plan || !ready.changes) return;
+    applyChange(ready.inputs, ready.plan, title, ready.changes.summary);
+    setText("");
+    close();
+  };
+
+  // Only messages were drafted: nothing to apply, they've been copied (or not) from the card.
+  const done = () => {
     setText("");
     close();
   };
@@ -130,7 +136,7 @@ export function AskDock() {
 
   const message = aiAvailable ? speech.message : null;
   const chips = open && stage === "open" && aiAvailable && !text.trim() && !speech.listening && !busy
-    ? suggestions(inputs, plan.rebalance?.over_budget_inr ?? 0) : [];
+    ? suggestions(inputs, plan) : [];
   const examples = useExamples(field, chips.length > 0);
 
   const onFieldKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -168,7 +174,7 @@ export function AskDock() {
         >
           <Review
             outcome={outcome} title={title} ready={Boolean(ready)} headingRef={heading} headingId={headingId}
-            onApply={apply} onCancel={backToField} onRetry={() => void send(outcome.asked)}
+            onApply={apply} onCancel={backToField} onDone={done} onRetry={() => void send(outcome.asked)}
           />
         </section>
       )}

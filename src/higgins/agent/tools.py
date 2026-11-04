@@ -26,6 +26,7 @@ from higgins.engine.messages import vendor_message
 from higgins.engine.money import amounts_in, format_inr
 from higgins.engine.planner import build_plan
 from higgins.schemas.common import MessageKind, VenueType
+from higgins.schemas.plan import ChecklistItem
 from higgins.schemas.requests import Move, PlanRequest
 from higgins.schemas.validation_messages import field_errors
 
@@ -67,7 +68,10 @@ class MoveMoneyArgs(_Args):
 
 class DraftMessageArgs(_Args):
     task_id: str = Field(description="Booking id from the plan's checklist, e.g. caterer.")
-    kind: MessageKind = Field(description="enquiry (first contact), follow_up, or confirmation.")
+    kind: MessageKind | None = Field(
+        None, description="Leave out unless the organiser names one (enquiry, follow_up, confirmation): "
+        "the booking's state picks it.",
+    )
     include_budget: bool = Field(False, description="Only if the organiser asks to share their budget.")
 
 
@@ -140,13 +144,39 @@ def move_money(draft: Draft, args: MoveMoneyArgs) -> str:
 def draft_vendor_message(draft: Draft, args: DraftMessageArgs) -> str:
     """The engine writes the message from the plan's facts; the model never writes vendor text."""
     plan = draft.plan()
+    item = next((item for item in plan.checklist if item.id == args.task_id), None)
+    # The model's kind only counts if the organiser named it. Seen live: "write to the caterer"
+    # came back as a confirmation for a caterer not yet booked, even with kind optional.
+    named = args.kind if args.kind and _names_kind(draft.message, args.kind) else None
+    kind = named or (_default_kind(item) if item else "enquiry")
     try:
-        text = vendor_message(draft.current, plan, args.task_id, args.kind, args.include_budget, draft.today)
+        text = vendor_message(draft.current, plan, args.task_id, kind, args.include_budget, draft.today)
     except PlanInputError as exc:
         raise ToolError(str(exc)) from exc
-    draft.messages.append(DraftedMessage(task_id=args.task_id, kind=args.kind, text=text))
-    label = next(item.label for item in plan.checklist if item.id == args.task_id)
-    return f"Drafted the {args.kind.replace('_', ' ')} message for \"{label}\". The organiser will see it."
+    draft.messages.append(DraftedMessage(task_id=args.task_id, kind=kind, text=text))
+    label = item.label if item else args.task_id
+    return f"Drafted the {kind.replace('_', ' ')} message for \"{label}\". The organiser will see it."
+
+
+_KIND_WORDS: dict[str, tuple[str, ...]] = {
+    "enquiry": ("enquir", "inquir", "quote"),
+    "follow_up": ("follow", "chase", "remind"),
+    "confirmation": ("confirm",),
+}
+
+
+def _names_kind(message: str, kind: MessageKind) -> bool:
+    """Whether the organiser's own words ask for this kind of message."""
+    return any(word in message.lower() for word in _KIND_WORDS[kind])
+
+
+def _default_kind(item: ChecklistItem) -> MessageKind:
+    """The message a booking's state calls for; the same rule as the page's Message a vendor."""
+    if item.done:
+        return "confirmation"
+    if item.delayed_by or item.at_risk or item.status != "on_track":
+        return "follow_up"
+    return "enquiry"
 
 
 def _validated(draft: Draft, data: dict[str, Any]) -> PlanRequest:

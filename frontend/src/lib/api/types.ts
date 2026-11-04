@@ -32,6 +32,10 @@ export type QuoteDraft = Schemas["QuoteDraft"];
 export type FieldError = Schemas["FieldError"];
 /** The API types `inputs` as a plain dict: form values for a new event, the edited request for a revision. */
 export type UnderstandResponse = Omit<Schemas["UnderstandResponse"], "inputs"> & { inputs: Partial<PlanRequest> };
+export type FieldChange = Schemas["FieldChange"];
+/** Ask Higgins as an agent: a proposal built from its working copy, nothing applied. */
+export type AskResponse = Schemas["AskResponse"];
+export type DraftedVendorMessage = Schemas["DraftedVendorMessage"];
 
 export type PlanResponse = Schemas["PlanResponse"];
 export type CompareResponse = Schemas["CompareResponse"];

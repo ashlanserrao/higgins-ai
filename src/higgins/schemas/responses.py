@@ -62,7 +62,7 @@ class UnderstandResponse(ApiModel):
 
 class DraftedVendorMessage(ApiModel):
     task_id: str
-    label: str  # the booking's name, e.g. "Caterer"
+    label: str  # who it's to, e.g. "caterer" or "decorator"
     kind: MessageKind
     text: str  # written by the engine's template, never by the model
 
@@ -77,6 +77,7 @@ class AskResponse(ApiModel):
     # the organiser can still confirm or discard what was done.
     partial: bool
     reply: str  # the model's short summary, or the server's when it stopped early
+    fields: list[FieldChange]  # form values that change (moves show in changes.lines instead)
     # Null when the plan's inputs didn't change (a question, or only a drafted message).
     inputs: PlanRequest | None = None  # the edited request, to keep if the organiser confirms
     plan: Plan | None = None

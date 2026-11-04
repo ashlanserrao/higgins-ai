@@ -2,7 +2,7 @@
 // the frontend only sends inputs and shows what comes back.
 
 import type {
-  CompareResponse, FieldError, IdeasResponse, MessageKind, MessageResponse, Options, PlanEdit, PlanRequest,
+  AskResponse, CompareResponse, FieldError, IdeasResponse, MessageKind, MessageResponse, Options, PlanEdit, PlanRequest,
   PlanResponse, QuoteExtractResponse, UnderstandResponse,
 } from "./types";
 
@@ -62,4 +62,6 @@ export const api = {
   /** AI: plain language to form values (current = null) or a proposed revision. */
   understand: (message: string, current: PlanRequest | null) =>
     post<UnderstandResponse>("/api/understand", { message, current }),
+  /** AI agent: changes, money moves and vendor messages for an existing plan, as a proposal. */
+  ask: (message: string, current: PlanRequest) => post<AskResponse>("/api/ask", { message, current }),
 };

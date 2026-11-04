@@ -1,11 +1,11 @@
 // Words for the Ask Higgins dock: example commands worked out from the open event, and the
-// review card's headline and before → after rows, built from what /api/understand returns.
+// review card's headline and before → after rows, built from what /api/ask returns.
 
-import { CalendarDays, Users, Wallet, type LucideIcon } from "lucide-react";
+import { CalendarDays, MessageSquareText, Users, Wallet, type LucideIcon } from "lucide-react";
 import { addDays, formatShortDate, inr, plural, titleCase } from "@/lib/format";
 import { LEVEL_LABELS, TIER_LABELS, VENUE_LABELS } from "@/lib/labels";
-import { DIFF_TASK_LABELS } from "@/lib/tasks";
-import type { PlanRequest, UnderstandResponse } from "@/lib/api/types";
+import { canMessage, DIFF_TASK_LABELS } from "@/lib/tasks";
+import type { AskResponse, FieldChange, Plan, PlanDiff, PlanRequest } from "@/lib/api/types";
 
 // The API's limits (app/models.py), so an example never asks for something it would refuse.
 const MAX_GUESTS = 5000;
@@ -17,17 +17,20 @@ const roundUp = (amount: number) => {
   return Math.ceil(amount / step) * step;
 };
 
-/** Up to three commands that would each change something: none of them is already true. */
-export function suggestions(inputs: PlanRequest, overBudget: number): { icon: LucideIcon; text: string }[] {
+/** Up to four commands that would each change something: none of them is already true. The
+ *  last asks for a vendor message, which only the agent can do. */
+export function suggestions(inputs: PlanRequest, plan: Plan): { icon: LucideIcon; text: string }[] {
+  const overBudget = plan.rebalance?.over_budget_inr ?? 0;
   const budget = roundUp(overBudget > 0 ? inputs.budget_inr + overBudget : inputs.budget_inr * 1.1);
+  const vendor = plan.checklist.find((item) => !item.done && canMessage(item.id));
   return [
     { icon: CalendarDays, text: `Move the date to ${formatShortDate(addDays(inputs.event_date, 7))}` },
     { icon: Users, text: inputs.guests + 10 <= MAX_GUESTS ? "Add 10 guests" : "Cut 10 guests" },
     ...(budget > inputs.budget_inr && budget <= MAX_BUDGET ? [{ icon: Wallet, text: `Raise the budget to ${inr(budget)}` }] : []),
+    // "Book the caterer" → "Write to the caterer".
+    ...(vendor ? [{ icon: MessageSquareText, text: vendor.label.replace(/^Book /, "Write to ") }] : []),
   ];
 }
-
-type FieldChange = UnderstandResponse["fields"][number];
 
 /** A form value as the organiser would write it. */
 function shown(field: string, value: unknown): string {
@@ -59,19 +62,30 @@ function phrase({ field, label, before, after }: FieldChange, inputs: PlanReques
   }
 }
 
-/** The command restated in plain words: "Move the party to 15 Nov and add 10 guests". */
-export function headline(fields: FieldChange[], inputs: PlanRequest): string {
-  const parts = fields.map((f, i) => {
-    const words = phrase(f, inputs);
-    return i ? words[0].toLowerCase() + words.slice(1) : words;
-  });
-  return parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}` : parts[0] ?? "";
+/** "A, b and c", each part after the first starting lower case. */
+function joined(parts: string[]): string {
+  const words = parts.map((part, i) => (i ? part[0].toLowerCase() + part.slice(1) : part));
+  return words.length > 1 ? `${words.slice(0, -1).join(", ")} and ${words.at(-1)}` : words[0] ?? "";
+}
+
+const KIND_WORDS = { enquiry: "an enquiry", follow_up: "a follow-up", confirmation: "a confirmation" } as const;
+
+/** What the agent proposes, in our words, built from what changes rather than from the model's
+ *  reply: "Move ₹2,000 from Decor to Food and draft an enquiry to the caterer". */
+export function askHeadline(response: AskResponse, inputs: PlanRequest): string {
+  const lineLabel = (key: string) => response.plan?.budget_lines.find((line) => line.key === key)?.label ?? key;
+  const moves = (response.inputs?.progress.moves ?? []).slice(inputs.progress.moves.length);
+  return joined([
+    ...response.fields.map((f) => phrase(f, inputs)),
+    ...moves.map((m) => `Move ${inr(m.amount_inr)} from ${lineLabel(m.from_key)} to ${lineLabel(m.to_key)}`),
+    ...response.messages.map((m) => `Draft ${KIND_WORDS[m.kind]} to the ${m.label}`),
+  ]);
 }
 
 export interface Row { key: string; label: string; before: string; after: string }
 
 /** Exactly what changes: the fields first, then what the engine works out from them. */
-export function reviewRows({ fields, changes }: UnderstandResponse): Row[] {
+export function reviewRows({ fields, changes }: { fields: FieldChange[]; changes: PlanDiff | null | undefined }): Row[] {
   const rows: Row[] = fields.map((f) => ({
     key: f.field, label: f.label[0].toUpperCase() + f.label.slice(1), before: shown(f.field, f.before), after: shown(f.field, f.after),
   }));

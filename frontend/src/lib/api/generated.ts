@@ -213,6 +213,8 @@ export interface components {
             partial: boolean;
             /** Reply */
             reply: string;
+            /** Fields */
+            fields: components["schemas"]["FieldChange"][];
             inputs: components["schemas"]["PlanRequest-Output"] | null;
             plan: components["schemas"]["Plan"] | null;
             changes: components["schemas"]["PlanDiff"] | null;

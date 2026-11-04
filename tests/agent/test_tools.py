@@ -61,9 +61,12 @@ def test_engine_errors_come_back_as_text_and_leave_the_draft_alone(diwali_reques
 
 def test_vendor_messages_are_written_by_the_engine(diwali_request):
     draft = draft_for(diwali_request, "write to the caterer")
-    result, outcome = run_tool(draft, "draft_vendor_message", {"task_id": "caterer", "kind": "enquiry"})
+    # The model's "confirmation" isn't in the organiser's words, so the booking's state picks the
+    # kind, as on the page: 18 days to go and a caterer needs 21, so it's a follow-up.
+    result, outcome = run_tool(draft, "draft_vendor_message", {"task_id": "caterer", "kind": "confirmation"})
     assert outcome == "ok", result
     [message] = draft.messages
+    assert message.kind == "follow_up"
     assert message.text.startswith("Hello,") and "Bengaluru" in message.text
     assert "budget" not in message.text.lower()  # left out unless the organiser asks
 

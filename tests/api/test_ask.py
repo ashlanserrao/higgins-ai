@@ -33,9 +33,10 @@ def test_a_full_proposal_changes_the_plan_and_drafts_a_message(client, diwali_re
     assert (body["stopped"], body["partial"]) == ("done", False)
     assert body["reply"].startswith("Moved ₹2,000")
     assert body["inputs"]["progress"]["moves"] == [{"from_key": "decor", "to_key": "food", "amount_inr": 2000}]
+    assert body["fields"] == []  # a move isn't a form value; it shows in changes.lines
     assert body["changes"]["summary"] and body["plan"]["budget_lines"]
     [message] = body["messages"]
-    assert message["task_id"] == "caterer" and message["label"] != "caterer"
+    assert (message["task_id"], message["label"]) == ("caterer", "caterer")
     assert message["text"].startswith("Hello,")
 
 
@@ -56,6 +57,7 @@ def test_stopping_early_keeps_the_work_done_and_says_so(client, diwali_request):
 
     assert (body["stopped"], body["partial"], body["reply"]) == ("step_cap", True, PARTIAL_REPLY)
     assert body["inputs"]["guests"] == 540
+    assert [(f["field"], f["before"], f["after"]) for f in body["fields"]] == [("guests", 500, 540)]
 
 
 def test_no_answer_and_no_work_is_a_plain_failure(client, diwali_request):
