@@ -4,6 +4,9 @@ Each case goes through the app's real path (the feature class and StructuredAI) 
 chosen provider in the chain, so the score is what the app would do. Today is pinned to
 21 Oct 2026, as in the tests. The table prints and is saved to evals/results/. These are real
 API calls: run by hand, never from pytest or CI.
+
+The ask task runs the agent (run_agent) and checks its draft: which tools worked, what changed,
+and that nothing changed where nothing was asked. One case makes one model call per turn.
 """
 
 import argparse
@@ -19,6 +22,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from higgins.agent.draft import Draft
+from higgins.agent.loop import AgentResult, run_agent
 from higgins.ai.ideas import PRICES, IdeasGenerator
 from higgins.ai.providers.chain import StructuredAI, default_providers
 from higgins.ai.quotes import QuoteDraft, QuoteExtractor
@@ -52,6 +57,9 @@ PLANS = {
 Case = dict[str, Any]
 Run = Callable[[Case], tuple[Awaitable[Any], Callable[[Any], list[str]]]]
 LAVISH = re.compile(r"\b(?:luxury|luxurious|lavish|premium|designer|imported|extravagant)\b", re.IGNORECASE)
+# Words that name each kind of vendor message, to catch a reply that names the wrong one.
+KIND_WORDS = {"enquiry": ("enquir", "inquir"), "follow_up": ("follow",), "confirmation": ("confirm",)}
+TASKS = ["understand", "quotes", "ideas", "ask"]
 
 
 class Attempts(logging.Handler):
@@ -73,6 +81,11 @@ class Result:
     outcome: str
     ms: int
     problems: list[str] = field(default_factory=list)
+    calls: int = 0  # provider attempts, failed ones included
+    # The agent only:
+    turns: int = 0
+    tool_errors: int = 0  # tool calls answered with an error (a wrong amount, a made-up key)
+    reply_mismatch: bool = False
 
 
 def check_understand(case: Case, interpretation: Interpretation | None) -> list[str]:
@@ -123,8 +136,48 @@ def check_ideas(case: Case, ideas: EventIdeas | None, tight: bool) -> list[str]:
     return problems
 
 
+def check_ask(case: Case, result: AgentResult) -> list[str]:
+    """The agent's draft against the case: tools that worked, values, moves, messages, no change."""
+    draft = result.draft
+    problems = [] if result.stopped == "done" else [f"stopped: {result.stopped}"]
+    worked = {run.name for run in result.tool_runs if run.outcome == "ok"}
+    problems += [f"didn't use {tool}" for tool in case.get("tools", []) if tool not in worked]
+    problems += [f"shouldn't use {tool}" for tool in case.get("forbid", []) if tool in worked]
+    current = draft.current.model_dump(mode="json")
+    problems += [
+        f"{name}: got {current.get(name)!r}, expected {want!r}"
+        for name, want in case.get("expect", {}).items() if current.get(name) != want
+    ]
+    if "moves" in case:
+        new_moves = draft.current.progress.moves[len(draft.original.progress.moves):]
+        moves = [[move.from_key, move.to_key, move.amount_inr] for move in new_moves]
+        if moves != case["moves"]:
+            problems.append(f"moves: got {moves}, expected {case['moves']}")
+    if "messages" in case:
+        messages = [[message.task_id, message.kind] for message in draft.messages]
+        if messages != case["messages"]:
+            problems.append(f"messages: got {messages}, expected {case['messages']}")
+    if case.get("unchanged") and (changes := draft.changes()) is not None:
+        problems.append(f"changed the plan: {'; '.join(changes.summary) or 'inputs differ'}")
+    return problems
+
+
+def reply_mismatch(result: AgentResult) -> bool:
+    """The model's sentence names a kind of message other than the one drafted (seen live)."""
+    drafted = {message.kind for message in result.draft.messages}
+    reply = result.reply.lower()
+    return bool(drafted) and any(
+        word in reply for kind, words in KIND_WORDS.items() if kind not in drafted for word in words
+    )
+
+
 def runner(task: str, ai: StructuredAI) -> Run:
     """The case → (awaitable answer, checker) for one task, through the app's own feature class."""
+    if task == "ask":
+        return lambda case: (
+            run_agent(ai, Draft(message=case["message"], today=TODAY, original=PLANS[case["plan"]])),
+            lambda answer: check_ask(case, answer),
+        )
     if task == "understand":
         interpreter = PlanInterpreter(ai)
         return lambda case: (
@@ -150,26 +203,41 @@ def runner(task: str, ai: StructuredAI) -> Run:
     return ideas
 
 
-async def run_task(task: str, provider: str, attempts: Attempts, limit: int | None, only: list[str]) -> list[Result]:
+async def run_task(
+    task: str, provider: str, attempts: Attempts, limit: int | None, only: list[str], gap: float | None = None,
+) -> list[Result]:
     cases = [json.loads(line) for line in (HERE / "cases" / f"{task}.jsonl").read_text(encoding="utf-8").splitlines()]
     results = []
     for case in [c for c in cases if not only or c["id"] in only][:limit]:
+        calls = 0  # every request sent for this case, retries included
         for _ in range(MAX_TRIES):
             # A fresh chain per case: no cache, and a 429 rest from the last case doesn't carry over.
             settings = Settings()
             chain = [p for p in default_providers(settings) if p.name == provider]
             attempts.lines.clear()
             pending, check = runner(task, StructuredAI(settings, chain))(case)
+            started = time.monotonic()
             answer = await pending
-            _, _, _, ms, outcome = attempts.lines[-1] if attempts.lines else ("", "", "", 0, "none")
+            # The whole answer: for the agent, every turn and tool call; otherwise one call.
+            ms = round((time.monotonic() - started) * 1000)
+            calls += len(attempts.lines)
+            outcome = attempts.lines[-1][4] if attempts.lines else "none"
             if outcome != "429":
                 break
             print(f"  {case['id']}: rate-limited, waiting before a retry")
             await asyncio.sleep(chain[0].resting_until - time.monotonic())
         problems = check(answer)
-        results.append(Result(case["id"], not problems, outcome, ms, problems))
-        print(f"  {'pass' if not problems else 'FAIL'} {case['id']} ({outcome}, {ms} ms) {'; '.join(problems)}")
-        await asyncio.sleep(GAP_SECONDS)
+        result = Result(case["id"], not problems, outcome, ms, problems, calls=calls)
+        if isinstance(answer, AgentResult):
+            result.turns = answer.turns
+            result.tool_errors = sum(run.outcome != "ok" for run in answer.tool_runs)
+            result.reply_mismatch = reply_mismatch(answer)
+        results.append(result)
+        print(f"  {'pass' if not problems else 'FAIL'} {case['id']} ({outcome}, {ms} ms, {result.calls} calls) "
+              f"{'; '.join(problems)}")
+        # Groq's free tier caps requests and tokens a minute: the gap grows with the calls a case
+        # made, unless --gap sets it (the agent's turns are large, so its cases need a longer one).
+        await asyncio.sleep(gap if gap is not None else GAP_SECONDS * max(1, result.calls))
     return results
 
 
@@ -188,6 +256,15 @@ def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[R
             f"| {task} | `{model_names[task]}` | {sum(r.passed for r in results)}/{len(results)} | {invalid} | {other} "
             f"| {round(statistics.median(ms))} | {p95} |"
         )
+    if agent := by_task.get("ask"):
+        lines += [
+            "", "## Agent (ask)", "",
+            "| Cases | Passed | Avg turns | Model calls | Failed tool calls | Reply names the wrong message |",
+            "|---:|---:|---:|---:|---:|---:|",
+            f"| {len(agent)} | {sum(r.passed for r in agent)}/{len(agent)} "
+            f"| {statistics.mean(r.turns for r in agent):.1f} | {sum(r.calls for r in agent)} "
+            f"| {sum(r.tool_errors for r in agent)} | {sum(r.reply_mismatch for r in agent)} |",
+        ]
     failures = [(task, r) for task, results in by_task.items() for r in results if not r.passed]
     if failures:
         lines += ["", "## Failures", ""]
@@ -198,9 +275,10 @@ def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[R
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--provider", choices=["groq", "openai"], required=True)
-    parser.add_argument("--task", choices=["understand", "quotes", "ideas"], action="append")
+    parser.add_argument("--task", choices=TASKS, action="append")
     parser.add_argument("--limit", type=int, help="only the first N cases of each task")
     parser.add_argument("--case", action="append", default=[], help="only these case ids (repeatable)")
+    parser.add_argument("--gap", type=float, help="seconds to wait after each case (default: 2.5 per call made)")
     args = parser.parse_args()
     partial = bool(args.limit or args.case)
 
@@ -210,16 +288,18 @@ async def main() -> None:
     probe = next((p for p in default_providers(Settings()) if p.name == args.provider), None)
     if probe is None:
         raise SystemExit(f"No {args.provider.upper()}_API_KEY in .env")
-    tasks = args.task or ["understand", "quotes", "ideas"]
+    tasks = args.task or TASKS
     by_task = {}
     for task in tasks:
         print(f"{task}:")
-        by_task[task] = await run_task(task, args.provider, attempts, args.limit, args.case)
+        by_task[task] = await run_task(task, args.provider, attempts, args.limit, args.case, args.gap)
 
     text = report(args.provider, {task: probe.model(task) for task in tasks}, by_task)
     print("\n" + text)
     if not partial:  # a partial run would overwrite the full table
-        out = HERE / "results" / f"{date.today().isoformat()}-{args.provider}.md"
+        # A run of some tasks only is saved apart, so it doesn't replace a full run's table.
+        only = "" if set(tasks) == set(TASKS) else "-" + "-".join(tasks)
+        out = HERE / "results" / f"{date.today().isoformat()}-{args.provider}{only}.md"
         out.parent.mkdir(exist_ok=True)
         out.write_text(text, encoding="utf-8")
         print(f"Saved {out.relative_to(HERE.parent)}")

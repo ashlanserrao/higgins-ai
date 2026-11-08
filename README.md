@@ -87,7 +87,7 @@ Every AI call goes through one class, `StructuredAI` (`src/higgins/ai/providers/
 
 ### Evals: why Groq goes first
 
-`evals/` holds 38 fixed cases (20 typed requests, 12 pasted quotes, 6 ideas requests). They make real API calls, so they run by hand: `python -m evals.run --provider groq`.
+`evals/` holds 50 fixed cases (20 typed requests, 12 pasted quotes, 6 ideas requests, and 12 agent requests below). They make real API calls, so they run by hand: `python -m evals.run --provider groq`.
 
 Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals/results/2026-10-30-openai.md)):
 
@@ -100,6 +100,20 @@ Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals
 - **Groq was as good or better on every task, at about a third of the time.**
 - **The evals caught a bug in our code:** for "change it to next Sunday", OpenAI also sent a 7-day move that overrode the computed Sunday. A named day now wins over a relative move, with a test.
 - **Groq's three misses became code checks** (budgets and quote totals must be stated in the text; tax wording is read by code). All three cases now pass.
+
+### Evals: Ask Higgins as an agent
+
+12 more cases (`evals/cases/ask.jsonl`) run the agent itself and check its draft: which tools worked, what changed, and that nothing changed where nothing was asked. They cover single changes, a money move, vendor messages, two-step requests, a question, and three requests it must refuse or can't carry out. Run with `python -m evals.run --provider groq --task ask --gap 60`.
+
+Results on 8 Nov 2026 ([details](evals/results/2026-11-08-groq-ask.md)):
+
+| Model | Passed | Turns per request | Typical time | Refused tool calls, then recovered | Reply names the wrong message |
+|---|---:|---:|---:|---:|---:|
+| Groq `gpt-oss-20b` | **12/12** | 1–3 | 1.3 s | 3 | 2 |
+
+- **A live test caught a bug before the eval:** the model asked for a "confirmation" message to a caterer not yet booked. The model's choice of message kind now only counts if the organiser's words name it; otherwise the booking's state decides.
+- **The model's sentence can't be trusted** (2 of 12 named the wrong message kind), so the page's headline and before/after are written by code, and the model's sentence is a small secondary line.
+- **Groq's free tier caps tokens per minute.** An agent turn sends about 1,900 tokens, so cases run a minute apart (`--gap 60`). The first run without it lost 5 cases to rate limits; they passed on a paced rerun.
 
 ## Demo scenarios
 

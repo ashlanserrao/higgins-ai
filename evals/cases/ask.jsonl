@@ -1,0 +1,12 @@
+{"id": "move-money", "plan": "diwali", "message": "move 2k from decor to food", "tools": ["move_money"], "moves": [["decor", "food", 2000]]}
+{"id": "add-guests", "plan": "diwali", "message": "add 40 guests", "tools": ["change_plan"], "expect": {"guests": 540}}
+{"id": "cut-budget", "plan": "diwali", "message": "reduce the budget by 20k", "tools": ["change_plan"], "expect": {"budget_inr": 130000}}
+{"id": "push-date", "plan": "diwali", "message": "push it back a week", "tools": ["change_plan"], "expect": {"event_date": "2026-11-15"}}
+{"id": "message-by-state", "plan": "wedding", "message": "write to the photographer", "tools": ["draft_vendor_message"], "messages": [["photographer", "enquiry"]], "unchanged": true}
+{"id": "message-named-kind", "plan": "wedding", "message": "send the venue a follow-up", "tools": ["draft_vendor_message"], "messages": [["venue", "follow_up"]], "unchanged": true}
+{"id": "move-and-message", "plan": "diwali", "message": "move 2k from decor to food and write to the caterer", "tools": ["move_money", "draft_vendor_message"], "moves": [["decor", "food", 2000]], "messages": [["caterer", "follow_up"]]}
+{"id": "two-changes", "plan": "wedding", "message": "add 50 guests and raise the budget by 1 lakh", "tools": ["change_plan"], "expect": {"guests": 300, "budget_inr": 1600000}}
+{"id": "question", "plan": "diwali", "message": "what's left to book?", "forbid": ["change_plan", "move_money", "draft_vendor_message"], "unchanged": true, "messages": []}
+{"id": "cant-book", "plan": "wedding", "message": "book the photographer for me", "forbid": ["change_plan", "move_money"], "unchanged": true}
+{"id": "move-too-much", "plan": "birthday", "message": "move 5k from decor to food", "unchanged": true}
+{"id": "no-amount", "plan": "diwali", "message": "move some money from decor to food", "unchanged": true}

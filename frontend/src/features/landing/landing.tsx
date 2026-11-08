@@ -13,8 +13,21 @@ import { PlanInput } from "./plan-input";
 import { useReveal } from "./reveal";
 import { HowItWorks, PAD, PlanForStrip, SamplePlan, WhatYouGet } from "./sections";
 
-/** Defines <higgins-how-it-works>. Loaded on this page only, once (imports are cached). */
+/** Defines <higgins-how-it-works>. Loaded on this page only, once. */
 const MACHINE_LOADER = "/hm/loader.js";
+
+/** Adds the loader as a module script tag. Not import(): in dev, Vite adds ?import to a dynamic
+ *  import and then refuses to serve a public/ file that way. Resolves once the element is defined;
+ *  if the script fails, it never resolves and the hero is just the copy. */
+function loadMachine(): Promise<unknown> {
+  if (!document.querySelector(`script[src="${MACHINE_LOADER}"]`)) {
+    const script = document.createElement("script");
+    script.type = "module";
+    script.src = MACHINE_LOADER;
+    document.head.append(script);
+  }
+  return customElements.whenDefined("higgins-how-it-works");
+}
 
 /** Just the drawing: hides the component's corner captions, legend and frame, and drops its
  *  78vh height cap (index.css sizes it). The top gap, room for a hover label, scales with the
@@ -92,9 +105,7 @@ export function Landing() {
 
   const machine = useRef<HTMLElement>(null);
   useEffect(() => {
-    import(/* @vite-ignore */ MACHINE_LOADER)
-      .then(() => trimMachine(machine.current))
-      .catch(() => {}); // without it the hero is just the copy
+    void loadMachine().then(() => trimMachine(machine.current));
   }, []);
 
   const start = () => {
