@@ -37,7 +37,7 @@ so the plan works with no API key, and engine tests are fast and exact. `ai/` ne
 | `agent/` | Ask Higgins as an agent (Phase 1, in progress). `propose.py`: runs the agent and turns its working copy into the `POST /api/ask` proposal. `loop.py`: the model calls tools until it can reply, within a turn cap and one time budget (no framework, [decision 0007](decisions/0007-agent-loop-without-a-framework.md)). `tools.py`: the tools it can call, each running the engine on a working copy (`draft.py`). Same level as `services/`: it uses `ai/` and `engine/`, and only `api/` uses it |
 | `schemas/` | `common.py` (shared types), `requests.py` (what the browser sends), `plan.py` (what the engine returns), `responses.py` (route bodies), `validation_messages.py` |
 | `api/` | `main.py` (wiring only), `routes/` (health, rules-only plan routes, AI routes), `middleware.py`, `errors.py`, `dependencies.py`, `security.py` (headers), `static.py` (serving the built site) |
-| `core/` | `config.py` (settings from the environment), `logging.py`, `rate_limit.py` |
+| `core/` | `config.py` (settings from the environment), `logging.py`, `rate_limit.py`, `telemetry.py` (one record per AI call: tokens, list-price cost, rate limit left; logged, and passed to listeners such as the evals) |
 
 Tests mirror the layers: `tests/engine/`, `tests/ai/`, `tests/agent/`, `tests/api/`.
 

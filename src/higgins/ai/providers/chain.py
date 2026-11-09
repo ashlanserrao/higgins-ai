@@ -5,8 +5,8 @@ reply again with Pydantic. Providers are tried in order (Groq first when its key
 OpenAI) inside one time budget: a provider that times out, errors or sends a reply that fails
 the check hands over to the next. If none answers, the call returns None: every feature has a
 non-AI path. The one error is AIBusyError, when the hourly cap shared by every visitor is used
-up. Prompts, replies and keys are never logged; one line per call records the task, provider,
-model, time taken and outcome.
+up. Prompts, replies and keys are never logged; one record per attempt (core/telemetry.py)
+holds the task, provider, model, time, outcome, tokens, list-price cost and rate limit left.
 
 The agent uses the same chain one turn at a time (`turn`): tool calls or a text reply instead of
 JSON, with the time budget set by the agent for its whole conversation.
@@ -28,8 +28,10 @@ from higgins.ai.providers.base import Provider, Turn
 from higgins.ai.providers.cache import TTLCache
 from higgins.ai.providers.groq_provider import GROQ_BASE_URL, GroqProvider
 from higgins.ai.providers.openai_provider import OpenAIProvider
+from higgins.core import telemetry
 from higgins.core.config import Settings
 from higgins.core.rate_limit import RateLimiter
+from higgins.core.telemetry import CallRecord, Usage
 
 logger = logging.getLogger(__name__)
 
@@ -87,12 +89,12 @@ class StructuredAI:
             return cast(M, cached)  # the key holds the task, and each task has one output type
         self._count(task)
 
-        async def attempt(provider: Provider, timeout: float) -> M:
-            text = await provider.reply(
+        async def attempt(provider: Provider, timeout: float) -> tuple[M, Usage]:
+            reply = await provider.reply(
                 task=task, instructions=instructions, prompt_input=prompt_input,
                 response_format=response_format, max_output_tokens=max_output_tokens, timeout=timeout,
             )
-            return output.model_validate_json(text)
+            return output.model_validate_json(reply.text), reply.usage
 
         result = await self._first_answer(task, time.monotonic() + self.settings.ai_timeout_seconds, attempt)
         if result is not None:
@@ -110,10 +112,11 @@ class StructuredAI:
             return None
         self._count(task)
 
-        async def attempt(provider: Provider, timeout: float) -> Turn:
-            return await provider.tool_turn(
+        async def attempt(provider: Provider, timeout: float) -> tuple[Turn, Usage]:
+            turn = await provider.tool_turn(
                 task=task, messages=messages, tools=tools, max_output_tokens=max_output_tokens, timeout=timeout,
             )
+            return turn, turn.usage
 
         return await self._first_answer(task, deadline, attempt)
 
@@ -124,9 +127,10 @@ class StructuredAI:
             raise AIBusyError
 
     async def _first_answer(
-        self, task: str, deadline: float, attempt: Callable[[Provider, float], Awaitable[T]],
+        self, task: str, deadline: float, attempt: Callable[[Provider, float], Awaitable[tuple[T, Usage]]],
     ) -> T | None:
-        """Try each provider in order until one answers, all within `deadline`."""
+        """Try each provider in order until one answers, all within `deadline`. Every attempt is
+        recorded (core/telemetry.py), with its token counts when the provider replied."""
         for index, provider in enumerate(self.providers):
             started = time.monotonic()
             if provider.resting_until > started:
@@ -137,21 +141,22 @@ class StructuredAI:
                 break
             timeout = min(provider.timeout, remaining)
             try:
-                result = await asyncio.wait_for(attempt(provider, timeout), timeout)
+                result, usage = await asyncio.wait_for(attempt(provider, timeout), timeout)
             except (OpenAIError, ValidationError, ValueError, TimeoutError) as exc:
                 if isinstance(exc, RateLimitError):
                     provider.resting_until = time.monotonic() + _rest_seconds(exc)
                 # The failure type only: never the prompt (personal data), the reply or the key.
-                _log(logging.WARNING, task, provider, started, _failure(exc))
+                # Tokens a failed reply used aren't known here (an invalid JSON reply still used some).
+                _record(task, provider, started, _failure(exc))
                 continue
-            _log(logging.INFO, task, provider, started, "ok")
+            _record(task, provider, started, "ok", usage)
             return result
         return None
 
 
-def _log(level: int, task: str, provider: Provider, started: float, outcome: str) -> None:
+def _record(task: str, provider: Provider, started: float, outcome: str, usage: Usage | None = None) -> None:
     ms = round((time.monotonic() - started) * 1000)
-    logger.log(level, "AI %s: %s %s %dms %s", task, provider.name, provider.model(task), ms, outcome)
+    telemetry.record(CallRecord(task, provider.name, provider.model(task), ms, outcome, usage or Usage()))
 
 
 def _failure(exc: Exception) -> str:

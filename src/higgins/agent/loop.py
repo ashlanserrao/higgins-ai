@@ -65,6 +65,9 @@ class AgentResult:
     reply: str = ""
     turns: int = 0
     tool_runs: list[ToolRun] = field(default_factory=list)
+    # Summed over the turns that answered, as the providers reported them.
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 def first_messages(draft: Draft) -> list[dict[str, Any]]:
@@ -114,6 +117,8 @@ async def run_agent(
             result.stopped = "no_answer"
             break
         result.turns += 1
+        result.input_tokens += turn.usage.input_tokens or 0
+        result.output_tokens += turn.usage.output_tokens or 0
         if not turn.tool_calls:
             result.reply = sanitize(turn.text)[:MAX_REPLY_CHARS]
             result.stopped = "done"
@@ -126,7 +131,8 @@ async def run_agent(
             logger.info("Agent tool %s: %s", call.name, outcome)
 
     logger.info(
-        "Agent %s: %s after %d turns, %d tool calls, %dms", TASK, result.stopped, result.turns,
-        len(result.tool_runs), round((time.monotonic() - started) * 1000),
+        "Agent %s: %s after %d turns, %d tool calls, %dms, %d tokens in, %d out", TASK, result.stopped,
+        result.turns, len(result.tool_runs), round((time.monotonic() - started) * 1000),
+        result.input_tokens, result.output_tokens,
     )
     return result

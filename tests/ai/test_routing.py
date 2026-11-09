@@ -9,6 +9,7 @@ from openai import APITimeoutError, AuthenticationError, RateLimitError
 
 from higgins.ai.providers import chain as ai_chain
 from higgins.ai.schema import RESPONSE_FORMAT, EventIdeas
+from higgins.core import telemetry
 from higgins.core.config import Settings
 from tests.ai.test_ai import VALID
 from tests.conftest import ai_calls, make_ai
@@ -78,3 +79,23 @@ async def test_a_slow_groq_hands_over_within_the_time_budget(monkeypatch):
 
 async def test_groq_alone_failing_gives_no_answer():
     assert await ask(make_ai(groq="not json")) is None
+
+
+async def test_every_attempt_is_recorded_with_tokens_cost_and_limit_left(caplog):
+    records = []
+    stop = telemetry.subscribe(records.append)
+    stop_broken = telemetry.subscribe(lambda _: 1 / 0)  # a broken listener must not break the call
+    try:
+        with caplog.at_level("INFO", logger="higgins.ai.providers.chain"):
+            assert await ask(make_ai(GOOD, groq=refused(RateLimitError, 429))) == EventIdeas(**VALID)
+    finally:
+        stop()
+        stop_broken()
+
+    failed, ok = records
+    assert (failed.provider, failed.outcome, failed.usage.input_tokens, failed.cost_usd) == ("groq", "429", None, None)
+    assert (ok.provider, ok.outcome, ok.model) == ("openai", "ok", "gpt-5-nano")
+    assert (ok.usage.input_tokens, ok.usage.output_tokens, ok.usage.tokens_left) == (1200, 150, 6650)
+    assert ok.cost_usd == pytest.approx((1200 * 0.05 + 150 * 0.40) / 1_000_000)
+    assert "in=1200 out=150 $0.000120 tokens_left=6650" in caplog.text
+    assert "Plan summary" not in caplog.text  # still never the prompt

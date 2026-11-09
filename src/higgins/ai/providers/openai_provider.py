@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from higgins.ai.providers.base import Provider
+from higgins.ai.providers.base import Provider, Reply
 
 
 class OpenAIProvider(Provider):
@@ -17,12 +17,13 @@ class OpenAIProvider(Provider):
     async def reply(
         self, *, task: str, instructions: str, prompt_input: str, response_format: dict[str, Any],
         max_output_tokens: int, timeout: float,
-    ) -> str:
+    ) -> Reply:
         # The SDK types these as TypedDicts and Literals; our schemas and settings are plain dicts and strings.
         options: dict[str, Any] = {"text": {"format": response_format}}
         if self.settings.openai_reasoning_effort:
             options["reasoning"] = {"effort": self.settings.openai_reasoning_effort}
-        response = await self.client.responses.create(
+        response, usage = await self.create(
+            self.client.responses,
             model=self.model(task),
             instructions=instructions,
             input=prompt_input,
@@ -31,8 +32,7 @@ class OpenAIProvider(Provider):
             timeout=timeout,
             **options,
         )
-        text: str = response.output_text  # typed loosely by the SDK when options are passed as **kwargs
-        return text
+        return Reply(response.output_text, usage)
 
     def chat_options(self) -> dict[str, Any]:
         # Tool turns use Chat Completions, like Groq, so either provider can continue a conversation.

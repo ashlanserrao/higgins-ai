@@ -48,6 +48,28 @@ def diwali_request() -> PlanRequest:
     )
 
 
+USAGE = SimpleNamespace(prompt_tokens=1200, completion_tokens=150)  # what every fake reply reports
+RATE_HEADERS = {"x-ratelimit-remaining-tokens": "6650", "x-ratelimit-remaining-requests": "999"}
+
+
+class FakeRaw:
+    """Stands in for the SDK's raw response: the headers, and the reply from parse()."""
+
+    def __init__(self, response, headers=RATE_HEADERS):
+        self.response = response
+        self.headers = headers
+
+    async def parse(self):
+        return self.response
+
+
+def raw_endpoint(create):
+    """`with_raw_response` for a fake endpoint whose `create` returns the parsed reply."""
+    async def raw_create(**kwargs):
+        return FakeRaw(await create(**kwargs))
+    return SimpleNamespace(create=raw_create)
+
+
 class FakeEndpoint:
     """Stands in for responses.create (OpenAI) or chat.completions.create (Groq)."""
 
@@ -55,6 +77,7 @@ class FakeEndpoint:
         self.outcome = outcome
         self.delay = delay
         self.calls = []
+        self.with_raw_response = raw_endpoint(self.create)
 
     async def create(self, **kwargs):
         self.calls.append(kwargs)
@@ -64,6 +87,7 @@ class FakeEndpoint:
             raise self.outcome
         return SimpleNamespace(
             output_text=self.outcome, choices=[SimpleNamespace(message=SimpleNamespace(content=self.outcome))],
+            usage=USAGE,
         )
 
 

@@ -16,7 +16,7 @@ from higgins.ai.providers.chain import StructuredAI
 from higgins.ai.providers.groq_provider import GroqProvider
 from higgins.ai.providers.openai_provider import OpenAIProvider
 from higgins.core.config import Settings
-from tests.conftest import TODAY
+from tests.conftest import TODAY, USAGE, raw_endpoint
 
 pytestmark = pytest.mark.anyio
 
@@ -33,7 +33,8 @@ def call(name: str, **arguments) -> SimpleNamespace:
 
 def turn(content: str | None, tool_calls: list | None) -> SimpleNamespace:
     """One model turn as the SDK returns it."""
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content, tool_calls=tool_calls))])
+    message = SimpleNamespace(content=content, tool_calls=tool_calls)
+    return SimpleNamespace(choices=[SimpleNamespace(message=message)], usage=USAGE)
 
 
 def calls(*tool_calls: SimpleNamespace) -> SimpleNamespace:
@@ -52,6 +53,7 @@ class ScriptedModel:
         self.delay = delay
         self.calls: list[dict] = []
         self.chat = SimpleNamespace(completions=self)
+        self.with_raw_response = raw_endpoint(self.create)
 
     async def create(self, **kwargs):
         self.calls.append({**kwargs, "messages": list(kwargs["messages"])})  # a copy: the loop keeps appending
@@ -87,6 +89,7 @@ async def test_a_request_that_needs_two_tools(diwali_request):
     result = await run_agent(make_ai(model), draft)
 
     assert (result.stopped, result.turns) == ("done", 2)
+    assert (result.input_tokens, result.output_tokens) == (2 * USAGE.prompt_tokens, 2 * USAGE.completion_tokens)
     assert [(run.name, run.outcome) for run in result.tool_runs] == [
         ("move_money", "ok"), ("draft_vendor_message", "ok"),
     ]

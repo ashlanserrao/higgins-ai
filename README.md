@@ -83,7 +83,7 @@ Every AI call goes through one class, `StructuredAI` (`src/higgins/ai/providers/
 - **The AI reports, code computes.** Relative changes ("add 40 guests"), dates counted from today ("in 2 weeks") and amounts ("1.5L" = ₹1,50,000) are worked out in code, and each reading is shown to the user. Vague dates are asked about, never guessed. Ideas never carry prices: one that quotes a price is dropped.
 - **Untrusted input:** everything the user types or pastes is stripped of markup, fenced in tags, and the model is told to ignore instructions inside it. Output must pass a strict schema and Pydantic validation.
 - **Graceful failure:** the three AI routes return `null`, not an error. The page always has a non-AI path.
-- **Logging:** one line per call (task, provider, model, time, outcome). Never prompts, replies or keys.
+- **Logging:** one line per call: task, provider, model, time, outcome, and (when the provider replied) tokens in and out, the cost at list price, and the rate limit left (`core/telemetry.py`). Never prompts, replies or keys.
 
 ### Evals: why Groq goes first
 

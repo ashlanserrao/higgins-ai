@@ -29,7 +29,9 @@ from higgins.ai.providers.chain import StructuredAI, default_providers
 from higgins.ai.quotes import QuoteDraft, QuoteExtractor
 from higgins.ai.schema import EventIdeas
 from higgins.ai.understand import Interpretation, PlanInterpreter
+from higgins.core import telemetry
 from higgins.core.config import Settings
+from higgins.core.telemetry import CallRecord
 from higgins.engine.planner import build_plan
 from higgins.schemas.requests import PlanRequest
 
@@ -62,16 +64,14 @@ KIND_WORDS = {"enquiry": ("enquir", "inquir"), "follow_up": ("follow",), "confir
 TASKS = ["understand", "quotes", "ideas", "ask"]
 
 
-class Attempts(logging.Handler):
-    """Collects StructuredAI's one log line per attempt: (task, provider, model, ms, outcome)."""
+class Attempts:
+    """Collects the provider chain's one telemetry record per attempt (core/telemetry.py)."""
 
     def __init__(self) -> None:
-        super().__init__()
-        self.lines: list[tuple[Any, ...]] = []
+        self.lines: list[CallRecord] = []
 
-    def emit(self, record: logging.LogRecord) -> None:
-        if isinstance(record.args, tuple) and len(record.args) == 5:
-            self.lines.append(record.args)
+    def __call__(self, call: CallRecord) -> None:
+        self.lines.append(call)
 
 
 @dataclass
@@ -82,6 +82,9 @@ class Result:
     ms: int
     problems: list[str] = field(default_factory=list)
     calls: int = 0  # provider attempts, failed ones included
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0  # at list price
     # The agent only:
     turns: int = 0
     tool_errors: int = 0  # tool calls answered with an error (a wrong amount, a made-up key)
@@ -209,7 +212,7 @@ async def run_task(
     cases = [json.loads(line) for line in (HERE / "cases" / f"{task}.jsonl").read_text(encoding="utf-8").splitlines()]
     results = []
     for case in [c for c in cases if not only or c["id"] in only][:limit]:
-        calls = 0  # every request sent for this case, retries included
+        records: list[CallRecord] = []  # every request sent for this case, retries included
         for _ in range(MAX_TRIES):
             # A fresh chain per case: no cache, and a 429 rest from the last case doesn't carry over.
             settings = Settings()
@@ -220,14 +223,19 @@ async def run_task(
             answer = await pending
             # The whole answer: for the agent, every turn and tool call; otherwise one call.
             ms = round((time.monotonic() - started) * 1000)
-            calls += len(attempts.lines)
-            outcome = attempts.lines[-1][4] if attempts.lines else "none"
+            records += attempts.lines
+            outcome = attempts.lines[-1].outcome if attempts.lines else "none"
             if outcome != "429":
                 break
             print(f"  {case['id']}: rate-limited, waiting before a retry")
             await asyncio.sleep(chain[0].resting_until - time.monotonic())
         problems = check(answer)
-        result = Result(case["id"], not problems, outcome, ms, problems, calls=calls)
+        result = Result(
+            case["id"], not problems, outcome, ms, problems, calls=len(records),
+            input_tokens=sum(r.usage.input_tokens or 0 for r in records),
+            output_tokens=sum(r.usage.output_tokens or 0 for r in records),
+            cost_usd=sum(r.cost_usd or 0 for r in records),
+        )
         if isinstance(answer, AgentResult):
             result.turns = answer.turns
             result.tool_errors = sum(run.outcome != "ok" for run in answer.tool_runs)
@@ -244,8 +252,9 @@ async def run_task(
 def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[Result]]) -> str:
     lines = [
         f"# Evals: {provider}, {date.today().isoformat()}", "",
-        "| Task | Model | Passed | Invalid JSON | Other failures | p50 ms | p95 ms |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| Task | Model | Passed | Invalid JSON | Other failures | p50 ms | p95 ms | Tokens in / out "
+        "| Cost at list price |",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for task, results in by_task.items():
         ms = sorted(r.ms for r in results if r.outcome == "ok") or [0]
@@ -254,7 +263,9 @@ def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[R
         p95 = ms[min(len(ms) - 1, round(0.95 * (len(ms) - 1)))]
         lines.append(
             f"| {task} | `{model_names[task]}` | {sum(r.passed for r in results)}/{len(results)} | {invalid} | {other} "
-            f"| {round(statistics.median(ms))} | {p95} |"
+            f"| {round(statistics.median(ms))} | {p95} "
+            f"| {sum(r.input_tokens for r in results):,} / {sum(r.output_tokens for r in results):,} "
+            f"| ${sum(r.cost_usd for r in results):.4f} |"
         )
     if agent := by_task.get("ask"):
         lines += [
@@ -283,7 +294,7 @@ async def main() -> None:
     partial = bool(args.limit or args.case)
 
     attempts = Attempts()
-    logging.getLogger("higgins.ai.providers.chain").addHandler(attempts)
+    telemetry.subscribe(attempts)
     logging.getLogger("higgins.ai.providers.chain").setLevel(logging.INFO)
     probe = next((p for p in default_providers(Settings()) if p.name == args.provider), None)
     if probe is None:
