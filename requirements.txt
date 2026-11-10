@@ -2,4 +2,6 @@ fastapi==0.156.8
 uvicorn==0.54.0
 pydantic==2.14.1
 openai==3.35.1
+# Also used directly: sending traces to Langfuse (core/langfuse.py). The version openai brings in.
+httpx==0.28.1
 python-dotenv==1.2.4

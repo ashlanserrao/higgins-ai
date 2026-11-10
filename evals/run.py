@@ -70,8 +70,9 @@ class Attempts:
     def __init__(self) -> None:
         self.lines: list[CallRecord] = []
 
-    def __call__(self, call: CallRecord) -> None:
-        self.lines.append(call)
+    def __call__(self, item: telemetry.Record) -> None:
+        if isinstance(item, CallRecord):  # model calls only, not tool runs or traces
+            self.lines.append(item)
 
 
 @dataclass

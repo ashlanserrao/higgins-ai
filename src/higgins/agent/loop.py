@@ -16,6 +16,7 @@ from higgins.agent.tools import GetPlanArgs, ToolOutcome, get_plan, run_tool, to
 from higgins.ai.providers.base import Turn
 from higgins.ai.providers.chain import AIBusyError, StructuredAI
 from higgins.ai.untrusted import fence, sanitize
+from higgins.core import telemetry
 from higgins.schemas.common import StopReason
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,18 @@ async def run_agent(
     ai: StructuredAI, draft: Draft, *, max_turns: int = MAX_TURNS, time_budget: float | None = None,
 ) -> AgentResult:
     """Run the agent on `draft` until the model replies or a guardrail stops it. Never raises
-    for AI trouble: the stop reason says what happened, and the draft keeps what was done."""
+    for AI trouble: the stop reason says what happened, and the draft keeps what was done.
+    The whole run is one telemetry trace: its model calls and tool runs show inside it."""
+    with telemetry.trace(TASK) as facts:
+        result = await _run(ai, draft, max_turns, time_budget)
+        facts |= {
+            "stopped": result.stopped, "turns": result.turns, "tool_calls": len(result.tool_runs),
+            "input_tokens": result.input_tokens, "output_tokens": result.output_tokens,
+        }
+    return result
+
+
+async def _run(ai: StructuredAI, draft: Draft, max_turns: int, time_budget: float | None) -> AgentResult:
     started = time.monotonic()
     deadline = started + (ai.settings.agent_timeout_seconds if time_budget is None else time_budget)
     messages = first_messages(draft)
@@ -125,7 +137,9 @@ async def run_agent(
             break
         messages.append(_assistant_message(turn))
         for call in turn.tool_calls:
+            tool_started = time.monotonic()
             text, outcome = run_tool(draft, call.name, call.arguments)
+            telemetry.record_tool(call.name, outcome, round((time.monotonic() - tool_started) * 1000))
             messages.append({"role": "tool", "tool_call_id": call.id, "content": text})
             result.tool_runs.append(ToolRun(name=call.name, arguments=call.arguments, outcome=outcome))
             logger.info("Agent tool %s: %s", call.name, outcome)

@@ -2,6 +2,5 @@
 # The higgins package itself, editable: code changes apply without reinstalling.
 -e .
 pytest==9.1.1
-httpx==0.28.1
 ruff==0.17.3
 mypy==2.4.1

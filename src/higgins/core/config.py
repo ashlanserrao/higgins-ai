@@ -43,6 +43,10 @@ class Settings:
     plan_rate_limit_per_minute: int = int(os.getenv("PLAN_RATE_LIMIT_PER_MINUTE", "120"))
     # AI requests per hour from all visitors together: caps spend even across many IPs.
     ai_total_limit_per_hour: int = int(os.getenv("AI_TOTAL_LIMIT_PER_HOUR", "200"))
+    # Langfuse tracing (numbers only, never prompts): on when both keys are set.
+    langfuse_public_key: str = field(default=os.getenv("LANGFUSE_PUBLIC_KEY", ""), repr=False)
+    langfuse_secret_key: str = field(default=os.getenv("LANGFUSE_SECRET_KEY", ""), repr=False)
+    langfuse_base_url: str = os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST") or "https://cloud.langfuse.com"
     # Plans carry the progress held in the browser: bookings and up to 20 quotes.
     max_body_bytes: int = 64_000
 

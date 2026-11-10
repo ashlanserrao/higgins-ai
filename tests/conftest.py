@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import replace
 from datetime import date
 from types import SimpleNamespace
 
@@ -15,6 +16,7 @@ from higgins.api.dependencies import (
     RATE_LIMITERS, ai, ai_total_limiter, get_agent_ai, get_ideas_generator, get_plan_interpreter,
     get_quote_extractor, today_in_india,
 )
+from higgins.api import main as main_module
 from higgins.api.main import app
 from higgins.core.config import Settings
 from higgins.schemas.requests import PlanRequest
@@ -145,5 +147,7 @@ def client():
 
 @pytest.fixture(autouse=True)
 def no_real_ai(monkeypatch):
-    """Tests never reach a real AI provider (Groq or OpenAI), even with keys in .env."""
+    """Tests never reach a real AI provider (Groq or OpenAI) or Langfuse, even with keys in .env."""
     monkeypatch.setattr(ai, "providers", [])
+    no_keys = replace(main_module.settings, langfuse_public_key="", langfuse_secret_key="")
+    monkeypatch.setattr(main_module, "settings", no_keys)

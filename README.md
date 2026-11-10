@@ -84,6 +84,7 @@ Every AI call goes through one class, `StructuredAI` (`src/higgins/ai/providers/
 - **Untrusted input:** everything the user types or pastes is stripped of markup, fenced in tags, and the model is told to ignore instructions inside it. Output must pass a strict schema and Pydantic validation.
 - **Graceful failure:** the three AI routes return `null`, not an error. The page always has a non-AI path.
 - **Logging:** one line per call: task, provider, model, time, outcome, and (when the provider replied) tokens in and out, the cost at list price, and the rate limit left (`core/telemetry.py`). Never prompts, replies or keys.
+- **Tracing (optional):** with `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` set, the same records go to [Langfuse](https://langfuse.com) as OpenTelemetry traces (`core/langfuse.py`, plain OTLP/HTTP, no SDK). An Ask Higgins request is one trace: its model calls and tool runs inside it, with tokens, cost and time for each. Only numbers and tool names are sent, never what anyone typed. `python scripts/langfuse_check.py` sends one made-up trace to check the setup.
 
 ### Evals: why Groq goes first
 
