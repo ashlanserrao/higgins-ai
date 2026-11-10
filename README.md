@@ -102,6 +102,17 @@ Results on 30 Oct 2026 ([Groq](evals/results/2026-10-30-groq.md), [OpenAI](evals
 - **The evals caught a bug in our code:** for "change it to next Sunday", OpenAI also sent a 7-day move that overrode the computed Sunday. A named day now wins over a relative move, with a test.
 - **Groq's three misses became code checks** (budgets and quote totals must be stated in the text; tax wording is read by code). All three cases now pass.
 
+### Checking a prompt change
+
+`python scripts/check.py` runs what CI would (nothing is pushed, so no CI runs): ruff, mypy and pytest, plus `--frontend` for Biome, tsc and Vitest.
+
+`--eval` adds an eval, but only where something changed. Each AI task's prompt has an automatic version: a fingerprint of its instructions, its reply schema or tool descriptions, and the code that builds its input. Every eval run is saved per case in `evals/results/history.jsonl`. So `--eval`:
+- runs the 4 smoke cases of each task whose prompt or model changed since its last saved run;
+- stops at a hard cap of 15 calls for the whole check (`--max-calls`);
+- prints which cases **started failing** or **started passing**, and fails the check if any started failing.
+
+When nothing changed, it makes no calls. `--eval --dry-run` says what it would run without calling anything.
+
 ### Evals: Ask Higgins as an agent
 
 12 more cases (`evals/cases/ask.jsonl`) run the agent itself and check its draft: which tools worked, what changed, and that nothing changed where nothing was asked. They cover single changes, a money move, vendor messages, two-step requests, a question, and three requests it must refuse or can't carry out. Run with `python -m evals.run --provider groq --task ask --gap 60`.

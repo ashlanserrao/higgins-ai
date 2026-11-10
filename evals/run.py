@@ -16,7 +16,7 @@ import logging
 import re
 import statistics
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -25,12 +25,14 @@ from typing import Any
 from higgins.agent.draft import Draft
 from higgins.agent.loop import AgentResult, run_agent
 from higgins.ai.ideas import PRICES, IdeasGenerator
-from higgins.ai.providers.chain import StructuredAI, default_providers
+from evals import history
+from higgins.ai.providers.chain import AIBusyError, StructuredAI, default_providers
 from higgins.ai.quotes import QuoteDraft, QuoteExtractor
 from higgins.ai.schema import EventIdeas
 from higgins.ai.understand import Interpretation, PlanInterpreter
 from higgins.core import telemetry
 from higgins.core.config import Settings
+from higgins.core.rate_limit import RateLimiter
 from higgins.core.telemetry import CallRecord
 from higgins.engine.planner import build_plan
 from higgins.schemas.requests import PlanRequest
@@ -39,6 +41,8 @@ TODAY = date(2026, 10, 21)
 HERE = Path(__file__).resolve().parent
 # Groq's free tier allows 30 requests a minute; a short gap keeps a run under it.
 GAP_SECONDS = 2.5
+# An agent case can use about 6,000 of Groq's 8,000 tokens a minute (measured 8 Nov 2026).
+AGENT_GAP_SECONDS = 45.0
 MAX_TRIES = 3
 
 PLANS = {
@@ -90,6 +94,7 @@ class Result:
     turns: int = 0
     tool_errors: int = 0  # tool calls answered with an error (a wrong amount, a made-up key)
     reply_mismatch: bool = False
+    skipped: bool = False  # not run: the call cap was reached
 
 
 def check_understand(case: Case, interpretation: Interpretation | None) -> list[str]:
@@ -207,29 +212,54 @@ def runner(task: str, ai: StructuredAI) -> Run:
     return ideas
 
 
+def load_cases(task: str, *, only: Sequence[str] = (), limit: int | None = None, smoke: bool = False) -> list[Case]:
+    """A task's cases: all, or only the given ids, or only the smoke cases; then the first `limit`."""
+    lines = (HERE / "cases" / f"{task}.jsonl").read_text(encoding="utf-8").splitlines()
+    cases = [json.loads(line) for line in lines]
+    return [c for c in cases if (not only or c["id"] in only) and (not smoke or c.get("smoke"))][:limit]
+
+
 async def run_task(
-    task: str, provider: str, attempts: Attempts, limit: int | None, only: list[str], gap: float | None = None,
+    task: str, provider: str, attempts: Attempts, cases: list[Case], gap: float | None = None, cap: int | None = None,
 ) -> list[Result]:
-    cases = [json.loads(line) for line in (HERE / "cases" / f"{task}.jsonl").read_text(encoding="utf-8").splitlines()]
-    results = []
-    for case in [c for c in cases if not only or c["id"] in only][:limit]:
+    """Run `cases` once each. With a `cap`, the task never makes more than `cap` calls: the chain
+    refuses the call past it (as with the hourly cap), and the cases left are marked skipped."""
+    results: list[Result] = []
+    used = 0
+    for case in cases:
+        if cap is not None and used >= cap:
+            results.append(Result(case["id"], False, "skipped", 0, ["call cap reached"], skipped=True))
+            print(f"  skip {case['id']} (call cap reached)")
+            continue
+        limiter = RateLimiter(cap - used, window=1e9) if cap is not None else None
         records: list[CallRecord] = []  # every request sent for this case, retries included
+        capped = False
         for _ in range(MAX_TRIES):
             # A fresh chain per case: no cache, and a 429 rest from the last case doesn't carry over.
             settings = Settings()
             chain = [p for p in default_providers(settings) if p.name == provider]
             attempts.lines.clear()
-            pending, check = runner(task, StructuredAI(settings, chain))(case)
+            pending, check = runner(task, StructuredAI(settings, chain, hourly_cap=limiter))(case)
             started = time.monotonic()
-            answer = await pending
+            try:
+                answer = await pending
+            except AIBusyError:  # the cap, through the chain's own spending limit
+                answer, capped = None, True
             # The whole answer: for the agent, every turn and tool call; otherwise one call.
             ms = round((time.monotonic() - started) * 1000)
             records += attempts.lines
+            capped = capped or (isinstance(answer, AgentResult) and answer.stopped == "busy")
             outcome = attempts.lines[-1].outcome if attempts.lines else "none"
-            if outcome != "429":
+            if capped or outcome != "429":
                 break
             print(f"  {case['id']}: rate-limited, waiting before a retry")
             await asyncio.sleep(chain[0].resting_until - time.monotonic())
+        used += len(records)
+        if capped:
+            results.append(Result(case["id"], False, "skipped", ms, ["call cap reached"], calls=len(records),
+                                  skipped=True))
+            print(f"  skip {case['id']} (call cap reached after {len(records)} calls)")
+            continue
         problems = check(answer)
         result = Result(
             case["id"], not problems, outcome, ms, problems, calls=len(records),
@@ -245,8 +275,12 @@ async def run_task(
         print(f"  {'pass' if not problems else 'FAIL'} {case['id']} ({outcome}, {ms} ms, {result.calls} calls) "
               f"{'; '.join(problems)}")
         # Groq's free tier caps requests and tokens a minute: the gap grows with the calls a case
-        # made, unless --gap sets it (the agent's turns are large, so its cases need a longer one).
-        await asyncio.sleep(gap if gap is not None else GAP_SECONDS * max(1, result.calls))
+        # made, unless --gap sets it. The agent's turns are large, so its cases get a long one.
+        if gap is None:
+            gap_now = AGENT_GAP_SECONDS if task == "ask" else GAP_SECONDS * max(1, result.calls)
+        else:
+            gap_now = gap
+        await asyncio.sleep(gap_now)
     return results
 
 
@@ -257,7 +291,12 @@ def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[R
         "| Cost at list price |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    skipped = {task: [r.case for r in results if r.skipped] for task, results in by_task.items()}
+    by_task = {task: [r for r in results if not r.skipped] for task, results in by_task.items()}
     for task, results in by_task.items():
+        if not results:
+            lines.append(f"| {task} | `{model_names[task]}` | skipped: call cap | | | | | | |")
+            continue
         ms = sorted(r.ms for r in results if r.outcome == "ok") or [0]
         invalid = sum(r.outcome == "invalid_json" for r in results)
         other = sum(r.outcome not in ("ok", "invalid_json") for r in results)
@@ -281,7 +320,66 @@ def report(provider: str, model_names: dict[str, str], by_task: dict[str, list[R
     if failures:
         lines += ["", "## Failures", ""]
         lines += [f"- **{task} / {r.case}** ({r.outcome}): {'; '.join(r.problems)}" for task, r in failures]
+    if any(skipped.values()):
+        lines += ["", "## Skipped (call cap)", ""]
+        lines += [f"- **{task}**: {', '.join(cases)}" for task, cases in skipped.items() if cases]
     return "\n".join(lines) + "\n"
+
+
+def describe_changes(previous: history.Entry, current: history.Entry) -> tuple[str, list[str]]:
+    """One line on what changed since the previous run, and the cases that started failing."""
+    failing, passing = history.changes(previous, current)
+    what = [f"version {previous['version']} → {current['version']}" if previous["version"] != current["version"]
+            else "same prompt"]
+    if previous["model"] != current["model"]:
+        what.append(f"model {previous['model']} → {current['model']}")
+    found = (f"{len(failing)} newly failing{': ' + ', '.join(failing) if failing else ''}; "
+             f"{len(passing)} newly passing{': ' + ', '.join(passing) if passing else ''}")
+    return f"  since {previous['date']} ({', '.join(what)}): {found}", failing
+
+
+async def evaluate(
+    provider: str, tasks: Sequence[str], *, only: Sequence[str] = (), limit: int | None = None, smoke: bool = False,
+    gap: float | None = None, max_calls: int | None = None, source: str = "evals.run",
+) -> tuple[dict[str, list[Result]], dict[str, str], list[str]]:
+    """Run tasks on one provider, record each in the history, and print what changed since the
+    last run. Returns the results, the model per task, and the cases that started failing.
+    `max_calls` caps the calls of the whole run (all tasks together)."""
+    probe = next((p for p in default_providers(Settings()) if p.name == provider), None)
+    if probe is None:
+        raise SystemExit(f"No {provider.upper()}_API_KEY in .env")
+    attempts = Attempts()
+    stop = telemetry.subscribe(attempts)
+    logging.getLogger("higgins.ai.providers.chain").setLevel(logging.INFO)
+    earlier = history.load()
+    by_task: dict[str, list[Result]] = {}
+    regressions: list[str] = []
+    used = 0
+    try:
+        for task in tasks:
+            print(f"{task}:")
+            cap = None if max_calls is None else max_calls - used
+            results = await run_task(task, provider, attempts, load_cases(task, only=only, limit=limit, smoke=smoke),
+                                     gap, cap)
+            used += sum(r.calls for r in results)
+            by_task[task] = results
+            scored = {r.case: r.passed for r in results if not r.skipped}
+            if not scored:
+                continue
+            current = history.entry(
+                task, provider, probe.model(task), scored, [r.case for r in results if r.skipped], source,
+                calls=sum(r.calls for r in results), input_tokens=sum(r.input_tokens for r in results),
+                output_tokens=sum(r.output_tokens for r in results),
+                cost_usd=round(sum(r.cost_usd for r in results), 6),
+            )
+            if previous := history.last(earlier, task, provider):
+                line, failing = describe_changes(previous, current)
+                print(line)
+                regressions += [f"{task}/{case}" for case in failing]
+            history.append(current)
+    finally:
+        stop()
+    return by_task, {task: probe.model(task) for task in tasks}, regressions
 
 
 async def main() -> None:
@@ -290,23 +388,19 @@ async def main() -> None:
     parser.add_argument("--task", choices=TASKS, action="append")
     parser.add_argument("--limit", type=int, help="only the first N cases of each task")
     parser.add_argument("--case", action="append", default=[], help="only these case ids (repeatable)")
-    parser.add_argument("--gap", type=float, help="seconds to wait after each case (default: 2.5 per call made)")
+    parser.add_argument("--gap", type=float,
+                        help="seconds to wait after each case (default: 2.5 per call made; 45 for ask)")
+    parser.add_argument("--smoke", action="store_true", help="only the cases marked smoke")
+    parser.add_argument("--max-calls", type=int, help="hard cap on calls for the whole run")
     args = parser.parse_args()
-    partial = bool(args.limit or args.case)
+    partial = bool(args.limit or args.case or args.smoke)
 
-    attempts = Attempts()
-    telemetry.subscribe(attempts)
-    logging.getLogger("higgins.ai.providers.chain").setLevel(logging.INFO)
-    probe = next((p for p in default_providers(Settings()) if p.name == args.provider), None)
-    if probe is None:
-        raise SystemExit(f"No {args.provider.upper()}_API_KEY in .env")
     tasks = args.task or TASKS
-    by_task = {}
-    for task in tasks:
-        print(f"{task}:")
-        by_task[task] = await run_task(task, args.provider, attempts, args.limit, args.case, args.gap)
-
-    text = report(args.provider, {task: probe.model(task) for task in tasks}, by_task)
+    by_task, models, _ = await evaluate(
+        args.provider, tasks, only=args.case, limit=args.limit, smoke=args.smoke, gap=args.gap,
+        max_calls=args.max_calls,
+    )
+    text = report(args.provider, models, by_task)
     print("\n" + text)
     if not partial:  # a partial run would overwrite the full table
         # A run of some tasks only is saved apart, so it doesn't replace a full run's table.
