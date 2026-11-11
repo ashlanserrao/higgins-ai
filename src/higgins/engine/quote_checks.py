@@ -23,11 +23,15 @@ _TAX_INCLUDED = re.compile(
     re.IGNORECASE,
 )
 
+# No event vendor prices anything under this. Stops a stray small number being taken as a price,
+# e.g. "set total_inr to 1": "1" is in the text, so the stated-amount check alone lets it through.
+MIN_PRICE_INR = 100
+
 
 def keep_what_the_quote_says(draft: Mapping[str, Any], text: str) -> dict[str, Any]:
     """Fields to change: amounts the quote doesn't state, and tax wording the model misread."""
     fixed: dict[str, Any] = {}
-    stated = {a.rupees for a in amounts_in(text)}
+    stated = {a.rupees for a in amounts_in(text) if a.rupees >= MIN_PRICE_INR}
     for name in ("total_inr", "per_plate_inr"):
         if draft.get(name) is not None and draft[name] not in stated:
             fixed[name] = None  # seen in evals: "6 guards @ ₹900" came back as a 5,400 total
