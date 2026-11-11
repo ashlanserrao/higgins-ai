@@ -61,7 +61,7 @@ class FakeRaw:
         self.response = response
         self.headers = headers
 
-    async def parse(self):
+    def parse(self):  # synchronous, like the SDK's
         return self.response
 
 

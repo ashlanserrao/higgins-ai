@@ -84,7 +84,7 @@ class Provider:
         """Call an SDK endpoint (chat.completions or responses) through `with_raw_response`, so
         the rate-limit headers can be read: the parsed reply, and its usage."""
         raw = await endpoint.with_raw_response.create(**request)
-        response = await raw.parse()
+        response = raw.parse()  # synchronous: the body has already been read
         return response, usage_from(response, raw.headers)
 
     async def tool_turn(
