@@ -15,8 +15,12 @@ import { reviewRows } from "./ask-words";
 // Rows the review card shows before "Show n more".
 const ROWS_SHOWN = 5;
 
-/** What came back for the words sent: the API's answer, or a failed call. */
-export type Outcome = { asked: string } & ({ response: AskResponse; failed?: never } | { failed: true; response?: never });
+/** What came back for the words sent: the API's answer, or a failed call (why, and whether
+ *  asking again could help). */
+export type Outcome = { asked: string } & (
+  | { response: AskResponse; failed?: never }
+  | { failed: true; error: string; retry: boolean; response?: never }
+);
 
 /** The card above the bar: the agent's proposal, or why there's nothing to apply. */
 export function Review({ outcome, title, ready, headingRef, headingId, onApply, onCancel, onDone, onRetry }: {
@@ -37,8 +41,10 @@ export function Review({ outcome, title, ready, headingRef, headingId, onApply, 
   if (outcome.failed) {
     return (
       <>
-        {heading("That didn't work. Your plan hasn't changed. Try again?")}
-        <div className="mt-3 flex gap-2">{retry}{cancel()}</div>
+        {heading(outcome.error)}
+        {asked}
+        <p className="mt-2 text-[13px] text-muted-foreground">Your plan hasn't changed.</p>
+        <div className="mt-3 flex gap-2">{outcome.retry && retry}{cancel(outcome.retry ? "Cancel" : "OK")}</div>
       </>
     );
   }

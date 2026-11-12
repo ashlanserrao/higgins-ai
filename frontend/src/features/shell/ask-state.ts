@@ -2,10 +2,19 @@
 // agent (/api/ask) and the proposal that came back, and the "Examples to try" menu.
 
 import { useCallback, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from "react";
-import { api } from "@/lib/api/client";
+import { api, ApiError, errorMessage } from "@/lib/api/client";
 import type { PlanRequest } from "@/lib/api/types";
 import type { Outcome } from "./ask-review";
 import { askHeadline } from "./ask-words";
+
+/** What to say when a request failed, and whether asking again could help. A rejected request
+ *  (422, which always names its fields) fails the same way every time; a field's message is the
+ *  specific one ("The event date is in the past."), the top message points at fields the card
+ *  doesn't show. */
+export function whyFailed(error: unknown): { error: string; retry: boolean } {
+  const fields = error instanceof ApiError ? error.fields : [];
+  return { error: fields[0]?.message ?? errorMessage(error), retry: fields.length === 0 };
+}
 
 /** One request at a time. A reply that arrives after `drop()` (the dock closed) is ignored.
  *  `onAnswered` runs once a reply (or a failure) is in, to show the review card. */
@@ -23,8 +32,8 @@ export function useAskRequest(inputs: PlanRequest, enabled: boolean, onAnswered:
     try {
       const response = await api.ask(asked, inputs);
       if (mine === ticket.current) setOutcome({ asked, response });
-    } catch {
-      if (mine === ticket.current) setOutcome({ asked, failed: true });
+    } catch (error) {
+      if (mine === ticket.current) setOutcome({ asked, failed: true, ...whyFailed(error) });
     } finally {
       if (mine === ticket.current) {
         setBusy(false);

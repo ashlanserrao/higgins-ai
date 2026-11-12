@@ -22,13 +22,19 @@ def error_response(status: int, message: str, fields: list[dict[str, str]] | Non
 
 
 def add_error_handlers(app: FastAPI) -> None:
+    def rejected(request: Request, message: str, fields: list[dict[str, str]]) -> JSONResponse:
+        # Field names and our own messages only, never the values sent.
+        logger.warning("Rejected %s: %s", request.url.path,
+                       "; ".join(f"{f['field']}: {f['message']}" for f in fields) or message)
+        return error_response(422, message, fields)
+
     @app.exception_handler(RequestValidationError)
-    async def validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
-        return error_response(422, "Please check the highlighted fields.", field_errors(exc.errors()))
+    async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+        return rejected(request, "Please check the highlighted fields.", field_errors(exc.errors()))
 
     @app.exception_handler(PlanInputError)
-    async def plan_input_error(_: Request, exc: PlanInputError) -> JSONResponse:
-        return error_response(422, str(exc), [{"field": exc.field, "message": str(exc)}])
+    async def plan_input_error(request: Request, exc: PlanInputError) -> JSONResponse:
+        return rejected(request, str(exc), [{"field": exc.field, "message": str(exc)}])
 
     @app.exception_handler(AIBusyError)
     async def ai_busy(_: Request, __: AIBusyError) -> JSONResponse:

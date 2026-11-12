@@ -4,13 +4,13 @@
 
 import { useRef, useState, type ReactNode, type Ref } from "react";
 import {
-  AlertTriangle, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine,
+  AlertTriangle, CalendarX, ClipboardList, Download, Lightbulb, LayoutDashboard, PanelLeftClose, PanelLeftOpen, PencilLine,
   Printer, Store, Users, Wallet, type LucideIcon,
 } from "lucide-react";
 import { LogoFull, LogoMark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
 import { PageBandTools } from "@/components/page-band";
-import { inr, shortInr } from "@/lib/format";
+import { formatDate, inr, shortInr, todayInIndia } from "@/lib/format";
 import { expectedGuests } from "@/lib/guests";
 import { readItem, writeItem } from "@/lib/storage/safe-storage";
 import { needsAction } from "@/lib/tasks";
@@ -135,7 +135,9 @@ function EventCard({ rail = false }: { rail?: boolean }) {
 
 export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEdit: () => void; onPrint: () => void }) {
   const { section } = useNav();
-  const { shared, keepSharedPlan, activeId } = usePlan();
+  const { shared, keepSharedPlan, activeId, inputs } = usePlan();
+  // The server won't work out a plan for a past date, so the saved one shows as it was.
+  const datePassed = inputs.event_date < todayInIndia();
   const counts = useCounts();
   const [collapsed, toggleSidebar] = useCollapsed();
   // The fold's button changes places as it folds, so focus follows it.
@@ -256,6 +258,15 @@ export function Shell({ children, onEdit, onPrint }: { children: ReactNode; onEd
               <Download className="size-4 text-info" aria-hidden="true" />
               <span className="flex-1">Someone shared this plan with you. Keep it to add it to your events. Your own plans stay as they are.</span>
               <Button size="sm" variant="outline" onClick={keepSharedPlan}>Keep this plan</Button>
+            </div>
+          )}
+          {datePassed && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-warning-soft px-4 py-3 text-sm md:mt-6">
+              <CalendarX className="size-4 text-warning" aria-hidden="true" />
+              <span className="flex-1">
+                The event date, {formatDate(inputs.event_date)}, has passed, so this plan can't change. Pick a new date to keep planning.
+              </span>
+              <Button size="sm" variant="outline" onClick={onEdit}>Change the date</Button>
             </div>
           )}
           <PageBandTools value={desktop ? <BandTools onPrint={onPrint} /> : null}>{children}</PageBandTools>

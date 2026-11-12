@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { StatusBadge } from "@/components/badges";
 import { FieldError } from "@/components/field-error";
 import { ApiError } from "@/lib/api/client";
+import { todayInIndia } from "@/lib/format";
 import { EVENT_LABELS } from "@/lib/labels";
 import { emptyProgress } from "@/lib/storage/share";
 import type { EventType, UnderstandResponse } from "@/lib/api/types";
@@ -33,7 +34,10 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
   const [values, setValues] = useState<Values>(() =>
     current ? fromInputs(current) : { ...blank, event_type: events.at(-1)?.inputs.event_type ?? "" });
   const [step, setStep] = useState(0);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // A saved plan whose date has passed opens on the date, already marked (the date is on step 0).
+  const datePassed = Boolean(current && current.event_date < todayInIndia());
+  const [errors, setErrors] = useState((): Record<string, string> =>
+    datePassed ? { event_date: "The event date has passed. Pick a new date." } : {});
   const [formError, setFormError] = useState(bootError);
   const [filled, setFilled] = useState<UnderstandResponse | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,7 +74,7 @@ export function Questionnaire({ onDone, onCancel, initialText = "" }: { onDone?:
   // Where focus goes after the next render: a field with an error, or the first field of the
   // step just opened (the Next and Back buttons it was on may be gone). Only for moves the
   // organiser makes, never during the AI's fill animation, which changes steps too.
-  const focusNext = useRef<string | null>(null);
+  const focusNext = useRef<string | null>(datePassed ? "event_date" : null);
   const stepArea = useRef<HTMLDivElement>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: step and errors are triggers: focus moves after the render they cause.
   useEffect(() => {
