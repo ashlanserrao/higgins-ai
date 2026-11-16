@@ -127,6 +127,22 @@ Results on 8 Nov 2026 ([details](evals/results/2026-11-08-groq-ask.md)):
 - **The model's sentence can't be trusted** (2 of 12 named the wrong message kind), so the page's headline and before/after are written by code, and the model's sentence is a small secondary line.
 - **Groq's free tier caps tokens per minute.** An agent turn sends about 1,900 tokens, so cases run a minute apart (`--gap 60`). The first run without it lost 5 cases to rate limits; they passed on a paced rerun.
 
+### Evals: an LLM judge for idea quality, checked against my ratings
+
+Whether an idea is *good* can't be checked by code, so a bigger model judges it: Groq `gpt-oss-120b` (not the 20b model that wrote the ideas, to avoid a model grading its own work). It gives pass/fail on three criteria, with its reason written first: **specific** (names something concrete to make, do, serve or set up), **fits** (the occasion, guests, city, customs and must-haves) and **doable** (budget, venue, guest count, days left, what's easy to find locally). An idea passes only if it passes all three. The idea is fenced as data, so text inside it can't instruct the judge.
+
+I rated 50 generated ideas myself, then measured how often the judge agrees with me, and Cohen's kappa (agreement beyond chance; above 0.6 counts as substantial). I tuned the rubric on 30 ideas (dev) and froze it, then scored it on 20 new ideas from 4 new cases (held-out). Run with `python -m evals.judge generate|judge|agreement --set dev|holdout`.
+
+| Set | Ideas | Agree | Kappa | I passed | Judge passed |
+|---|---:|---:|---:|---:|---:|
+| Dev, first rubric, low reasoning | 30 | 73% | 0.37 | 21 | 21 |
+| Dev, final rubric, medium reasoning | 30 | 87% | 0.64 | 21 | 25 |
+| **Held-out (the honest number)** | **20** | **90%** | **0.69** | **15** | **17** |
+
+- **Reasoning effort mattered more than wording.** Rewording the rubric alone left kappa at 0.32-0.37. One attempt made it worse: "must name the actual items" made the judge demand quantities and equipment. At low effort it also ignored a rule in its own rubric (an idea need not deliver a must-have itself). Medium effort fixed that, at about 3 times the output tokens (about $0.0004 per idea).
+- **Known bias: it is too easy on practicality.** Every disagreement left on both sets is the judge passing an idea I failed, mostly over cost, workload or local supply: neon and a jukebox on a tight budget, pinecones in Bengaluru, paper flowers by hand for 500 guests. It caught none of my 3 "doable" fails. So it is a good check that ideas are concrete and fit the event, but a person still has to judge cost and effort.
+- **Small sample.** With 20 held-out ideas, one idea moves agreement by 5 points, so 0.69 is an estimate, not a guarantee.
+
 ## Demo scenarios
 
 Real engine output with `today = 2026-10-21`; each is also a golden test in `tests/engine/test_engine.py`.

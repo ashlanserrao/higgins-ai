@@ -204,12 +204,15 @@ def runner(task: str, ai: StructuredAI) -> Run:
     generator = IdeasGenerator(ai)
 
     def ideas(case: Case) -> tuple[Awaitable[Any], Callable[[Any], list[str]]]:
-        request = PLANS[case["plan"]].model_copy(update={
-            "preferences": case["preferences"], "must_haves": case["must_haves"],
-        })
+        request = ideas_request(case)
         plan = build_plan(request, TODAY)
         return generator.generate(request, plan), lambda answer: check_ideas(case, answer, plan.budget_level == "tight")
     return ideas
+
+
+def ideas_request(case: Case) -> PlanRequest:
+    """An ideas case's plan, with its preferences and must-haves (the judge uses it too)."""
+    return PLANS[case["plan"]].model_copy(update={"preferences": case["preferences"], "must_haves": case["must_haves"]})
 
 
 def load_cases(task: str, *, only: Sequence[str] = (), limit: int | None = None, smoke: bool = False) -> list[Case]:

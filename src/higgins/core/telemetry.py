@@ -21,8 +21,10 @@ logger = logging.getLogger("higgins.ai.providers.chain")  # the existing per-cal
 
 # List prices in USD per 1M tokens (input, output), to show what calls would cost on a paid plan.
 # Checked 9 Nov 2026: console.groq.com/docs/models, developers.openai.com/api/docs/models/gpt-5-nano.
+# gpt-oss-120b (the eval judge) checked 16 Nov 2026 on the same Groq page.
 PRICES_USD_PER_MILLION: dict[str, tuple[float, float]] = {
     "openai/gpt-oss-20b": (0.075, 0.30),
+    "openai/gpt-oss-120b": (0.15, 0.60),
     "gpt-5-nano": (0.05, 0.40),
 }
 
